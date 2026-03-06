@@ -1,0 +1,27 @@
+
+{% extends "base.html" %}
+{% block content %}
+<div class="grid metrics">
+  <div class="card metric"><span>Total de itens</span><strong>{{ total_items }}</strong></div>
+  <div class="card metric"><span>Produtos em alerta</span><strong>{{ total_alertas }}</strong></div>
+  <div class="card metric"><span>Perdas acumuladas</span><strong>R$ {{ '%.2f'|format(total_perdas) }}</strong></div>
+  <div class="card metric"><span>Ticket médio</span><strong>R$ {{ '%.2f'|format(ticket_medio) }}</strong></div>
+</div>
+<div class="grid two">
+  <section class="card">
+    <h3>Comparativo almoço x janta</h3>
+    <table>
+      <tr><th>Período</th><th>Qtd.</th><th>Faturamento</th></tr>
+      {% for k, v in por_periodo.items() %}
+      <tr><td>{{ k }}</td><td>{{ v.q }}</td><td>R$ {{ '%.2f'|format(v.v) }}</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+  <section class="card">
+    <h3>Exportações</h3>
+    <p><a class="btn-link" href="{{ url_for('exportar_vendas') }}">Baixar relatório de vendas (CSV)</a></p>
+    <p><a class="btn-link" href="{{ url_for('exportar_movimentos') }}">Baixar relatório de movimentos (CSV)</a></p>
+    <p class="muted">Os arquivos CSV abrem no Excel e ajudam na análise diária.</p>
+  </section>
+</div>
+{% endblock %}
