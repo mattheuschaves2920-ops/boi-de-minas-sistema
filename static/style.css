@@ -34,6 +34,23 @@ th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;font-
 .login-card{max-width:430px;width:100%}
 .alert{background:#fdecec;color:#a61b1b;padding:12px;border-radius:10px;margin-bottom:12px}
 .muted{color:var(--muted)}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.brand-icon{
+  width:72px;
+  height:72px;
+  border-radius:12px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:38px;
+  box-shadow:0 4px 12px rgba(0,0,0,.18);
+}
 .small{font-size:12px}
 code{background:#f2eee6;padding:2px 6px;border-radius:6px}
 .barcode-box{margin-bottom:14px}
