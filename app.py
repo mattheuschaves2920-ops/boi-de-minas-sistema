@@ -4,16 +4,33 @@ from io import StringIO, BytesIO
 from datetime import date, datetime
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
+app = Flask(_name_)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "troque-esta-chave")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///boi_de_minas.db").replace("postgres://", "postgresql://", 1)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads", "desperdicio")
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
+
 db = SQLAlchemy(app)
+
+
+def corrigir_banco():
+    with app.app_context():
+        try:
+            db.session.execute(text("""
+                ALTER TABLE waste
+                ADD COLUMN IF NOT EXISTS photo_filename VARCHAR(255);
+            """))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+
+corrigir_banco()
 
 MEAL_TYPES = [
     "Self-service HG",
