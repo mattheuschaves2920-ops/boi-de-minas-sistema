@@ -1,7 +1,7 @@
 import os
 import csv
 from io import StringIO, BytesIO
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
@@ -201,6 +201,27 @@ def dashboard():
         por_periodo[s.period]["q"] += s.quantity
         por_periodo[s.period]["v"] += s.unit_value * s.quantity
 
+    # ETAPA 1 - CÁLCULO DO ALMOÇO
+    vendas_almoco = [s for s in sales_today if s.period == "Almoço"]
+    faturamento_almoco = sum(s.unit_value * s.quantity for s in vendas_almoco)
+
+    # custo do almoço = produção do dia + desperdício do dia
+    custo_almoco = producao_custo + desperdicio_valor
+
+    lucro_bruto_almoco = faturamento_almoco - custo_almoco
+
+    # GRÁFICO DOS ÚLTIMOS 7 DIAS
+    labels_grafico = []
+    valores_grafico = []
+
+    for i in range(6, -1, -1):
+        dia = today - timedelta(days=i)
+        vendas_dia = Sale.query.filter_by(sale_date=dia).all()
+        total_dia = sum(v.unit_value * v.quantity for v in vendas_dia)
+
+        labels_grafico.append(dia.strftime("%d/%m"))
+        valores_grafico.append(round(total_dia, 2))
+
     return render_template(
         "dashboard.html",
         user=current_user(),
@@ -214,8 +235,14 @@ def dashboard():
         producao_custo=producao_custo,
         desperdicio_valor=desperdicio_valor,
         vendidos_diarios=vendidos_diarios,
-    )
 
+        # novos campos
+        faturamento_almoco=faturamento_almoco,
+        custo_almoco=custo_almoco,
+        lucro_bruto_almoco=lucro_bruto_almoco,
+        labels_grafico=labels_grafico,
+        valores_grafico=valores_grafico
+    )
 @app.route("/itens", methods=["GET", "POST"])
 def itens():
     if not require_login():
