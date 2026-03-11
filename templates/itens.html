@@ -5,11 +5,6 @@
   <section class="card">
     <h3>Cadastrar item</h3>
 
-    <div class="barcode-box">
-      <button type="button" class="btn" onclick="toggleScanner('scanner-item','code')">Ler código de barras</button>
-      <div id="scanner-item" class="scanner hidden"></div>
-    </div>
-
     <form method="post">
       <label>Área
         <select name="area" id="area">
@@ -66,7 +61,7 @@
 
     <form method="get" style="margin-bottom:16px;">
       <label>Buscar por nome, categoria, área ou código
-        <input type="text" name="busca" value="{{ busca or '' }}" placeholder="Ex.: coxinha, bebidas, freezer...">
+        <input type="text" name="busca" value="{{ busca or '' }}">
       </label>
       <button class="btn" type="submit">Buscar</button>
     </form>
@@ -93,9 +88,7 @@
           <td>{{ i.stock }}</td>
           <td>{{ i.min_stock }}</td>
           <td>
-            <button class="btn btn-editar" type="button" data-id="{{ i.id }}">
-              Editar
-            </button>
+            <a class="btn" href="{{ url_for('itens', editar=i.id) }}#editar-produto">Editar</a>
           </td>
         </tr>
         {% endfor %}
@@ -104,159 +97,58 @@
   </section>
 </div>
 
-<section class="card" style="margin-top:16px;">
+<section class="card" id="editar-produto" style="margin-top:16px;">
   <h3>Editar produto</h3>
-  <form id="form-edicao" method="post">
+
+  <form method="post" action="{% if item_edicao %}{{ url_for('editar_item', item_id=item_edicao.id) }}{% else %}#{% endif %}">
     <label>Área
-      <select name="area" id="edit_area">
+      <select name="area">
         {% for a in areas %}
-        <option value="{{ a }}">{{ a }}</option>
+        <option value="{{ a }}" {% if item_edicao and item_edicao.area == a %}selected{% endif %}>{{ a }}</option>
         {% endfor %}
       </select>
     </label>
 
     <label>Código de barras
-      <input type="text" name="code" id="edit_code">
+      <input type="text" name="code" value="{{ item_edicao.code if item_edicao else '' }}">
     </label>
 
     <label>Nome do item
-      <input type="text" name="name" id="edit_name" required>
+      <input type="text" name="name" value="{{ item_edicao.name if item_edicao else '' }}" required>
     </label>
 
     <label>Categoria
-      <select name="category" id="edit_category">
+      <select name="category">
         {% for c in categories %}
-        <option value="{{ c }}">{{ c }}</option>
+        <option value="{{ c }}" {% if item_edicao and item_edicao.category == c %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
       </select>
     </label>
 
     <label>Unidade
-      <select name="unit" id="edit_unit">
-        <option value="kg">kg</option>
-        <option value="un">un</option>
-        <option value="l">l</option>
-        <option value="cx">cx</option>
-        <option value="pct">pct</option>
+      <select name="unit">
+        <option value="kg" {% if item_edicao and item_edicao.unit == 'kg' %}selected{% endif %}>kg</option>
+        <option value="un" {% if item_edicao and item_edicao.unit == 'un' %}selected{% endif %}>un</option>
+        <option value="l" {% if item_edicao and item_edicao.unit == 'l' %}selected{% endif %}>l</option>
+        <option value="cx" {% if item_edicao and item_edicao.unit == 'cx' %}selected{% endif %}>cx</option>
+        <option value="pct" {% if item_edicao and item_edicao.unit == 'pct' %}selected{% endif %}>pct</option>
       </select>
     </label>
 
     <label>Custo unitário
-      <input type="number" step="0.01" name="cost" id="edit_cost">
+      <input type="number" step="0.01" name="cost" value="{{ item_edicao.cost if item_edicao else '' }}">
     </label>
 
     <label>Estoque atual
-      <input type="number" step="0.001" name="stock" id="edit_stock">
+      <input type="number" step="0.001" name="stock" value="{{ item_edicao.stock if item_edicao else '' }}">
     </label>
 
     <label>Estoque mínimo
-      <input type="number" step="0.001" name="min_stock" id="edit_min_stock">
+      <input type="number" step="0.001" name="min_stock" value="{{ item_edicao.min_stock if item_edicao else '' }}">
     </label>
 
     <button class="btn" type="submit">Salvar alteração</button>
   </form>
 </section>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const botoesEditar = document.querySelectorAll('.btn-editar');
-
-  botoesEditar.forEach(function(botao) {
-    botao.addEventListener('click', async function() {
-      const itemId = this.dataset.id;
-
-      try {
-        const resp = await fetch(/item/${itemId});
-        const data = await resp.json();
-
-        if (!data.ok) {
-          alert('Não foi possível carregar os dados do produto.');
-          return;
-        }
-
-        const item = data.item;
-        const form = document.getElementById('form-edicao');
-
-        form.action = /editar-item/${item.id};
-
-        document.getElementById('edit_area').value = item.area || '';
-        document.getElementById('edit_code').value = item.code || '';
-        document.getElementById('edit_name').value = item.name || '';
-        document.getElementById('edit_category').value = item.category || 'Outros';
-        document.getElementById('edit_unit').value = item.unit || 'un';
-        document.getElementById('edit_cost').value = item.cost || 0;
-        document.getElementById('edit_stock').value = item.stock || 0;
-        document.getElementById('edit_min_stock').value = item.min_stock || 0;
-
-        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (erro) {
-        alert('Erro ao carregar o produto para edição.');
-      }
-    });
-  });
-
-  async function preencherPorCodigo(codigo) {
-    if (!codigo) return;
-
-    const resp = await fetch(/buscar-item?code=${encodeURIComponent(codigo)});
-    const data = await resp.json();
-
-    if (data.ok) {
-      document.getElementById('code').value = data.item.code || '';
-      document.getElementById('name').value = data.item.name || '';
-      document.getElementById('area').value = data.item.area || 'Estoque Geral';
-      document.getElementById('category').value = data.item.category || 'Outros';
-      document.getElementById('unit').value = data.item.unit || 'un';
-      document.getElementById('cost').value = data.item.cost || 0;
-      document.getElementById('stock').value = data.item.stock || 0;
-      document.getElementById('min_stock').value = data.item.min_stock || 0;
-    }
-  }
-
-  const campoCode = document.getElementById('code');
-  if (campoCode) {
-    campoCode.addEventListener('change', function(e) {
-      preencherPorCodigo(e.target.value);
-    });
-  }
-
-  let activeScanner = null;
-
-  window.toggleScanner = function(scannerId, inputId) {
-    const scannerEl = document.getElementById(scannerId);
-
-    if (!scannerEl.classList.contains('hidden')) {
-      if (activeScanner) {
-        activeScanner.stop().catch(() => {});
-        activeScanner = null;
-      }
-      scannerEl.innerHTML = '';
-      scannerEl.classList.add('hidden');
-      return;
-    }
-
-    scannerEl.classList.remove('hidden');
-    activeScanner = new Html5Qrcode(scannerId);
-
-    activeScanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 220 },
-      (decodedText) => {
-        document.getElementById(inputId).value = decodedText;
-        preencherPorCodigo(decodedText);
-
-        activeScanner.stop().then(() => {
-          scannerEl.innerHTML = '';
-          scannerEl.classList.add('hidden');
-        });
-      },
-      () => {}
-    ).catch(() => {
-      alert('Não foi possível abrir a câmera.');
-      scannerEl.classList.add('hidden');
-    });
-  };
-});
-</script>
 
 {% endblock %}
