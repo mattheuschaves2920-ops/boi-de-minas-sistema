@@ -3,54 +3,181 @@
 <div class="grid two">
   <section class="card">
     <h3>Cadastrar item</h3>
+
     <div class="barcode-box">
       <button type="button" class="btn" onclick="toggleScanner('scanner-item','code')">Ler código de barras</button>
       <div id="scanner-item" class="scanner hidden"></div>
     </div>
+
     <form method="post">
       <label>Área
-        <select name="area" id="area">{% for a in areas %}<option>{{ a }}</option>{% endfor %}</select>
+        <select name="area" id="area">
+          {% for a in areas %}<option>{{ a }}</option>{% endfor %}
+        </select>
       </label>
+
       <label>Código de barras
         <input type="text" name="code" id="code">
       </label>
+
       <label>Nome do item
         <input type="text" name="name" id="name" required>
       </label>
+
       <label>Categoria
-        <select name="category" id="category">{% for c in categories %}<option>{{ c }}</option>{% endfor %}</select>
+        <select name="category" id="category">
+          {% for c in categories %}<option>{{ c }}</option>{% endfor %}
+        </select>
       </label>
+
       <label>Unidade
-        <select name="unit" id="unit"><option>kg</option><option>un</option><option>l</option><option>cx</option><option>pct</option></select>
+        <select name="unit" id="unit">
+          <option>kg</option>
+          <option>un</option>
+          <option>l</option>
+          <option>cx</option>
+          <option>pct</option>
+        </select>
       </label>
+
       <label>Custo unitário
         <input type="number" step="0.01" name="cost" id="cost">
       </label>
+
       <label>Estoque atual
         <input type="number" step="0.001" name="stock" id="stock">
       </label>
+
       <label>Estoque mínimo
         <input type="number" step="0.001" name="min_stock" id="min_stock">
       </label>
+
       <button class="btn">Salvar item</button>
     </form>
   </section>
+
   <section class="card">
+    <h3>Buscar produto</h3>
+    <form method="get" style="margin-bottom:16px;">
+      <label>Buscar por nome, categoria, área ou código
+        <input type="text" name="busca" value="{{ busca or '' }}" placeholder="Ex.: coxinha, bebidas, freezer...">
+      </label>
+      <button class="btn">Buscar</button>
+    </form>
+
     <h3>Itens cadastrados</h3>
     <div class="table-wrap">
       <table>
-        <tr><th>Área</th><th>Código</th><th>Item</th><th>Categoria</th><th>Estoque</th><th>Mín.</th></tr>
+        <tr>
+          <th>Área</th>
+          <th>Código</th>
+          <th>Item</th>
+          <th>Categoria</th>
+          <th>Estoque</th>
+          <th>Mín.</th>
+          <th>Ação</th>
+        </tr>
+
         {% for i in itens %}
-        <tr><td>{{ i.area }}</td><td>{{ i.code or '' }}</td><td>{{ i.name }}</td><td>{{ i.category }}</td><td>{{ i.stock }}</td><td>{{ i.min_stock }}</td></tr>
+        <tr>
+          <td>{{ i.area }}</td>
+          <td>{{ i.code or '' }}</td>
+          <td>{{ i.name }}</td>
+          <td>{{ i.category }}</td>
+          <td>{{ i.stock }}</td>
+          <td>{{ i.min_stock }}</td>
+          <td>
+            <button class="btn" type="button"
+              onclick="abrirEdicao(
+                '{{ i.id }}',
+                '{{ i.area }}',
+                '{{ i.code or '' }}',
+                '{{ i.name }}',
+                '{{ i.category or '' }}',
+                '{{ i.unit }}',
+                '{{ i.cost }}',
+                '{{ i.stock }}',
+                '{{ i.min_stock }}'
+              )">
+              Editar
+            </button>
+          </td>
+        </tr>
         {% endfor %}
       </table>
     </div>
   </section>
 </div>
+
+<section class="card" style="margin-top:16px;">
+  <h3>Editar produto</h3>
+  <form id="form-edicao" method="post">
+    <label>Área
+      <select name="area" id="edit_area">
+        {% for a in areas %}<option>{{ a }}</option>{% endfor %}
+      </select>
+    </label>
+
+    <label>Código de barras
+      <input type="text" name="code" id="edit_code">
+    </label>
+
+    <label>Nome do item
+      <input type="text" name="name" id="edit_name" required>
+    </label>
+
+    <label>Categoria
+      <select name="category" id="edit_category">
+        {% for c in categories %}<option>{{ c }}</option>{% endfor %}
+      </select>
+    </label>
+
+    <label>Unidade
+      <select name="unit" id="edit_unit">
+        <option>kg</option>
+        <option>un</option>
+        <option>l</option>
+        <option>cx</option>
+        <option>pct</option>
+      </select>
+    </label>
+
+    <label>Custo unitário
+      <input type="number" step="0.01" name="cost" id="edit_cost">
+    </label>
+
+    <label>Estoque atual
+      <input type="number" step="0.001" name="stock" id="edit_stock">
+    </label>
+
+    <label>Estoque mínimo
+      <input type="number" step="0.001" name="min_stock" id="edit_min_stock">
+    </label>
+
+    <button class="btn">Salvar alteração</button>
+  </form>
+</section>
+
 <script>
+function abrirEdicao(id, area, code, name, category, unit, cost, stock, min_stock) {
+  const form = document.getElementById('form-edicao');
+  form.action = /editar-item/${id};
+
+  document.getElementById('edit_area').value = area;
+  document.getElementById('edit_code').value = code;
+  document.getElementById('edit_name').value = name;
+  document.getElementById('edit_category').value = category || 'Outros';
+  document.getElementById('edit_unit').value = unit;
+  document.getElementById('edit_cost').value = cost;
+  document.getElementById('edit_stock').value = stock;
+  document.getElementById('edit_min_stock').value = min_stock;
+
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
 async function preencherPorCodigo(codigo){
   if(!codigo) return;
-  const resp = await fetch(`/buscar-item?code=${encodeURIComponent(codigo)}`);
+  const resp = await fetch(/buscar-item?code=${encodeURIComponent(codigo)});
   const data = await resp.json();
   if(data.ok){
     document.getElementById('code').value = data.item.code || '';
@@ -63,6 +190,7 @@ async function preencherPorCodigo(codigo){
     document.getElementById('min_stock').value = data.item.min_stock || 0;
   }
 }
+
 document.getElementById('code').addEventListener('change', e => preencherPorCodigo(e.target.value));
 
 let activeScanner = null;
