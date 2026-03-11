@@ -88,20 +88,20 @@
           <td>{{ i.min_stock }}</td>
           <td>
             <button
-  class="btn btn-editar"
-  type="button"
-  data-id="{{ i.id }}"
-  data-area="{{ i.area }}"
-  data-code="{{ i.code or '' }}"
-  data-name="{{ i.name }}"
-  data-category="{{ i.category or '' }}"
-  data-unit="{{ i.unit }}"
-  data-cost="{{ i.cost }}"
-  data-stock="{{ i.stock }}"
-  data-min-stock="{{ i.min_stock }}"
->
-  Editar
-</button>
+              class="btn btn-editar"
+              type="button"
+              data-id="{{ i.id }}"
+              data-area="{{ i.area }}"
+              data-code="{{ i.code or '' }}"
+              data-name="{{ i.name }}"
+              data-category="{{ i.category or '' }}"
+              data-unit="{{ i.unit }}"
+              data-cost="{{ i.cost }}"
+              data-stock="{{ i.stock }}"
+              data-min-stock="{{ i.min_stock }}"
+            >
+              Editar
+            </button>
           </td>
         </tr>
         {% endfor %}
@@ -180,54 +180,62 @@ document.addEventListener('DOMContentLoaded', function () {
       form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
+
+  async function preencherPorCodigo(codigo){
+    if(!codigo) return;
+
+    const resp = await fetch(/buscar-item?code=${encodeURIComponent(codigo)});
+    const data = await resp.json();
+
+    if(data.ok){
+      document.getElementById('code').value = data.item.code || '';
+      document.getElementById('name').value = data.item.name || '';
+      document.getElementById('area').value = data.item.area || 'Estoque Geral';
+      document.getElementById('category').value = data.item.category || 'Outros';
+      document.getElementById('unit').value = data.item.unit || 'un';
+      document.getElementById('cost').value = data.item.cost || 0;
+      document.getElementById('stock').value = data.item.stock || 0;
+      document.getElementById('min_stock').value = data.item.min_stock || 0;
+    }
+  }
+
+  document.getElementById('code').addEventListener('change', e => preencherPorCodigo(e.target.value));
+
+  let activeScanner = null;
+
+  window.toggleScanner = function(scannerId, inputId){
+    const scannerEl = document.getElementById(scannerId);
+
+    if(!scannerEl.classList.contains('hidden')){
+      if(activeScanner){
+        activeScanner.stop().catch(()=>{});
+        activeScanner = null;
+      }
+      scannerEl.innerHTML = '';
+      scannerEl.classList.add('hidden');
+      return;
+    }
+
+    scannerEl.classList.remove('hidden');
+    activeScanner = new Html5Qrcode(scannerId);
+
+    activeScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 220 },
+      (decodedText) => {
+        document.getElementById(inputId).value = decodedText;
+        preencherPorCodigo(decodedText);
+        activeScanner.stop().then(() => {
+          scannerEl.innerHTML = '';
+          scannerEl.classList.add('hidden');
+        });
+      },
+      () => {}
+    ).catch(() => {
+      alert('Não foi possível abrir a câmera.');
+      scannerEl.classList.add('hidden');
+    });
+  };
 });
-</script>
-
-async function preencherPorCodigo(codigo){
-  if(!codigo) return;
-  const resp = await fetch(/buscar-item?code=${encodeURIComponent(codigo)});
-  const data = await resp.json();
-  if(data.ok){
-    document.getElementById('code').value = data.item.code || '';
-    document.getElementById('name').value = data.item.name || '';
-    document.getElementById('area').value = data.item.area || 'Estoque Geral';
-    document.getElementById('category').value = data.item.category || 'Outros';
-    document.getElementById('unit').value = data.item.unit || 'un';
-    document.getElementById('cost').value = data.item.cost || 0;
-    document.getElementById('stock').value = data.item.stock || 0;
-    document.getElementById('min_stock').value = data.item.min_stock || 0;
-  }
-}
-
-document.getElementById('code').addEventListener('change', e => preencherPorCodigo(e.target.value));
-
-let activeScanner = null;
-function toggleScanner(scannerId, inputId){
-  const scannerEl = document.getElementById(scannerId);
-  if(!scannerEl.classList.contains('hidden')){
-    if(activeScanner){ activeScanner.stop().catch(()=>{}); activeScanner = null; }
-    scannerEl.innerHTML = '';
-    scannerEl.classList.add('hidden');
-    return;
-  }
-  scannerEl.classList.remove('hidden');
-  activeScanner = new Html5Qrcode(scannerId);
-  activeScanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 220 },
-    (decodedText) => {
-      document.getElementById(inputId).value = decodedText;
-      preencherPorCodigo(decodedText);
-      activeScanner.stop().then(() => {
-        scannerEl.innerHTML = '';
-        scannerEl.classList.add('hidden');
-      });
-    },
-    () => {}
-  ).catch(() => {
-    alert('Não foi possível abrir a câmera.');
-    scannerEl.classList.add('hidden');
-  });
-}
 </script>
 {% endblock %}
