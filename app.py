@@ -279,9 +279,28 @@ def itens():
         db.session.commit()
         return redirect(url_for("itens"))
 
-    itens = Item.query.order_by(Item.area, Item.name).all()
-    return render_template("itens.html", user=current_user(), itens=itens, areas=AREAS, categories=CATEGORIES)
+    busca = request.args.get("busca", "").strip()
 
+    if busca:
+        itens = Item.query.filter(
+            db.or_(
+                Item.name.ilike(f"%{busca}%"),
+                Item.category.ilike(f"%{busca}%"),
+                Item.area.ilike(f"%{busca}%"),
+                Item.code.ilike(f"%{busca}%")
+            )
+        ).order_by(Item.area, Item.name).all()
+    else:
+        itens = Item.query.order_by(Item.area, Item.name).all()
+
+    return render_template(
+        "itens.html",
+        user=current_user(),
+        itens=itens,
+        areas=AREAS,
+        categories=CATEGORIES,
+        busca=busca
+    )
 @app.route("/buscar-item")
 def buscar_item():
     if not require_login():
