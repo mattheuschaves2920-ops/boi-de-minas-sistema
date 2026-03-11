@@ -42,6 +42,7 @@ MEAL_TYPES = [
 ]
 
 AREAS = ["Estoque Geral", "Bebidas", "Freezer", "Cozinha", "Padaria", "Confeitaria"]
+
 ROLES = ["admin", "estoquista", "operador", "proprietario"]
 
 CATEGORIES = [
@@ -158,7 +159,13 @@ def require_admin():
 def render_desperdicio_page(error=None):
     items = Item.query.order_by(Item.name).all()
     lista = Waste.query.order_by(Waste.id.desc()).limit(200).all()
-    return render_template("desperdicio.html", user=current_user(), items=items, lista=lista, error=error)
+    return render_template(
+        "desperdicio.html",
+        user=current_user(),
+        items=items,
+        lista=lista,
+        error=error
+    )
 
 
 @app.route("/setup")
@@ -180,8 +187,8 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-        user = User.query.filter_by(username=username).first()
 
+        user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             session["user_id"] = user.id
             return redirect(url_for("dashboard"))
