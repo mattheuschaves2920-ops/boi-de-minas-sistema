@@ -2,13 +2,14 @@ import os
 import csv
 from io import StringIO, BytesIO
 from datetime import date, datetime, timedelta
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+from sqlalchemy import text, or_
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
+app = Flask(_name_)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "troque-esta-chave")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///boi_de_minas.db").replace("postgres://", "postgresql://", 1)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -39,15 +40,19 @@ MEAL_TYPES = [
     "Comida a quilo",
     "Churrasco a quilo",
 ]
+
 AREAS = ["Estoque Geral", "Bebidas", "Freezer", "Cozinha", "Padaria", "Confeitaria"]
 ROLES = ["admin", "estoquista", "operador", "proprietario"]
+
 CATEGORIES = [
     "Arroz e Grãos", "Massas", "Carnes", "Frango", "Peixes", "Churrasco",
     "Saladas", "Temperos", "Bebidas", "Freezer", "Limpeza", "Descartáveis",
     "Salgados", "Bolos", "Sobremesas", "Tortas", "Pão de Queijo", "Outros"
 ]
+
 DAILY_GROUPS = ["Salgados", "Bolos", "Sobremesas", "Tortas", "Pão de Queijo", "Outros"]
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -62,6 +67,7 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     area = db.Column(db.String(40), nullable=False)
@@ -73,6 +79,7 @@ class Item(db.Model):
     stock = db.Column(db.Float, nullable=False, default=0)
     min_stock = db.Column(db.Float, nullable=False, default=0)
 
+
 class Sale(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sale_date = db.Column(db.Date, nullable=False, default=date.today)
@@ -82,6 +89,7 @@ class Sale(db.Model):
     quantity = db.Column(db.Integer, nullable=False, default=0)
     notes = db.Column(db.String(255), nullable=True)
     created_by = db.Column(db.String(120), nullable=True)
+
 
 class Movement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -94,6 +102,7 @@ class Movement(db.Model):
     value = db.Column(db.Float, nullable=False, default=0)
     created_by = db.Column(db.String(120), nullable=True)
 
+
 class Waste(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     waste_date = db.Column(db.Date, nullable=False, default=date.today)
@@ -103,12 +112,14 @@ class Waste(db.Model):
     value = db.Column(db.Float, nullable=False, default=0)
     photo_filename = db.Column(db.String(255), nullable=True)
 
+
 class Production(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     prod_date = db.Column(db.Date, nullable=False, default=date.today)
     item_name = db.Column(db.String(150), nullable=False)
     quantity = db.Column(db.Float, nullable=False, default=0)
     cost = db.Column(db.Float, nullable=False, default=0)
+
 
 class DailyBakeryControl(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -121,40 +132,48 @@ class DailyBakeryControl(db.Model):
     unit_value = db.Column(db.Float, nullable=False, default=0)
     notes = db.Column(db.String(255), nullable=True)
 
+
 def ensure_upload_folder():
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
+
 def allowed_image(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
 
 def current_user():
     uid = session.get("user_id")
     return db.session.get(User, uid) if uid else None
 
+
 def require_login():
     return current_user() is not None
+
 
 def require_admin():
     user = current_user()
     return user and user.role == "admin"
+
 
 def render_desperdicio_page(error=None):
     items = Item.query.order_by(Item.name).all()
     lista = Waste.query.order_by(Waste.id.desc()).limit(200).all()
     return render_template("desperdicio.html", user=current_user(), items=items, lista=lista, error=error)
 
+
 @app.route("/setup")
 def setup():
     ensure_upload_folder()
     db.create_all()
-    if "photo_filename" not in [c.name for c in Waste.__table__.columns]:
-        pass
+
     if not User.query.filter_by(username="admin").first():
         user = User(name="Administrador", username="admin", role="admin")
         user.set_password("123456")
         db.session.add(user)
         db.session.commit()
+
     return "Sistema criado. Login inicial: admin / 123456"
+
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -162,16 +181,21 @@ def login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         user = User.query.filter_by(username=username).first()
+
         if user and user.check_password(password):
             session["user_id"] = user.id
             return redirect(url_for("dashboard"))
+
         return render_template("login.html", error="Usuário ou senha inválidos.")
+
     return render_template("login.html", error=None)
+
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
 
 @app.route("/dashboard")
 def dashboard():
@@ -198,19 +222,15 @@ def dashboard():
 
     por_periodo = {"Almoço": {"q": 0, "v": 0}, "Janta": {"q": 0, "v": 0}}
     for s in sales_today:
-        por_periodo[s.period]["q"] += s.quantity
-        por_periodo[s.period]["v"] += s.unit_value * s.quantity
+        if s.period in por_periodo:
+            por_periodo[s.period]["q"] += s.quantity
+            por_periodo[s.period]["v"] += s.unit_value * s.quantity
 
-    # ETAPA 1 - CÁLCULO DO ALMOÇO
     vendas_almoco = [s for s in sales_today if s.period == "Almoço"]
     faturamento_almoco = sum(s.unit_value * s.quantity for s in vendas_almoco)
-
-    # custo do almoço = produção do dia + desperdício do dia
     custo_almoco = producao_custo + desperdicio_valor
-
     lucro_bruto_almoco = faturamento_almoco - custo_almoco
 
-    # GRÁFICO DOS ÚLTIMOS 7 DIAS
     labels_grafico = []
     valores_grafico = []
 
@@ -218,7 +238,6 @@ def dashboard():
         dia = today - timedelta(days=i)
         vendas_dia = Sale.query.filter_by(sale_date=dia).all()
         total_dia = sum(v.unit_value * v.quantity for v in vendas_dia)
-
         labels_grafico.append(dia.strftime("%d/%m"))
         valores_grafico.append(round(total_dia, 2))
 
@@ -235,14 +254,14 @@ def dashboard():
         producao_custo=producao_custo,
         desperdicio_valor=desperdicio_valor,
         vendidos_diarios=vendidos_diarios,
-
-        # novos campos
         faturamento_almoco=faturamento_almoco,
         custo_almoco=custo_almoco,
         lucro_bruto_almoco=lucro_bruto_almoco,
         labels_grafico=labels_grafico,
         valores_grafico=valores_grafico
     )
+
+
 @app.route("/itens", methods=["GET", "POST"])
 def itens():
     if not require_login():
@@ -252,6 +271,7 @@ def itens():
         code = request.form.get("code", "").strip()
         name = request.form["name"].strip()
         area = request.form["area"]
+
         existing = Item.query.filter_by(code=code).first() if code else None
         if not existing:
             existing = Item.query.filter_by(name=name, area=area).first()
@@ -276,14 +296,15 @@ def itens():
                 stock=float(request.form.get("stock") or 0),
                 min_stock=float(request.form.get("min_stock") or 0),
             ))
+
         db.session.commit()
         return redirect(url_for("itens"))
 
     busca = request.args.get("busca", "").strip()
 
     if busca:
-        itens = Item.query.filter(
-            db.or_(
+        itens_lista = Item.query.filter(
+            or_(
                 Item.name.ilike(f"%{busca}%"),
                 Item.category.ilike(f"%{busca}%"),
                 Item.area.ilike(f"%{busca}%"),
@@ -291,22 +312,26 @@ def itens():
             )
         ).order_by(Item.area, Item.name).all()
     else:
-        itens = Item.query.order_by(Item.area, Item.name).all()
+        itens_lista = Item.query.order_by(Item.area, Item.name).all()
 
     return render_template(
         "itens.html",
         user=current_user(),
-        itens=itens,
+        itens=itens_lista,
         areas=AREAS,
         categories=CATEGORIES,
         busca=busca
     )
+
+
 @app.route("/editar-item/<int:item_id>", methods=["POST"])
 def editar_item(item_id):
     if not require_login():
         return redirect(url_for("login"))
 
-    item = Item.query.get_or_404(item_id)
+    item = db.session.get(Item, item_id)
+    if not item:
+        return redirect(url_for("itens"))
 
     item.area = request.form["area"]
     item.code = request.form.get("code", "").strip()
@@ -320,16 +345,20 @@ def editar_item(item_id):
     db.session.commit()
     return redirect(url_for("itens"))
 
+
 @app.route("/buscar-item")
 def buscar_item():
     if not require_login():
         return jsonify({"ok": False}), 401
+
     code = request.args.get("code", "").strip()
     if not code:
         return jsonify({"ok": False, "message": "Código vazio"})
+
     item = Item.query.filter_by(code=code).first()
     if not item:
         return jsonify({"ok": False, "message": "Produto não cadastrado"})
+
     return jsonify({
         "ok": True,
         "item": {
@@ -344,6 +373,32 @@ def buscar_item():
             "code": item.code,
         }
     })
+
+
+@app.route("/item/<int:item_id>")
+def obter_item(item_id):
+    if not require_login():
+        return jsonify({"ok": False}), 401
+
+    item = db.session.get(Item, item_id)
+    if not item:
+        return jsonify({"ok": False, "message": "Item não encontrado"}), 404
+
+    return jsonify({
+        "ok": True,
+        "item": {
+            "id": item.id,
+            "area": item.area,
+            "code": item.code or "",
+            "name": item.name,
+            "category": item.category or "",
+            "unit": item.unit,
+            "cost": item.cost,
+            "stock": item.stock,
+            "min_stock": item.min_stock
+        }
+    })
+
 
 @app.route("/vendas", methods=["GET", "POST"])
 def vendas():
@@ -363,8 +418,9 @@ def vendas():
         db.session.commit()
         return redirect(url_for("vendas"))
 
-    vendas = Sale.query.order_by(Sale.id.desc()).limit(200).all()
-    return render_template("vendas.html", user=current_user(), vendas=vendas, meal_types=MEAL_TYPES)
+    vendas_lista = Sale.query.order_by(Sale.id.desc()).limit(200).all()
+    return render_template("vendas.html", user=current_user(), vendas=vendas_lista, meal_types=MEAL_TYPES)
+
 
 @app.route("/movimentos", methods=["GET", "POST"])
 def movimentos():
@@ -372,10 +428,12 @@ def movimentos():
         return redirect(url_for("login"))
 
     items = Item.query.order_by(Item.name).all()
+
     if request.method == "POST":
         item = None
         item_id = request.form.get("item_id")
         barcode = request.form.get("barcode", "").strip()
+
         if item_id:
             item = db.session.get(Item, int(item_id))
         elif barcode:
@@ -407,17 +465,21 @@ def movimentos():
         db.session.commit()
         return redirect(url_for("movimentos"))
 
-    movimentos = Movement.query.order_by(Movement.id.desc()).limit(300).all()
-    return render_template("movimentos.html", user=current_user(), movimentos=movimentos, items=items, areas=AREAS)
+    movimentos_lista = Movement.query.order_by(Movement.id.desc()).limit(300).all()
+    return render_template("movimentos.html", user=current_user(), movimentos=movimentos_lista, items=items, areas=AREAS)
+
 
 @app.route("/producao", methods=["GET", "POST"])
 def producao():
     if not require_login():
         return redirect(url_for("login"))
+
     items = Item.query.order_by(Item.name).all()
+
     if request.method == "POST":
         item = db.session.get(Item, int(request.form["item_id"]))
         qty = float(request.form.get("quantity") or 0)
+
         if item and qty:
             item.stock -= qty
             db.session.add(Production(
@@ -427,25 +489,32 @@ def producao():
                 cost=qty * item.cost
             ))
             db.session.commit()
+
         return redirect(url_for("producao"))
+
     lista = Production.query.order_by(Production.id.desc()).limit(200).all()
     return render_template("producao.html", user=current_user(), items=items, lista=lista)
+
 
 @app.route("/desperdicio", methods=["GET", "POST"])
 def desperdicio():
     if not require_login():
         return redirect(url_for("login"))
+
     ensure_upload_folder()
 
     if request.method == "POST":
         photo = request.files.get("photo")
+
         if not photo or not photo.filename:
             return render_desperdicio_page("Para salvar a perda, é obrigatório tirar ou enviar uma foto do desperdício.")
+
         if not allowed_image(photo.filename):
             return render_desperdicio_page("Formato de foto inválido. Use PNG, JPG, JPEG ou WEBP.")
 
         item = db.session.get(Item, int(request.form["item_id"]))
         qty = float(request.form.get("quantity") or 0)
+
         if not item or qty <= 0:
             return render_desperdicio_page("Selecione um item válido e informe uma quantidade maior que zero.")
 
@@ -468,6 +537,7 @@ def desperdicio():
         return redirect(url_for("desperdicio"))
 
     return render_desperdicio_page()
+
 
 @app.route("/controle-diario", methods=["GET", "POST"])
 def controle_diario():
@@ -494,7 +564,10 @@ def controle_diario():
     else:
         data_ref = date.today()
 
-    lista = DailyBakeryControl.query.filter_by(control_date=data_ref).order_by(DailyBakeryControl.group_name, DailyBakeryControl.item_name).all()
+    lista = DailyBakeryControl.query.filter_by(control_date=data_ref).order_by(
+        DailyBakeryControl.group_name,
+        DailyBakeryControl.item_name
+    ).all()
 
     totais = {}
     for grupo in DAILY_GROUPS:
@@ -515,6 +588,7 @@ def controle_diario():
         totais=totais
     )
 
+
 @app.route("/usuarios", methods=["GET", "POST"])
 def usuarios():
     if not require_admin():
@@ -531,8 +605,9 @@ def usuarios():
         db.session.commit()
         return redirect(url_for("usuarios"))
 
-    usuarios = User.query.order_by(User.name).all()
-    return render_template("usuarios.html", user=current_user(), usuarios=usuarios, roles=ROLES)
+    usuarios_lista = User.query.order_by(User.name).all()
+    return render_template("usuarios.html", user=current_user(), usuarios=usuarios_lista, roles=ROLES)
+
 
 @app.route("/relatorios")
 def relatorios():
@@ -551,8 +626,9 @@ def relatorios():
 
     por_periodo = {"Almoço": {"q": 0, "v": 0}, "Janta": {"q": 0, "v": 0}}
     for s in Sale.query.all():
-        por_periodo[s.period]["q"] += s.quantity
-        por_periodo[s.period]["v"] += s.unit_value * s.quantity
+        if s.period in por_periodo:
+            por_periodo[s.period]["q"] += s.quantity
+            por_periodo[s.period]["v"] += s.unit_value * s.quantity
 
     return render_template(
         "relatorios.html",
@@ -569,34 +645,65 @@ def relatorios():
         por_periodo=por_periodo
     )
 
+
 @app.route("/exportar/vendas.csv")
 def exportar_vendas():
     if not require_login():
         return redirect(url_for("login"))
+
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["Data", "Tipo", "Período", "Valor Unitário", "Quantidade", "Total", "Criado por"])
+
     for s in Sale.query.order_by(Sale.sale_date.desc()).all():
-        writer.writerow([s.sale_date, s.meal_type, s.period, s.unit_value, s.quantity, s.unit_value * s.quantity, s.created_by])
+        writer.writerow([
+            s.sale_date,
+            s.meal_type,
+            s.period,
+            s.unit_value,
+            s.quantity,
+            s.unit_value * s.quantity,
+            s.created_by
+        ])
+
     mem = BytesIO()
     mem.write(output.getvalue().encode("utf-8-sig"))
     mem.seek(0)
     return send_file(mem, mimetype="text/csv", as_attachment=True, download_name="vendas.csv")
 
+
 @app.route("/exportar/controle_diario.csv")
 def exportar_controle_diario():
     if not require_login():
         return redirect(url_for("login"))
+
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["Data", "Grupo", "Item", "Entrada", "Saída", "Vendido", "Valor Unitário", "Faturado", "Observações"])
-    for r in DailyBakeryControl.query.order_by(DailyBakeryControl.control_date.desc(), DailyBakeryControl.group_name, DailyBakeryControl.item_name).all():
-        writer.writerow([r.control_date, r.group_name, r.item_name, r.input_qty, r.output_qty, r.sold_qty, r.unit_value, r.sold_qty * r.unit_value, r.notes])
+
+    for r in DailyBakeryControl.query.order_by(
+        DailyBakeryControl.control_date.desc(),
+        DailyBakeryControl.group_name,
+        DailyBakeryControl.item_name
+    ).all():
+        writer.writerow([
+            r.control_date,
+            r.group_name,
+            r.item_name,
+            r.input_qty,
+            r.output_qty,
+            r.sold_qty,
+            r.unit_value,
+            r.sold_qty * r.unit_value,
+            r.notes
+        ])
+
     mem = BytesIO()
     mem.write(output.getvalue().encode("utf-8-sig"))
     mem.seek(0)
     return send_file(mem, mimetype="text/csv", as_attachment=True, download_name="controle_diario.csv")
 
-if __name__ == "__main__":
+
+if _name_ == "_main_":
     ensure_upload_folder()
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)))
