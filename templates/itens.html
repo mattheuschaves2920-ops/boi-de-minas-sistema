@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+
 <div class="grid two">
   <section class="card">
     <h3>Cadastrar item</h3>
@@ -12,7 +13,9 @@
     <form method="post">
       <label>Área
         <select name="area" id="area">
-          {% for a in areas %}<option>{{ a }}</option>{% endfor %}
+          {% for a in areas %}
+          <option value="{{ a }}">{{ a }}</option>
+          {% endfor %}
         </select>
       </label>
 
@@ -26,17 +29,19 @@
 
       <label>Categoria
         <select name="category" id="category">
-          {% for c in categories %}<option>{{ c }}</option>{% endfor %}
+          {% for c in categories %}
+          <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
         </select>
       </label>
 
       <label>Unidade
         <select name="unit" id="unit">
-          <option>kg</option>
-          <option>un</option>
-          <option>l</option>
-          <option>cx</option>
-          <option>pct</option>
+          <option value="kg">kg</option>
+          <option value="un">un</option>
+          <option value="l">l</option>
+          <option value="cx">cx</option>
+          <option value="pct">pct</option>
         </select>
       </label>
 
@@ -52,17 +57,18 @@
         <input type="number" step="0.001" name="min_stock" id="min_stock">
       </label>
 
-      <button class="btn">Salvar item</button>
+      <button class="btn" type="submit">Salvar item</button>
     </form>
   </section>
 
   <section class="card">
     <h3>Buscar produto</h3>
+
     <form method="get" style="margin-bottom:16px;">
       <label>Buscar por nome, categoria, área ou código
         <input type="text" name="busca" value="{{ busca or '' }}" placeholder="Ex.: coxinha, bebidas, freezer...">
       </label>
-      <button class="btn">Buscar</button>
+      <button class="btn" type="submit">Buscar</button>
     </form>
 
     <h3>Itens cadastrados</h3>
@@ -83,23 +89,11 @@
           <td>{{ i.area }}</td>
           <td>{{ i.code or '' }}</td>
           <td>{{ i.name }}</td>
-          <td>{{ i.category }}</td>
+          <td>{{ i.category or '' }}</td>
           <td>{{ i.stock }}</td>
           <td>{{ i.min_stock }}</td>
           <td>
-            <button
-              class="btn btn-editar"
-              type="button"
-              data-id="{{ i.id }}"
-              data-area="{{ i.area }}"
-              data-code="{{ i.code or '' }}"
-              data-name="{{ i.name }}"
-              data-category="{{ i.category or '' }}"
-              data-unit="{{ i.unit }}"
-              data-cost="{{ i.cost }}"
-              data-stock="{{ i.stock }}"
-              data-min-stock="{{ i.min_stock }}"
-            >
+            <button class="btn btn-editar" type="button" data-id="{{ i.id }}">
               Editar
             </button>
           </td>
@@ -115,7 +109,9 @@
   <form id="form-edicao" method="post">
     <label>Área
       <select name="area" id="edit_area">
-        {% for a in areas %}<option>{{ a }}</option>{% endfor %}
+        {% for a in areas %}
+        <option value="{{ a }}">{{ a }}</option>
+        {% endfor %}
       </select>
     </label>
 
@@ -129,17 +125,19 @@
 
     <label>Categoria
       <select name="category" id="edit_category">
-        {% for c in categories %}<option>{{ c }}</option>{% endfor %}
+        {% for c in categories %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
       </select>
     </label>
 
     <label>Unidade
       <select name="unit" id="edit_unit">
-        <option>kg</option>
-        <option>un</option>
-        <option>l</option>
-        <option>cx</option>
-        <option>pct</option>
+        <option value="kg">kg</option>
+        <option value="un">un</option>
+        <option value="l">l</option>
+        <option value="cx">cx</option>
+        <option value="pct">pct</option>
       </select>
     </label>
 
@@ -164,30 +162,46 @@ document.addEventListener('DOMContentLoaded', function () {
   const botoesEditar = document.querySelectorAll('.btn-editar');
 
   botoesEditar.forEach(function(botao) {
-    botao.addEventListener('click', function() {
-      const form = document.getElementById('form-edicao');
-      form.action = /editar-item/${this.dataset.id};
+    botao.addEventListener('click', async function() {
+      const itemId = this.dataset.id;
 
-      document.getElementById('edit_area').value = this.dataset.area || '';
-      document.getElementById('edit_code').value = this.dataset.code || '';
-      document.getElementById('edit_name').value = this.dataset.name || '';
-      document.getElementById('edit_category').value = this.dataset.category || 'Outros';
-      document.getElementById('edit_unit').value = this.dataset.unit || 'un';
-      document.getElementById('edit_cost').value = this.dataset.cost || 0;
-      document.getElementById('edit_stock').value = this.dataset.stock || 0;
-      document.getElementById('edit_min_stock').value = this.dataset.minStock || 0;
+      try {
+        const resp = await fetch(/item/${itemId});
+        const data = await resp.json();
 
-      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!data.ok) {
+          alert('Não foi possível carregar os dados do produto.');
+          return;
+        }
+
+        const item = data.item;
+        const form = document.getElementById('form-edicao');
+
+        form.action = /editar-item/${item.id};
+
+        document.getElementById('edit_area').value = item.area || '';
+        document.getElementById('edit_code').value = item.code || '';
+        document.getElementById('edit_name').value = item.name || '';
+        document.getElementById('edit_category').value = item.category || 'Outros';
+        document.getElementById('edit_unit').value = item.unit || 'un';
+        document.getElementById('edit_cost').value = item.cost || 0;
+        document.getElementById('edit_stock').value = item.stock || 0;
+        document.getElementById('edit_min_stock').value = item.min_stock || 0;
+
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (erro) {
+        alert('Erro ao carregar o produto para edição.');
+      }
     });
   });
 
-  async function preencherPorCodigo(codigo){
-    if(!codigo) return;
+  async function preencherPorCodigo(codigo) {
+    if (!codigo) return;
 
     const resp = await fetch(/buscar-item?code=${encodeURIComponent(codigo)});
     const data = await resp.json();
 
-    if(data.ok){
+    if (data.ok) {
       document.getElementById('code').value = data.item.code || '';
       document.getElementById('name').value = data.item.name || '';
       document.getElementById('area').value = data.item.area || 'Estoque Geral';
@@ -199,16 +213,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  document.getElementById('code').addEventListener('change', e => preencherPorCodigo(e.target.value));
+  const campoCode = document.getElementById('code');
+  if (campoCode) {
+    campoCode.addEventListener('change', function(e) {
+      preencherPorCodigo(e.target.value);
+    });
+  }
 
   let activeScanner = null;
 
-  window.toggleScanner = function(scannerId, inputId){
+  window.toggleScanner = function(scannerId, inputId) {
     const scannerEl = document.getElementById(scannerId);
 
-    if(!scannerEl.classList.contains('hidden')){
-      if(activeScanner){
-        activeScanner.stop().catch(()=>{});
+    if (!scannerEl.classList.contains('hidden')) {
+      if (activeScanner) {
+        activeScanner.stop().catch(() => {});
         activeScanner = null;
       }
       scannerEl.innerHTML = '';
@@ -225,6 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
       (decodedText) => {
         document.getElementById(inputId).value = decodedText;
         preencherPorCodigo(decodedText);
+
         activeScanner.stop().then(() => {
           scannerEl.innerHTML = '';
           scannerEl.classList.add('hidden');
@@ -238,4 +258,5 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 });
 </script>
+
 {% endblock %}
