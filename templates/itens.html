@@ -87,18 +87,10 @@
           <td>{{ i.stock }}</td>
           <td>{{ i.min_stock }}</td>
           <td>
-            <button class="btn" type="button"
-              onclick="abrirEdicao(
-                '{{ i.id }}',
-                '{{ i.area }}',
-                '{{ i.code or '' }}',
-                '{{ i.name }}',
-                '{{ i.category or '' }}',
-                '{{ i.unit }}',
-                '{{ i.cost }}',
-                '{{ i.stock }}',
-                '{{ i.min_stock }}'
-              )">
+            <button
+              class="btn"
+              type="button"
+              onclick="abrirEdicao('{{ i.id }}', '{{ i.area }}', '{{ i.code or '' }}', '{{ i.name }}', '{{ i.category or '' }}', '{{ i.unit }}', '{{ i.cost }}', '{{ i.stock }}', '{{ i.min_stock }}')">
               Editar
             </button>
           </td>
@@ -154,7 +146,7 @@
       <input type="number" step="0.001" name="min_stock" id="edit_min_stock">
     </label>
 
-    <button class="btn">Salvar alteração</button>
+    <button class="btn" type="submit">Salvar alteração</button>
   </form>
 </section>
 
