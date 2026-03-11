@@ -88,11 +88,20 @@
           <td>{{ i.min_stock }}</td>
           <td>
             <button
-              class="btn"
-              type="button"
-              onclick="abrirEdicao('{{ i.id }}', '{{ i.area }}', '{{ i.code or '' }}', '{{ i.name }}', '{{ i.category or '' }}', '{{ i.unit }}', '{{ i.cost }}', '{{ i.stock }}', '{{ i.min_stock }}')">
-              Editar
-            </button>
+  class="btn btn-editar"
+  type="button"
+  data-id="{{ i.id }}"
+  data-area="{{ i.area }}"
+  data-code="{{ i.code or '' }}"
+  data-name="{{ i.name }}"
+  data-category="{{ i.category or '' }}"
+  data-unit="{{ i.unit }}"
+  data-cost="{{ i.cost }}"
+  data-stock="{{ i.stock }}"
+  data-min-stock="{{ i.min_stock }}"
+>
+  Editar
+</button>
           </td>
         </tr>
         {% endfor %}
@@ -151,21 +160,28 @@
 </section>
 
 <script>
-function abrirEdicao(id, area, code, name, category, unit, cost, stock, min_stock) {
-  const form = document.getElementById('form-edicao');
-  form.action = /editar-item/${id};
+document.addEventListener('DOMContentLoaded', function () {
+  const botoesEditar = document.querySelectorAll('.btn-editar');
 
-  document.getElementById('edit_area').value = area;
-  document.getElementById('edit_code').value = code;
-  document.getElementById('edit_name').value = name;
-  document.getElementById('edit_category').value = category || 'Outros';
-  document.getElementById('edit_unit').value = unit;
-  document.getElementById('edit_cost').value = cost;
-  document.getElementById('edit_stock').value = stock;
-  document.getElementById('edit_min_stock').value = min_stock;
+  botoesEditar.forEach(function(botao) {
+    botao.addEventListener('click', function() {
+      const form = document.getElementById('form-edicao');
+      form.action = /editar-item/${this.dataset.id};
 
-  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-}
+      document.getElementById('edit_area').value = this.dataset.area || '';
+      document.getElementById('edit_code').value = this.dataset.code || '';
+      document.getElementById('edit_name').value = this.dataset.name || '';
+      document.getElementById('edit_category').value = this.dataset.category || 'Outros';
+      document.getElementById('edit_unit').value = this.dataset.unit || 'un';
+      document.getElementById('edit_cost').value = this.dataset.cost || 0;
+      document.getElementById('edit_stock').value = this.dataset.stock || 0;
+      document.getElementById('edit_min_stock').value = this.dataset.minStock || 0;
+
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+});
+</script>
 
 async function preencherPorCodigo(codigo){
   if(!codigo) return;
