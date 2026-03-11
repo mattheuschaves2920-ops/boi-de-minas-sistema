@@ -261,7 +261,6 @@ def dashboard():
         valores_grafico=valores_grafico
     )
 
-
 @app.route("/itens", methods=["GET", "POST"])
 def itens():
     if not require_login():
@@ -301,6 +300,7 @@ def itens():
         return redirect(url_for("itens"))
 
     busca = request.args.get("busca", "").strip()
+    editar_id = request.args.get("editar", type=int)
 
     if busca:
         itens_lista = Item.query.filter(
@@ -314,15 +314,17 @@ def itens():
     else:
         itens_lista = Item.query.order_by(Item.area, Item.name).all()
 
+    item_edicao = db.session.get(Item, editar_id) if editar_id else None
+
     return render_template(
         "itens.html",
         user=current_user(),
         itens=itens_lista,
         areas=AREAS,
         categories=CATEGORIES,
-        busca=busca
+        busca=busca,
+        item_edicao=item_edicao
     )
-
 
 @app.route("/editar-item/<int:item_id>", methods=["POST"])
 def editar_item(item_id):
