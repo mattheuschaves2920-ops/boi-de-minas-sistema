@@ -301,6 +301,25 @@ def itens():
         categories=CATEGORIES,
         busca=busca
     )
+@app.route("/editar-item/<int:item_id>", methods=["POST"])
+def editar_item(item_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    item = Item.query.get_or_404(item_id)
+
+    item.area = request.form["area"]
+    item.code = request.form.get("code", "").strip()
+    item.name = request.form["name"].strip()
+    item.category = request.form.get("category", "").strip()
+    item.unit = request.form["unit"]
+    item.cost = float(request.form.get("cost") or 0)
+    item.stock = float(request.form.get("stock") or 0)
+    item.min_stock = float(request.form.get("min_stock") or 0)
+
+    db.session.commit()
+    return redirect(url_for("itens"))
+
 @app.route("/buscar-item")
 def buscar_item():
     if not require_login():
