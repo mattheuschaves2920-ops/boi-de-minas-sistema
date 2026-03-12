@@ -261,6 +261,7 @@ def dashboard():
         valores_grafico=valores_grafico
     )
 
+
 @app.route("/itens", methods=["GET", "POST"])
 def itens():
     if not require_login():
@@ -326,6 +327,7 @@ def itens():
         item_edicao=item_edicao
     )
 
+
 @app.route("/editar-item/<int:item_id>", methods=["POST"])
 def editar_item(item_id):
     if not require_login():
@@ -373,31 +375,6 @@ def buscar_item():
             "stock": item.stock,
             "min_stock": item.min_stock,
             "code": item.code,
-        }
-    })
-
-
-@app.route("/item/<int:item_id>")
-def obter_item(item_id):
-    if not require_login():
-        return jsonify({"ok": False}), 401
-
-    item = db.session.get(Item, item_id)
-    if not item:
-        return jsonify({"ok": False, "message": "Item não encontrado"}), 404
-
-    return jsonify({
-        "ok": True,
-        "item": {
-            "id": item.id,
-            "area": item.area,
-            "code": item.code or "",
-            "name": item.name,
-            "category": item.category or "",
-            "unit": item.unit,
-            "cost": item.cost,
-            "stock": item.stock,
-            "min_stock": item.min_stock
         }
     })
 
