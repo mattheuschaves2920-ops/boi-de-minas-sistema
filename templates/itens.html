@@ -5,9 +5,9 @@
   <section class="card">
     <h3>Cadastrar item</h3>
 
-    <div class="barcode-box" style="margin-bottom: 12px;">
+    <div class="barcode-box" style="margin-bottom:12px;">
       <button type="button" class="btn" onclick="toggleScanner()">Ler código de barras</button>
-      <div id="scanner" class="hidden" style="margin-top:10px;"></div>
+      <div id="scanner" class="hidden" style="margin-top:10px; min-height:250px;"></div>
     </div>
 
     <form method="post">
@@ -161,7 +161,7 @@ async function preencherPorCodigo(codigo) {
   if (!codigo) return;
 
   try {
-    const resp = await fetch(/buscar-item?code=${encodeURIComponent(codigo)});
+    const resp = await fetch(`/buscar-item?code=${encodeURIComponent(codigo)}`);
     const data = await resp.json();
 
     if (data.ok) {
@@ -175,62 +175,66 @@ async function preencherPorCodigo(codigo) {
       document.getElementById('min_stock').value = data.item.min_stock || 0;
     }
   } catch (e) {
-    console.log('Erro ao buscar item pelo código');
+    console.log("Erro ao buscar item pelo código.");
   }
 }
 
 const campoCode = document.getElementById('code');
 if (campoCode) {
-  campoCode.addEventListener('change', function(e) {
+  campoCode.addEventListener('change', function (e) {
     preencherPorCodigo(e.target.value);
   });
 }
 
 let scanner = null;
 
-function toggleScanner() {
+window.toggleScanner = async function () {
   const el = document.getElementById("scanner");
 
+  if (!window.Html5Qrcode) {
+    alert("Leitor de código de barras não carregou.");
+    return;
+  }
+
   if (scanner) {
-    scanner.stop().then(() => {
-      scanner = null;
-      el.innerHTML = "";
-      el.classList.add("hidden");
-    }).catch(() => {
-      scanner = null;
-      el.innerHTML = "";
-      el.classList.add("hidden");
-    });
+    try {
+      await scanner.stop();
+    } catch (e) {}
+    scanner = null;
+    el.innerHTML = "";
+    el.classList.add("hidden");
     return;
   }
 
   el.classList.remove("hidden");
+  el.innerHTML = "";
+
   scanner = new Html5Qrcode("scanner");
 
-  scanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    (decodedText) => {
-      document.getElementById("code").value = decodedText;
-      preencherPorCodigo(decodedText);
+  try {
+    await scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 120 } },
+      async (decodedText) => {
+        document.getElementById("code").value = decodedText;
+        await preencherPorCodigo(decodedText);
 
-      scanner.stop().then(() => {
+        try {
+          await scanner.stop();
+        } catch (e) {}
+
+        scanner = null;
         el.innerHTML = "";
         el.classList.add("hidden");
-        scanner = null;
-      }).catch(() => {
-        el.innerHTML = "";
-        el.classList.add("hidden");
-        scanner = null;
-      });
-    },
-    () => {}
-  ).catch(() => {
-    alert("Não foi possível abrir a câmera");
+      },
+      () => {}
+    );
+  } catch (err) {
+    alert("Não foi possível abrir a câmera. Verifique a permissão.");
     el.classList.add("hidden");
     scanner = null;
-  });
-}
+  }
+};
 </script>
 
 {% endblock %}
