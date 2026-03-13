@@ -14,24 +14,9 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "troque-esta-chave")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///boi_de_minas.db").replace("postgres://", "postgresql://", 1)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "uploads", "desperdicio")
-app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
 db = SQLAlchemy(app)
-
-
-def corrigir_banco():
-    with app.app_context():
-        try:
-            db.session.execute(text("""
-                ALTER TABLE waste
-                ADD COLUMN IF NOT EXISTS photo_filename VARCHAR(255);
-            """))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-
-
-corrigir_banco()
 
 MEAL_TYPES = [
     "Self-service HG",
@@ -40,17 +25,15 @@ MEAL_TYPES = [
     "Comida a quilo",
     "Churrasco a quilo",
 ]
-
 AREAS = ["Estoque Geral", "Bebidas", "Freezer", "Cozinha", "Padaria", "Confeitaria"]
 ROLES = ["admin", "estoquista", "operador", "proprietario"]
-
 CATEGORIES = [
     "Arroz e Grãos", "Massas", "Carnes", "Frango", "Peixes", "Churrasco",
     "Saladas", "Temperos", "Bebidas", "Freezer", "Limpeza", "Descartáveis",
     "Salgados", "Bolos", "Sobremesas", "Tortas", "Pão de Queijo", "Outros"
 ]
-
 DAILY_GROUPS = ["Salgados", "Bolos", "Sobremesas", "Tortas", "Pão de Queijo", "Outros"]
+SETORES = ["Almoço", "Janta", "Churrasco", "Confeitaria", "Padaria", "Bebidas", "Geral"]
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 
 
@@ -96,6 +79,7 @@ class Movement(db.Model):
     mov_date = db.Column(db.Date, nullable=False, default=date.today)
     mov_type = db.Column(db.String(20), nullable=False)
     area = db.Column(db.String(40), nullable=False)
+    setor = db.Column(db.String(40), nullable=False, default="Geral")
     item_name = db.Column(db.String(150), nullable=False)
     quantity = db.Column(db.Float, nullable=False, default=0)
     detail = db.Column(db.String(255), nullable=True)
@@ -116,6 +100,7 @@ class Waste(db.Model):
 class Production(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     prod_date = db.Column(db.Date, nullable=False, default=date.today)
+    setor = db.Column(db.String(40), nullable=False, default="Geral")
     item_name = db.Column(db.String(150), nullable=False)
     quantity = db.Column(db.Float, nullable=False, default=0)
     cost = db.Column(db.Float, nullable=False, default=0)
@@ -131,6 +116,25 @@ class DailyBakeryControl(db.Model):
     sold_qty = db.Column(db.Integer, nullable=False, default=0)
     unit_value = db.Column(db.Float, nullable=False, default=0)
     notes = db.Column(db.String(255), nullable=True)
+
+
+def migrate_schema():
+    with app.app_context():
+        db.create_all()
+        stmts = [
+            "ALTER TABLE waste ADD COLUMN IF NOT EXISTS photo_filename VARCHAR(255)",
+            "ALTER TABLE movement ADD COLUMN IF NOT EXISTS setor VARCHAR(40) DEFAULT 'Geral'",
+            "ALTER TABLE production ADD COLUMN IF NOT EXISTS setor VARCHAR(40) DEFAULT 'Geral'",
+        ]
+        for stmt in stmts:
+            try:
+                db.session.execute(text(stmt))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+
+migrate_schema()
 
 
 def ensure_upload_folder():
@@ -164,15 +168,13 @@ def render_desperdicio_page(error=None):
 @app.route("/setup")
 def setup():
     ensure_upload_folder()
-    db.create_all()
-
+    migrate_schema()
     if not User.query.filter_by(username="admin").first():
         user = User(name="Administrador", username="admin", role="admin")
         user.set_password("123456")
         db.session.add(user)
         db.session.commit()
-
-    return "Sistema criado. Login inicial: admin / 123456"
+    return "Sistema criado/atualizado. Login inicial: admin / 123456"
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -180,14 +182,11 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             session["user_id"] = user.id
             return redirect(url_for("dashboard"))
-
         return render_template("login.html", error="Usuário ou senha inválidos.")
-
     return render_template("login.html", error=None)
 
 
@@ -226,20 +225,27 @@ def dashboard():
             por_periodo[s.period]["q"] += s.quantity
             por_periodo[s.period]["v"] += s.unit_value * s.quantity
 
-    vendas_almoco = [s for s in sales_today if s.period == "Almoço"]
-    faturamento_almoco = sum(s.unit_value * s.quantity for s in vendas_almoco)
-    custo_almoco = producao_custo + desperdicio_valor
-    lucro_bruto_almoco = faturamento_almoco - custo_almoco
-
     labels_grafico = []
     valores_grafico = []
-
     for i in range(6, -1, -1):
         dia = today - timedelta(days=i)
         vendas_dia = Sale.query.filter_by(sale_date=dia).all()
         total_dia = sum(v.unit_value * v.quantity for v in vendas_dia)
         labels_grafico.append(dia.strftime("%d/%m"))
         valores_grafico.append(round(total_dia, 2))
+
+    resumo_setores = []
+    for setor in SETORES:
+        prod_setor = [p for p in production_today if p.setor == setor]
+        mov_setor = [m for m in moves_today if m.setor == setor and m.mov_type in ["Saida", "Perda"]]
+        resumo_setores.append({
+            "setor": setor,
+            "producao": sum(p.cost for p in prod_setor),
+            "movimentacao": sum(m.value for m in mov_setor),
+            "itens": len(prod_setor) + len(mov_setor)
+        })
+
+    ultimos_movimentos = Movement.query.order_by(Movement.id.desc()).limit(10).all()
 
     return render_template(
         "dashboard.html",
@@ -254,11 +260,11 @@ def dashboard():
         producao_custo=producao_custo,
         desperdicio_valor=desperdicio_valor,
         vendidos_diarios=vendidos_diarios,
-        faturamento_almoco=faturamento_almoco,
-        custo_almoco=custo_almoco,
-        lucro_bruto_almoco=lucro_bruto_almoco,
         labels_grafico=labels_grafico,
-        valores_grafico=valores_grafico
+        valores_grafico=valores_grafico,
+        resumo_setores=resumo_setores,
+        total_itens=len(items),
+        ultimos_movimentos=ultimos_movimentos
     )
 
 
@@ -398,7 +404,8 @@ def vendas():
         return redirect(url_for("vendas"))
 
     vendas_lista = Sale.query.order_by(Sale.id.desc()).limit(200).all()
-    return render_template("vendas.html", user=current_user(), vendas=vendas_lista, meal_types=MEAL_TYPES)
+    total_hoje = sum(v.unit_value * v.quantity for v in Sale.query.filter_by(sale_date=date.today()).all())
+    return render_template("vendas.html", user=current_user(), vendas=vendas_lista, meal_types=MEAL_TYPES, total_hoje=total_hoje)
 
 
 @app.route("/movimentos", methods=["GET", "POST"])
@@ -423,6 +430,7 @@ def movimentos():
 
         qty = float(request.form.get("quantity") or 0)
         mov_type = request.form["mov_type"]
+        setor = request.form.get("setor", "Geral")
 
         if mov_type == "Entrada":
             item.stock += qty
@@ -435,6 +443,7 @@ def movimentos():
             mov_date=datetime.strptime(request.form["mov_date"], "%Y-%m-%d").date(),
             mov_type=mov_type,
             area=request.form["area"],
+            setor=setor,
             item_name=item.name,
             quantity=qty,
             detail=request.form.get("detail", "").strip(),
@@ -444,8 +453,41 @@ def movimentos():
         db.session.commit()
         return redirect(url_for("movimentos"))
 
+    editar_id = request.args.get("editar", type=int)
+    mov_edicao = db.session.get(Movement, editar_id) if editar_id else None
+
     movimentos_lista = Movement.query.order_by(Movement.id.desc()).limit(300).all()
-    return render_template("movimentos.html", user=current_user(), movimentos=movimentos_lista, items=items, areas=AREAS)
+    return render_template(
+        "movimentos.html",
+        user=current_user(),
+        movimentos=movimentos_lista,
+        items=items,
+        areas=AREAS,
+        setores=SETORES,
+        mov_edicao=mov_edicao
+    )
+
+
+@app.route("/editar-movimento/<int:mov_id>", methods=["POST"])
+def editar_movimento(mov_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    mov = db.session.get(Movement, mov_id)
+    if not mov:
+        return redirect(url_for("movimentos"))
+
+    mov.mov_date = datetime.strptime(request.form["mov_date"], "%Y-%m-%d").date()
+    mov.mov_type = request.form["mov_type"]
+    mov.area = request.form["area"]
+    mov.setor = request.form.get("setor", "Geral")
+    mov.item_name = request.form["item_name"].strip()
+    mov.quantity = float(request.form.get("quantity") or 0)
+    mov.detail = request.form.get("detail", "").strip()
+    mov.value = float(request.form.get("value") or 0)
+
+    db.session.commit()
+    return redirect(url_for("movimentos"))
 
 
 @app.route("/producao", methods=["GET", "POST"])
@@ -458,11 +500,13 @@ def producao():
     if request.method == "POST":
         item = db.session.get(Item, int(request.form["item_id"]))
         qty = float(request.form.get("quantity") or 0)
+        setor = request.form.get("setor", "Geral")
 
         if item and qty:
             item.stock -= qty
             db.session.add(Production(
                 prod_date=datetime.strptime(request.form["prod_date"], "%Y-%m-%d").date(),
+                setor=setor,
                 item_name=item.name,
                 quantity=qty,
                 cost=qty * item.cost
@@ -472,7 +516,7 @@ def producao():
         return redirect(url_for("producao"))
 
     lista = Production.query.order_by(Production.id.desc()).limit(200).all()
-    return render_template("producao.html", user=current_user(), items=items, lista=lista)
+    return render_template("producao.html", user=current_user(), items=items, lista=lista, setores=SETORES)
 
 
 @app.route("/desperdicio", methods=["GET", "POST"])
@@ -609,6 +653,19 @@ def relatorios():
             por_periodo[s.period]["q"] += s.quantity
             por_periodo[s.period]["v"] += s.unit_value * s.quantity
 
+    resumo_setores = []
+    for setor in SETORES:
+        prods = Production.query.filter_by(setor=setor).all()
+        movs = Movement.query.filter_by(setor=setor).all()
+        resumo_setores.append({
+            "setor": setor,
+            "producao": sum(x.cost for x in prods),
+            "movimentacao": sum(x.value for x in movs if x.mov_type in ["Saida", "Perda"]),
+            "lancamentos": len(prods) + len(movs)
+        })
+
+    ultimos_movimentos = Movement.query.order_by(Movement.id.desc()).limit(20).all()
+
     return render_template(
         "relatorios.html",
         user=current_user(),
@@ -621,7 +678,9 @@ def relatorios():
         total_producao=total_producao,
         total_diario=total_diario,
         total_perdas_com_foto=total_perdas_com_foto,
-        por_periodo=por_periodo
+        por_periodo=por_periodo,
+        resumo_setores=resumo_setores,
+        ultimos_movimentos=ultimos_movimentos
     )
 
 
