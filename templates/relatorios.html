@@ -3,18 +3,17 @@
 <div class="grid metrics">
   <div class="card metric"><span>Total de itens</span><strong>{{ total_items }}</strong></div>
   <div class="card metric"><span>Produtos em alerta</span><strong>{{ total_alertas }}</strong></div>
-  <div class="card metric"><span>Perdas acumuladas</span><strong>R$ {{ '%.2f'|format(total_perdas) }}</strong></div>
-  <div class="card metric"><span>Ticket médio refeições</span><strong>R$ {{ '%.2f'|format(ticket_medio) }}</strong></div>
-</div>
-<div class="grid metrics">
   <div class="card metric"><span>Total vendido refeições</span><strong>R$ {{ '%.2f'|format(total_vendas) }}</strong></div>
   <div class="card metric"><span>Total de refeições</span><strong>{{ total_refeicoes }}</strong></div>
-  <div class="card metric"><span>Total produção</span><strong>R$ {{ '%.2f'|format(total_producao) }}</strong></div>
-  <div class="card metric"><span>Total vendido controle diário</span><strong>R$ {{ '%.2f'|format(total_diario) }}</strong></div>
 </div>
+
 <div class="grid metrics">
-  <div class="card metric"><span>Perdas com foto</span><strong>{{ total_perdas_com_foto }}</strong></div>
+  <div class="card metric"><span>Perdas acumuladas</span><strong>R$ {{ '%.2f'|format(total_perdas) }}</strong></div>
+  <div class="card metric"><span>Ticket médio</span><strong>R$ {{ '%.2f'|format(ticket_medio) }}</strong></div>
+  <div class="card metric"><span>Total produção</span><strong>R$ {{ '%.2f'|format(total_producao) }}</strong></div>
+  <div class="card metric"><span>Total controle diário</span><strong>R$ {{ '%.2f'|format(total_diario) }}</strong></div>
 </div>
+
 <div class="grid two">
   <section class="card">
     <h3>Comparativo almoço x janta</h3>
@@ -25,10 +24,35 @@
       {% endfor %}
     </table>
   </section>
+
   <section class="card">
     <h3>Exportações</h3>
     <p><a class="btn-link" href="{{ url_for('exportar_vendas') }}">Baixar relatório de vendas (CSV)</a></p>
     <p><a class="btn-link" href="{{ url_for('exportar_controle_diario') }}">Baixar controle diário (CSV)</a></p>
   </section>
 </div>
+
+<section class="card" style="margin-top:16px;">
+  <h3>Resumo por setor</h3>
+  <table>
+    <tr><th>Setor</th><th>Custo produção</th><th>Saída/Perda</th><th>Lançamentos</th></tr>
+    {% for s in resumo_setores %}
+    <tr><td>{{ s.setor }}</td><td>R$ {{ '%.2f'|format(s.producao) }}</td><td>R$ {{ '%.2f'|format(s.movimentacao) }}</td><td>{{ s.lancamentos }}</td></tr>
+    {% endfor %}
+  </table>
+</section>
+
+<section class="card" style="margin-top:16px;">
+  <h3>Últimas movimentações</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Data</th><th>Tipo</th><th>Área</th><th>Setor</th><th>Item</th><th>Qtd.</th><th>Valor</th></tr>
+      {% for m in ultimos_movimentos %}
+      <tr>
+        <td>{{ m.mov_date.strftime('%d/%m/%Y') }}</td><td>{{ m.mov_type }}</td><td>{{ m.area }}</td><td>{{ m.setor }}</td><td>{{ m.item_name }}</td><td>{{ m.quantity }}</td><td>R$ {{ '%.2f'|format(m.value) }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</section>
 {% endblock %}
