@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div class="grid metrics">
+  <div class="card metric"><span>Produtos cadastrados</span><strong>{{ total_itens }}</strong></div>
   <div class="card metric"><span>Faturamento refeições</span><strong>R$ {{ '%.2f'|format(faturamento) }}</strong></div>
   <div class="card metric"><span>Faturamento controle diário</span><strong>R$ {{ '%.2f'|format(faturamento_padaria) }}</strong></div>
   <div class="card metric"><span>Refeições do dia</span><strong>{{ refeicoes }}</strong></div>
-  <div class="card metric"><span>Itens vendidos no diário</span><strong>{{ vendidos_diarios }}</strong></div>
 </div>
 
 <div class="grid metrics">
@@ -15,18 +14,11 @@
   <div class="card metric"><span>Desperdício do dia</span><strong>R$ {{ '%.2f'|format(desperdicio_valor) }}</strong></div>
 </div>
 
-<div class="grid metrics">
-  <div class="card metric"><span>Faturamento do almoço</span><strong>R$ {{ '%.2f'|format(faturamento_almoco) }}</strong></div>
-  <div class="card metric"><span>Custo real do almoço</span><strong>R$ {{ '%.2f'|format(custo_almoco) }}</strong></div>
-  <div class="card metric"><span>Lucro bruto do almoço</span><strong>R$ {{ '%.2f'|format(lucro_bruto_almoco) }}</strong></div>
-  <div class="card metric"><span>Período com foco</span><strong>Almoço</strong></div>
-</div>
-
 <div class="grid two">
   <section class="card">
     <h3>Resumo por período</h3>
     <table>
-      <tr><th>Período</th><th>Qtd.</th><th>Valor</th></tr>
+      <tr><th>Período</th><th>Qtd.</th><th>Faturamento</th></tr>
       {% for k, v in por_periodo.items() %}
       <tr><td>{{ k }}</td><td>{{ v.q }}</td><td>R$ {{ '%.2f'|format(v.v) }}</td></tr>
       {% endfor %}
@@ -36,11 +28,7 @@
   <section class="card">
     <h3>Alertas de estoque</h3>
     {% if alertas %}
-      <ul>
-        {% for item in alertas %}
-        <li>{{ item.name }} — atual {{ item.stock }} / mínimo {{ item.min_stock }}</li>
-        {% endfor %}
-      </ul>
+      <ul>{% for item in alertas %}<li>{{ item.name }} — atual {{ item.stock }} / mínimo {{ item.min_stock }}</li>{% endfor %}</ul>
     {% else %}
       <p>Nenhum alerta crítico.</p>
     {% endif %}
@@ -49,37 +37,50 @@
 
 <section class="card" style="margin-top:16px;">
   <h3>Faturamento dos últimos 7 dias</h3>
-  <canvas id="graficoFaturamento" height="120"></canvas>
+  <canvas id="graficoFaturamento" height="100"></canvas>
+</section>
+
+<section class="card" style="margin-top:16px;">
+  <h3>Resumo por setor — hoje</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Setor</th><th>Custo produção</th><th>Saída/Perda</th><th>Lançamentos</th></tr>
+      {% for s in resumo_setores %}
+      <tr>
+        <td>{{ s.setor }}</td>
+        <td>R$ {{ '%.2f'|format(s.producao) }}</td>
+        <td>R$ {{ '%.2f'|format(s.movimentacao) }}</td>
+        <td>{{ s.itens }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</section>
+
+<section class="card" style="margin-top:16px;">
+  <h3>Últimos movimentos</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Data</th><th>Tipo</th><th>Setor</th><th>Item</th><th>Qtd.</th><th>Valor</th></tr>
+      {% for m in ultimos_movimentos %}
+      <tr>
+        <td>{{ m.mov_date.strftime('%d/%m/%Y') }}</td><td>{{ m.mov_type }}</td><td>{{ m.setor }}</td><td>{{ m.item_name }}</td><td>{{ m.quantity }}</td><td>R$ {{ '%.2f'|format(m.value) }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const ctx = document.getElementById('graficoFaturamento');
-
 new Chart(ctx, {
   type: 'bar',
   data: {
     labels: {{ labels_grafico|tojson }},
-    datasets: [{
-      label: 'Faturamento por dia',
-      data: {{ valores_grafico|tojson }},
-      borderWidth: 1
-    }]
+    datasets: [{ label: 'Faturamento por dia', data: {{ valores_grafico|tojson }}, borderWidth: 1 }]
   },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: true
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true
-      }
-    }
-  }
+  options: { responsive: true, plugins: { legend: { display: true } }, scales: { y: { beginAtZero: true } } }
 });
 </script>
-
 {% endblock %}
