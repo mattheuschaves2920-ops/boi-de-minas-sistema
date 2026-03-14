@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="card">
+  <h3>Relatório de estoque</h3>
+
+  <form method="get" class="grid two">
+    <label>Segmento / Área
+      <select name="area">
+        <option value="">Todas</option>
+        {% for a in areas %}
+        <option value="{{ a }}" {% if area_ref == a %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Categoria
+      <select name="categoria">
+        <option value="">Todas</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {% if categoria_ref == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Status
+      <select name="status">
+        <option value="" {% if not status_ref %}selected{% endif %}>Todos</option>
+        <option value="baixo" {% if status_ref == 'baixo' %}selected{% endif %}>Abaixo do mínimo</option>
+        <option value="normal" {% if status_ref == 'normal' %}selected{% endif %}>Somente normal</option>
+      </select>
+    </label>
+
+    <div style="display:flex; align-items:flex-end; gap:10px;">
+      <button class="btn" type="submit">Aplicar filtros</button>
+      <a class="btn-link" href="{{ url_for('exportar_estoque_pdf', area=area_ref, categoria=categoria_ref, status=status_ref) }}">PDF</a>
+      <a class="btn-link" href="{{ url_for('exportar_estoque_xlsx', area=area_ref, categoria=categoria_ref, status=status_ref) }}">Excel</a>
+    </div>
+  </form>
+</section>
+
+<div class="grid metrics" style="margin-top:16px;">
+  <div class="card metric">
+    <span>Total de itens</span>
+    <strong>{{ total_itens }}</strong>
+  </div>
+
+  <div class="card metric">
+    <span>Itens baixos</span>
+    <strong>{{ itens_baixos }}</strong>
+  </div>
+
+  <div class="card metric">
+    <span>Valor total em estoque</span>
+    <strong>R$ {{ '%.2f'|format(valor_total) }}</strong>
+  </div>
+</div>
+
+<section class="card" style="margin-top:16px;">
+  <div class="table-wrap">
+    <table>
+      <tr>
+        <th>Item</th>
+        <th>Código</th>
+        <th>Área</th>
+        <th>Categoria</th>
+        <th>Unidade</th>
+        <th>Custo</th>
+        <th>Estoque</th>
+        <th>Mínimo</th>
+        <th>Valor em estoque</th>
+        <th>Status</th>
+      </tr>
+
+      {% for i in itens %}
+      <tr>
+        <td>{{ i.name }}</td>
+        <td>{{ i.code or '' }}</td>
+        <td>{{ i.area }}</td>
+        <td>{{ i.category or '' }}</td>
+        <td>{{ i.unit }}</td>
+        <td>R$ {{ '%.2f'|format(i.cost or 0) }}</td>
+        <td>{{ i.stock }}</td>
+        <td>{{ i.min_stock }}</td>
+        <td>R$ {{ '%.2f'|format((i.stock or 0) * (i.cost or 0)) }}</td>
+        <td>
+          {% if (i.stock or 0) <= (i.min_stock or 0) %}
+            Baixo
+          {% else %}
+            Normal
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</section>
+
+{% endblock %}
