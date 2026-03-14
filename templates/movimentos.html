@@ -117,6 +117,10 @@
           <td>R$ {{ '%.2f'|format(m.value) }}</td>
           <td>
             <a class="btn" href="{{ url_for('movimentos', editar=m.id, data=data_ref.strftime('%Y-%m-%d')) }}">Editar</a>
+
+            <form method="post" action="{{ url_for('excluir_movimento', mov_id=m.id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta movimentação? O estoque será ajustado automaticamente.');">
+              <button class="btn" type="submit">Excluir</button>
+            </form>
           </td>
         </tr>
         {% endfor %}
