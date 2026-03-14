@@ -9,7 +9,7 @@ from sqlalchemy import text, or_
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from openpyxl import Workbook
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 
 app = Flask(__name__)
@@ -186,6 +186,18 @@ def get_selected_month():
     return date(today.year, today.month, 1)
 
 
+def get_selected_area():
+    return (request.args.get("area") or "").strip()
+
+
+def get_selected_category():
+    return (request.args.get("categoria") or "").strip()
+
+
+def get_selected_status():
+    return (request.args.get("status") or "").strip()
+
+
 def _sum_sales_total(sales):
     return sum(s.unit_value * s.quantity for s in sales)
 
@@ -298,34 +310,19 @@ def dashboard():
             por_periodo[s.period]["q"] += s.quantity
             por_periodo[s.period]["v"] += s.unit_value * s.quantity
 
-    labels_7 = []
-    valores_7 = []
-    desperdicio_7 = []
     comparativo_dias = []
-
     for i in range(6, -1, -1):
         dia = data_ref - timedelta(days=i)
         vendas_dia = Sale.query.filter_by(sale_date=dia).all()
-        wastes_dia = Waste.query.filter_by(waste_date=dia).all()
-        total = _sum_sales_total(vendas_dia)
-        qtd = _sum_sales_qty(vendas_dia)
-
-        labels_7.append(dia.strftime("%d/%m"))
-        valores_7.append(round(total, 2))
-        desperdicio_7.append(round(sum(w.value for w in wastes_dia), 2))
-
         comparativo_dias.append({
             "data": dia.strftime("%d/%m/%Y"),
-            "qtd": qtd,
-            "total": round(total, 2),
+            "qtd": _sum_sales_qty(vendas_dia),
+            "total": round(_sum_sales_total(vendas_dia), 2),
             "almoco": round(sum(v.unit_value * v.quantity for v in vendas_dia if v.period == "Almoço"), 2),
             "janta": round(sum(v.unit_value * v.quantity for v in vendas_dia if v.period == "Janta"), 2),
         })
 
-    meses = []
-    valores_meses = []
     comparativo_meses = []
-
     for i in range(5, -1, -1):
         y = mes_ref.year
         m = mes_ref.month - i
@@ -337,15 +334,10 @@ def dashboard():
         fim = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
 
         vendas_mes = Sale.query.filter(Sale.sale_date >= inicio, Sale.sale_date < fim).all()
-        fat_mes = _sum_sales_total(vendas_mes)
-        qtd_mes = _sum_sales_qty(vendas_mes)
-
-        meses.append(inicio.strftime("%m/%Y"))
-        valores_meses.append(round(fat_mes, 2))
         comparativo_meses.append({
             "mes": inicio.strftime("%m/%Y"),
-            "qtd": qtd_mes,
-            "total": round(fat_mes, 2)
+            "qtd": _sum_sales_qty(vendas_mes),
+            "total": round(_sum_sales_total(vendas_mes), 2)
         })
 
     resumo_setores = []
@@ -354,14 +346,12 @@ def dashboard():
         mov_setor = [m for m in moves_day if m.setor == setor and m.mov_type in ["Saida", "Perda"]]
         custo_setor = sum(p.cost for p in prod_setor) + sum(m.value for m in mov_setor)
         venda_setor = sum(s.unit_value * s.quantity for s in sales_day if s.period == setor)
-        lucro_setor = venda_setor - custo_setor
-
         resumo_setores.append({
             "setor": setor,
             "producao": sum(p.cost for p in prod_setor),
             "movimentacao": sum(m.value for m in mov_setor),
             "venda": venda_setor,
-            "lucro": lucro_setor
+            "lucro": venda_setor - custo_setor
         })
 
     custo_almoco = sum(p.cost for p in prod_day if p.setor == "Almoço") + sum(
@@ -384,12 +374,7 @@ def dashboard():
         total_tipo = _sum_sales_total(vendas_tipo)
         qtd_tipo = _sum_sales_qty(vendas_tipo)
         if total_tipo or qtd_tipo:
-            ranking_vendas.append({
-                "tipo": meal,
-                "qtd": qtd_tipo,
-                "total": total_tipo
-            })
-
+            ranking_vendas.append({"tipo": meal, "qtd": qtd_tipo, "total": total_tipo})
     ranking_vendas.sort(key=lambda x: x["total"], reverse=True)
 
     ranking_produtos = {}
@@ -423,7 +408,6 @@ def dashboard():
                 "consumo_medio": round(consumo_medio, 2),
                 "dias_restantes": round(dias_restantes, 1)
             })
-
     alertas_compra.sort(key=lambda x: x["dias_restantes"])
 
     sem_ini, sem_fim = _weekly_range(data_ref)
@@ -472,11 +456,6 @@ def dashboard():
         var_custo=variacao(custo, custo_prev),
         var_lucro=variacao(lucro, lucro_prev),
         por_periodo=por_periodo,
-        labels_7=labels_7,
-        valores_7=valores_7,
-        desperdicio_7=desperdicio_7,
-        meses=meses,
-        valores_meses=valores_meses,
         comparativo_dias=comparativo_dias,
         comparativo_meses=comparativo_meses,
         resumo_setores=resumo_setores,
@@ -628,7 +607,7 @@ def vendas():
             created_by=current_user().name if current_user() else "",
         ))
         db.session.commit()
-        return redirect(url_for("vendas"))
+        return redirect(url_for("vendas", data=request.form["sale_date"]))
 
     data_ref = get_selected_date()
     vendas_lista = Sale.query.filter_by(sale_date=data_ref).order_by(Sale.id.desc()).limit(200).all()
@@ -687,7 +666,7 @@ def movimentos():
             created_by=current_user().name if current_user() else "",
         ))
         db.session.commit()
-        return redirect(url_for("movimentos"))
+        return redirect(url_for("movimentos", data=request.form["mov_date"]))
 
     editar_id = request.args.get("editar", type=int)
     mov_edicao = db.session.get(Movement, editar_id) if editar_id else None
@@ -726,7 +705,32 @@ def editar_movimento(mov_id):
     mov.value = float(request.form.get("value") or 0)
 
     db.session.commit()
-    return redirect(url_for("movimentos"))
+    return redirect(url_for("movimentos", data=mov.mov_date.strftime("%Y-%m-%d")))
+
+
+@app.route("/excluir-movimento/<int:mov_id>", methods=["POST"])
+def excluir_movimento(mov_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    mov = db.session.get(Movement, mov_id)
+    if not mov:
+        return redirect(url_for("movimentos"))
+
+    item = Item.query.filter_by(name=mov.item_name, area=mov.area).first()
+    if item:
+        if mov.mov_type in ["Saida", "Perda"]:
+            item.stock += mov.quantity
+        elif mov.mov_type == "Entrada":
+            item.stock -= mov.quantity
+            if item.stock < 0:
+                item.stock = 0
+
+    data_mov = mov.mov_date.strftime("%Y-%m-%d")
+    db.session.delete(mov)
+    db.session.commit()
+
+    return redirect(url_for("movimentos", data=data_mov))
 
 
 @app.route("/producao", methods=["GET", "POST"])
@@ -752,7 +756,7 @@ def producao():
             ))
             db.session.commit()
 
-        return redirect(url_for("producao"))
+        return redirect(url_for("producao", data=request.form["prod_date"]))
 
     data_ref = get_selected_date()
     lista = Production.query.filter_by(prod_date=data_ref).order_by(Production.id.desc()).limit(200).all()
@@ -806,7 +810,7 @@ def desperdicio():
             photo_filename=filename
         ))
         db.session.commit()
-        return redirect(url_for("desperdicio", data=data_ref.strftime("%Y-%m-%d")))
+        return redirect(url_for("desperdicio", data=request.form["waste_date"]))
 
     return render_desperdicio_page(data_ref=data_ref)
 
@@ -828,7 +832,7 @@ def controle_diario():
             notes=request.form.get("notes", "").strip()
         ))
         db.session.commit()
-        return redirect(url_for("controle_diario"))
+        return redirect(url_for("controle_diario", data=request.form["control_date"]))
 
     filtro = request.args.get("data")
     if filtro:
@@ -955,6 +959,47 @@ def relatorios():
     )
 
 
+@app.route("/relatorio-estoque")
+def relatorio_estoque():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    area = get_selected_area()
+    categoria = get_selected_category()
+    status = get_selected_status()
+
+    query = Item.query
+    if area:
+        query = query.filter_by(area=area)
+    if categoria:
+        query = query.filter_by(category=categoria)
+
+    items = query.order_by(Item.area, Item.category, Item.name).all()
+
+    if status == "baixo":
+        items = [i for i in items if i.stock <= i.min_stock]
+    elif status == "normal":
+        items = [i for i in items if i.stock > i.min_stock]
+
+    total_itens = len(items)
+    valor_total = sum((i.stock or 0) * (i.cost or 0) for i in items)
+    itens_baixos = sum(1 for i in items if (i.stock or 0) <= (i.min_stock or 0))
+
+    return render_template(
+        "estoque_relatorio.html",
+        user=current_user(),
+        itens=items,
+        areas=AREAS,
+        categories=CATEGORIES,
+        area_ref=area,
+        categoria_ref=categoria,
+        status_ref=status,
+        total_itens=total_itens,
+        valor_total=valor_total,
+        itens_baixos=itens_baixos
+    )
+
+
 @app.route("/exportar/relatorio.xlsx")
 def exportar_relatorio_xlsx():
     if not require_login():
@@ -1016,7 +1061,7 @@ def exportar_relatorio_xlsx():
     return send_file(
         out,
         as_attachment=True,
-        download_name=f"relatorio_v35_{data_ref.strftime('%Y%m%d')}.xlsx",
+        download_name=f"relatorio_v40_{data_ref.strftime('%Y%m%d')}.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
@@ -1043,7 +1088,7 @@ def exportar_relatorio_pdf():
     y = 800
 
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, y, "Boi de Minas – Relatório 3.5")
+    c.drawString(50, y, "Boi de Minas – Relatório 4.0")
     y -= 30
 
     c.setFont("Helvetica", 11)
@@ -1061,24 +1106,117 @@ def exportar_relatorio_pdf():
         c.drawString(50, y, linha)
         y -= 20
 
-    y -= 10
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Top vendas do dia")
-    y -= 20
+    c.save()
+    out.seek(0)
+
+    return send_file(
+        out,
+        as_attachment=True,
+        download_name=f"relatorio_v40_{data_ref.strftime('%Y%m%d')}.pdf",
+        mimetype="application/pdf"
+    )
+
+
+@app.route("/exportar/estoque.xlsx")
+def exportar_estoque_xlsx():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    area = get_selected_area()
+    categoria = get_selected_category()
+    status = get_selected_status()
+
+    query = Item.query
+    if area:
+        query = query.filter_by(area=area)
+    if categoria:
+        query = query.filter_by(category=categoria)
+
+    items = query.order_by(Item.area, Item.category, Item.name).all()
+
+    if status == "baixo":
+        items = [i for i in items if i.stock <= i.min_stock]
+    elif status == "normal":
+        items = [i for i in items if i.stock > i.min_stock]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Estoque"
+    ws.append(["Item", "Código", "Área", "Categoria", "Unidade", "Custo", "Estoque", "Mínimo", "Valor em estoque", "Status"])
+
+    for i in items:
+        valor_estoque = (i.stock or 0) * (i.cost or 0)
+        status_item = "Baixo" if (i.stock or 0) <= (i.min_stock or 0) else "Normal"
+        ws.append([i.name, i.code or "", i.area, i.category or "", i.unit, i.cost, i.stock, i.min_stock, valor_estoque, status_item])
+
+    out = BytesIO()
+    wb.save(out)
+    out.seek(0)
+
+    return send_file(
+        out,
+        as_attachment=True,
+        download_name="relatorio_estoque.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
+@app.route("/exportar/estoque.pdf")
+def exportar_estoque_pdf():
+    if not require_login():
+        return redirect(url_for("login"))
+
+    area = get_selected_area()
+    categoria = get_selected_category()
+    status = get_selected_status()
+
+    query = Item.query
+    if area:
+        query = query.filter_by(area=area)
+    if categoria:
+        query = query.filter_by(category=categoria)
+
+    items = query.order_by(Item.area, Item.category, Item.name).all()
+
+    if status == "baixo":
+        items = [i for i in items if i.stock <= i.min_stock]
+    elif status == "normal":
+        items = [i for i in items if i.stock > i.min_stock]
+
+    out = BytesIO()
+    c = canvas.Canvas(out, pagesize=landscape(A4))
+    y = 560
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(30, y, "Boi de Minas – Relatório de Estoque")
+    y -= 24
+
     c.setFont("Helvetica", 10)
+    c.drawString(30, y, f"Área: {area or 'Todas'} | Categoria: {categoria or 'Todas'} | Status: {status or 'Todos'}")
+    y -= 24
 
-    ranking = {}
-    for s in sales_day:
-        ranking[s.meal_type] = ranking.get(s.meal_type, 0) + (s.unit_value * s.quantity)
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(30, y, "Item")
+    c.drawString(210, y, "Área")
+    c.drawString(300, y, "Categoria")
+    c.drawString(390, y, "Estoque")
+    c.drawString(455, y, "Mínimo")
+    c.drawString(520, y, "Valor")
+    y -= 16
 
-    top = sorted(ranking.items(), key=lambda x: x[1], reverse=True)[:5]
-
-    for nome, total in top:
-        c.drawString(50, y, f"{nome}: R$ {total:.2f}")
-        y -= 16
-        if y < 60:
+    c.setFont("Helvetica", 9)
+    for i in items[:60]:
+        valor_estoque = (i.stock or 0) * (i.cost or 0)
+        c.drawString(30, y, str(i.name)[:32])
+        c.drawString(210, y, str(i.area)[:14])
+        c.drawString(300, y, str(i.category or "")[:14])
+        c.drawRightString(435, y, f"{i.stock:.3f}")
+        c.drawRightString(500, y, f"{i.min_stock:.3f}")
+        c.drawRightString(575, y, f"R$ {valor_estoque:.2f}")
+        y -= 14
+        if y < 40:
             c.showPage()
-            y = 800
+            y = 560
 
     c.save()
     out.seek(0)
@@ -1086,7 +1224,7 @@ def exportar_relatorio_pdf():
     return send_file(
         out,
         as_attachment=True,
-        download_name=f"relatorio_v35_{data_ref.strftime('%Y%m%d')}.pdf",
+        download_name="relatorio_estoque.pdf",
         mimetype="application/pdf"
     )
 
