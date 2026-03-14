@@ -810,6 +810,7 @@ def producao():
     )
 
 
+
 @app.route("/desperdicio", methods=["GET", "POST"])
 def desperdicio():
     if not require_login():
@@ -822,16 +823,25 @@ def desperdicio():
         photo = request.files.get("photo")
 
         if not photo or not photo.filename:
-            return render_desperdicio_page("Para salvar a perda, é obrigatório tirar ou enviar uma foto do desperdício.", data_ref)
+            return render_desperdicio_page(
+                "Para salvar a perda, é obrigatório tirar ou enviar uma foto do desperdício.",
+                data_ref
+            )
 
         if not allowed_image(photo.filename):
-            return render_desperdicio_page("Formato de foto inválido. Use PNG, JPG, JPEG ou WEBP.", data_ref)
+            return render_desperdicio_page(
+                "Formato de foto inválido. Use PNG, JPG, JPEG ou WEBP.",
+                data_ref
+            )
 
         item = db.session.get(Item, int(request.form["item_id"]))
         qty = float(request.form.get("quantity") or 0)
 
         if not item or qty <= 0:
-            return render_desperdicio_page("Selecione um item válido e informe uma quantidade maior que zero.", data_ref)
+            return render_desperdicio_page(
+                "Selecione um item válido e informe uma quantidade maior que zero.",
+                data_ref
+            )
 
         original_name = secure_filename(photo.filename)
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -840,6 +850,7 @@ def desperdicio():
         photo.save(photo_path)
 
         item.stock -= qty
+
         db.session.add(Waste(
             waste_date=datetime.strptime(request.form["waste_date"], "%Y-%m-%d").date(),
             item_name=item.name,
@@ -848,12 +859,79 @@ def desperdicio():
             value=qty * item.cost,
             photo_filename=filename
         ))
+
         db.session.commit()
+
         return redirect(url_for("desperdicio", data=request.form["waste_date"]))
 
-    return render_desperdicio_page(data_ref=data_ref)
+    editar_id = request.args.get("editar", type=int)
+    desperdicio_edicao = db.session.get(Waste, editar_id) if editar_id else None
+
+    items = Item.query.order_by(Item.name).all()
+    lista = Waste.query.filter_by(waste_date=data_ref).order_by(Waste.id.desc()).limit(200).all()
+
+    return render_template(
+        "desperdicio.html",
+        user=current_user(),
+        items=items,
+        lista=lista,
+        error=None,
+        data_ref=data_ref,
+        desperdicio_edicao=desperdicio_edicao
+    )
 
 
+@app.route("/editar-desperdicio/<int:waste_id>", methods=["POST"])
+def editar_desperdicio(waste_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    waste = db.session.get(Waste, waste_id)
+    if not waste:
+        return redirect(url_for("desperdicio"))
+
+    item = Item.query.filter_by(name=waste.item_name).first()
+    nova_qtd = float(request.form.get("quantity") or 0)
+
+    if item:
+        diferenca = nova_qtd - waste.quantity
+        item.stock -= diferenca
+        if item.stock < 0:
+            item.stock = 0
+
+    waste.waste_date = datetime.strptime(request.form["waste_date"], "%Y-%m-%d").date()
+    waste.quantity = nova_qtd
+    waste.reason = request.form.get("reason", "").strip()
+
+    if item:
+        waste.value = nova_qtd * item.cost
+    else:
+        waste.value = 0
+
+    db.session.commit()
+
+    return redirect(url_for("desperdicio", data=waste.waste_date.strftime("%Y-%m-%d")))
+
+
+@app.route("/excluir-desperdicio/<int:waste_id>", methods=["POST"])
+def excluir_desperdicio(waste_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    waste = db.session.get(Waste, waste_id)
+    if not waste:
+        return redirect(url_for("desperdicio"))
+
+    item = Item.query.filter_by(name=waste.item_name).first()
+    if item:
+        item.stock += waste.quantity
+
+    data_waste = waste.waste_date.strftime("%Y-%m-%d")
+
+    db.session.delete(waste)
+    db.session.commit()
+
+    return redirect(url_for("desperdicio", data=data_waste))
 @app.route("/controle-diario", methods=["GET", "POST"])
 def controle_diario():
     if not require_login():
