@@ -610,6 +610,8 @@ def vendas():
         return redirect(url_for("vendas", data=request.form["sale_date"]))
 
     data_ref = get_selected_date()
+    editar_id = request.args.get("editar", type=int)
+    venda_edicao = db.session.get(Sale, editar_id) if editar_id else None
     vendas_lista = Sale.query.filter_by(sale_date=data_ref).order_by(Sale.id.desc()).limit(200).all()
     total_dia = sum(v.unit_value * v.quantity for v in vendas_lista)
 
@@ -619,8 +621,45 @@ def vendas():
         vendas=vendas_lista,
         meal_types=MEAL_TYPES,
         total_hoje=total_dia,
-        data_ref=data_ref
+        data_ref=data_ref,
+        venda_edicao=venda_edicao
     )
+
+
+@app.route("/editar-venda/<int:sale_id>", methods=["POST"])
+def editar_venda(sale_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    venda = db.session.get(Sale, sale_id)
+    if not venda:
+        return redirect(url_for("vendas"))
+
+    venda.sale_date = datetime.strptime(request.form["sale_date"], "%Y-%m-%d").date()
+    venda.meal_type = request.form["meal_type"]
+    venda.period = request.form["period"]
+    venda.unit_value = float(request.form.get("unit_value") or 0)
+    venda.quantity = int(request.form.get("quantity") or 0)
+    venda.notes = request.form.get("notes", "").strip()
+
+    db.session.commit()
+    return redirect(url_for("vendas", data=venda.sale_date.strftime("%Y-%m-%d")))
+
+
+@app.route("/excluir-venda/<int:sale_id>", methods=["POST"])
+def excluir_venda(sale_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    venda = db.session.get(Sale, sale_id)
+    if not venda:
+        return redirect(url_for("vendas"))
+
+    data_venda = venda.sale_date.strftime("%Y-%m-%d")
+    db.session.delete(venda)
+    db.session.commit()
+
+    return redirect(url_for("vendas", data=data_venda))
 
 
 @app.route("/movimentos", methods=["GET", "POST"])
