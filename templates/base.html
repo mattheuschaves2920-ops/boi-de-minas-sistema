@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title or 'Boi de Minas – Ravena' }}</title>
-
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="https://unpkg.com/html5-qrcode" defer></script>
 </head>
@@ -23,6 +22,7 @@
   <nav>
     <a href="{{ url_for('dashboard') }}">Dashboard</a>
     <a href="{{ url_for('itens') }}">Estoque</a>
+    <a href="{{ url_for('relatorio_estoque') }}">Relatório estoque</a>
     <a href="{{ url_for('vendas') }}">Refeições</a>
     <a href="{{ url_for('movimentos') }}">Movimentos</a>
     <a href="{{ url_for('producao') }}">Produção</a>
