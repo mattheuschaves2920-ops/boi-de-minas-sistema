@@ -75,7 +75,7 @@ class Sale(db.Model):
     meal_type = db.Column(db.String(80), nullable=False)
     period = db.Column(db.String(20), nullable=False)
     unit_value = db.Column(db.Float, nullable=False, default=0)
-    quantity = db.Column(db.Float, nullable=False, default=0)
+    quantity = db.Column(db.Float, nullable=False, default=0)  # agora aceita fracionado
     notes = db.Column(db.String(255), nullable=True)
     created_by = db.Column(db.String(120), nullable=True)
 
@@ -131,6 +131,7 @@ def migrate_schema():
             "ALTER TABLE waste ADD COLUMN IF NOT EXISTS photo_filename VARCHAR(255)",
             "ALTER TABLE movement ADD COLUMN IF NOT EXISTS setor VARCHAR(40) DEFAULT 'Geral'",
             "ALTER TABLE production ADD COLUMN IF NOT EXISTS setor VARCHAR(40) DEFAULT 'Geral'",
+            "ALTER TABLE sale ALTER COLUMN quantity TYPE DOUBLE PRECISION USING quantity::double precision",
         ]
         for stmt in stmts:
             try:
@@ -601,7 +602,7 @@ def vendas():
             sale_date=datetime.strptime(request.form["sale_date"], "%Y-%m-%d").date(),
             meal_type=request.form["meal_type"],
             period=request.form["period"],
-            unit_value=float(request.form.get("unit_value") or 0),
+            unit_value=float(str(request.form.get("unit_value") or 0).replace(",", ".")),
             quantity=float(str(request.form.get("quantity") or 0).replace(",", ".")),
             notes=request.form.get("notes", "").strip(),
             created_by=current_user().name if current_user() else "",
@@ -638,7 +639,7 @@ def editar_venda(sale_id):
     venda.sale_date = datetime.strptime(request.form["sale_date"], "%Y-%m-%d").date()
     venda.meal_type = request.form["meal_type"]
     venda.period = request.form["period"]
-    venda.unit_value = float(request.form.get("unit_value") or 0)
+    venda.unit_value = float(str(request.form.get("unit_value") or 0).replace(",", "."))
     venda.quantity = float(str(request.form.get("quantity") or 0).replace(",", "."))
     venda.notes = request.form.get("notes", "").strip()
 
@@ -810,7 +811,6 @@ def producao():
     )
 
 
-
 @app.route("/desperdicio", methods=["GET", "POST"])
 def desperdicio():
     if not require_login():
@@ -932,6 +932,8 @@ def excluir_desperdicio(waste_id):
     db.session.commit()
 
     return redirect(url_for("desperdicio", data=data_waste))
+
+
 @app.route("/controle-diario", methods=["GET", "POST"])
 def controle_diario():
     if not require_login():
