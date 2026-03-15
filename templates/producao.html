@@ -1,96 +1,81 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="card">
-  <form method="get" class="grid two">
-    <label>Filtrar por dia
-      <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
-    </label>
-    <button class="btn" type="submit">Aplicar filtro</button>
-  </form>
-</section>
+<h2>Produção</h2>
 
-<div class="grid two" style="margin-top:16px;">
-  <section class="card">
-    <h3>{% if producao_edicao %}Editar produção{% else %}Lançar produção{% endif %}</h3>
+<form method="get">
+<label>Filtrar por dia</label>
+<input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+<button type="submit">Filtrar</button>
+</form>
 
-    {% if producao_edicao %}
-    <form method="post" action="{{ url_for('editar_producao', prod_id=producao_edicao.id) }}">
-      <label>Data
-        <input type="date" name="prod_date" required value="{{ producao_edicao.prod_date.strftime('%Y-%m-%d') }}">
-      </label>
+<hr>
 
-      <label>Setor / Turno
-        <select name="setor">
-          {% for s in setores %}
-          <option value="{{ s }}" {% if producao_edicao.setor == s %}selected{% endif %}>{{ s }}</option>
-          {% endfor %}
-        </select>
-      </label>
+<h3>Lançar produção</h3>
 
-      <label>Item
-        <input type="text" name="item_name" value="{{ producao_edicao.item_name }}" required>
-      </label>
+<form method="post">
 
-      <label>Quantidade usada
-        <input type="number" step="0.001" name="quantity" value="{{ producao_edicao.quantity }}" required>
-      </label>
+<label>Data</label>
+<input type="date" name="prod_date" value="{{ data_ref.strftime('%Y-%m-%d') }}" required>
 
-      <label>Custo total
-        <input type="number" step="0.01" name="cost" value="{{ producao_edicao.cost }}" required>
-      </label>
+<label>Setor</label>
+<select name="setor">
+{% for s in setores %}
+<option value="{{ s }}">{{ s }}</option>
+{% endfor %}
+</select>
 
-      <button class="btn" type="submit">Salvar edição</button>
-    </form>
-    {% else %}
-    <form method="post">
-      <label>Data
-        <input type="date" name="prod_date" required value="{{ data_ref.strftime('%Y-%m-%d') }}">
-      </label>
+<label>Item</label>
+<select name="item_id">
+{% for i in items %}
+<option value="{{ i.id }}">{{ i.name }}</option>
+{% endfor %}
+</select>
 
-      <label>Setor / Turno
-        <select name="setor">
-          {% for s in setores %}
-          <option value="{{ s }}">{{ s }}</option>
-          {% endfor %}
-        </select>
-      </label>
+<label>Quantidade</label>
+<input type="number" step="0.001" name="quantity" required>
 
-      <label>Item
-        <select name="item_id" required>
-          {% for i in items %}
-          <option value="{{ i.id }}">{{ i.name }} — {{ i.area }}</option>
-          {% endfor %}
-        </select>
-      </label>
+<button type="submit">Salvar</button>
 
-      <label>Quantidade usada
-        <input type="number" step="0.001" name="quantity" required>
-      </label>
+</form>
 
-      <button class="btn" type="submit">Salvar produção</button>
-    </form>
-    {% endif %}
-  </section>
+<hr>
 
-  <section class="card">
-    <h3>Histórico da produção</h3>
+<h3>Produção do dia</h3>
 
-    <div class="table-wrap">
-      <table>
-        <tr>
-          <th>Data</th>
-          <th>Setor</th>
-          <th>Item</th>
-          <th>Qtd.</th>
-          <th>Custo</th>
-          <th>Ação</th>
-        </tr>
+<table border="1" width="100%">
 
-        {% for p in lista %}
-        <tr>
-          <td>{{ p.prod_date.strftime('%d/%m/%Y') }}</td>
-          <td>{{ p.setor }}</td>
-          <td>{{ p.item_name }}</td>
-          <td>{{ '%.3f'|format(p.quantity) }}</td>
-          <td>R$ {{ '%.2
+<tr>
+<th>Data</th>
+<th>Setor</th>
+<th>Item</th>
+<th>Quantidade</th>
+<th>Custo</th>
+<th>Ações</th>
+</tr>
+
+{% for p in lista %}
+
+<tr>
+
+<td>{{ p.prod_date }}</td>
+<td>{{ p.setor }}</td>
+<td>{{ p.item_name }}</td>
+<td>{{ p.quantity }}</td>
+<td>R$ {{ "%.2f"|format(p.cost) }}</td>
+
+<td>
+
+<form action="/excluir-producao/{{ p.id }}" method="post" style="display:inline;">
+<button type="submit">Excluir</button>
+</form>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+{% endblock %}
