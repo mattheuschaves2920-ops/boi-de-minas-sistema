@@ -799,6 +799,9 @@ def producao():
         return redirect(url_for("producao", data=request.form["prod_date"]))
 
     data_ref = get_selected_date()
+    editar_id = request.args.get("editar", type=int)
+    producao_edicao = db.session.get(Production, editar_id) if editar_id else None
+
     lista = Production.query.filter_by(prod_date=data_ref).order_by(Production.id.desc()).limit(200).all()
 
     return render_template(
@@ -807,7 +810,8 @@ def producao():
         items=items,
         lista=lista,
         setores=SETORES,
-        data_ref=data_ref
+        data_ref=data_ref,
+        producao_edicao=producao_edicao
     )
 
 
