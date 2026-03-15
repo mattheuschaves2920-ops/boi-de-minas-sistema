@@ -237,13 +237,11 @@ def render_desperdicio_page(error=None, data_ref=None):
 def setup():
     ensure_upload_folder()
     migrate_schema()
-
     if not User.query.filter_by(username="admin").first():
         user = User(name="Administrador", username="admin", role="admin")
         user.set_password("123456")
         db.session.add(user)
         db.session.commit()
-
     return "Sistema criado/atualizado. Login inicial: admin / 123456"
 
 
@@ -252,14 +250,11 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             session["user_id"] = user.id
             return redirect(url_for("dashboard"))
-
         return render_template("login.html", error="Usuário ou senha inválidos.")
-
     return render_template("login.html", error=None)
 
 
@@ -276,6 +271,8 @@ def dashboard():
 
     data_ref = get_selected_date()
     mes_ref = get_selected_month()
+    mes_inicio = mes_ref
+    mes_fim = date(mes_ref.year + 1, 1, 1) if mes_ref.month == 12 else date(mes_ref.year, mes_ref.month + 1, 1)
 
     sales_day = Sale.query.filter_by(sale_date=data_ref).all()
     moves_day = Movement.query.filter_by(mov_date=data_ref).all()
@@ -283,6 +280,18 @@ def dashboard():
     prod_day = Production.query.filter_by(prod_date=data_ref).all()
     bakery_day = DailyBakeryControl.query.filter_by(control_date=data_ref).all()
     items = Item.query.order_by(Item.area, Item.name).all()
+
+    sales_all = Sale.query.all()
+    moves_all = Movement.query.all()
+    waste_all = Waste.query.all()
+    prod_all = Production.query.all()
+    bakery_all = DailyBakeryControl.query.all()
+
+    sales_month = Sale.query.filter(Sale.sale_date >= mes_inicio, Sale.sale_date < mes_fim).all()
+    moves_month = Movement.query.filter(Movement.mov_date >= mes_inicio, Movement.mov_date < mes_fim).all()
+    waste_month = Waste.query.filter(Waste.waste_date >= mes_inicio, Waste.waste_date < mes_fim).all()
+    prod_month = Production.query.filter(Production.prod_date >= mes_inicio, Production.prod_date < mes_fim).all()
+    bakery_month = DailyBakeryControl.query.filter(DailyBakeryControl.control_date >= mes_inicio, DailyBakeryControl.control_date < mes_fim).all()
 
     dia_anterior = data_ref - timedelta(days=1)
     sales_prev = Sale.query.filter_by(sale_date=dia_anterior).all()
@@ -304,6 +313,20 @@ def dashboard():
     vendidos_diarios = sum(b.sold_qty for b in bakery_day)
     cmv = round((custo / faturamento) * 100, 2) if faturamento else 0
     alertas = [i for i in items if i.stock <= i.min_stock]
+
+    faturamento_total = _sum_sales_total(sales_all) + sum(b.unit_value * b.sold_qty for b in bakery_all)
+    refeicoes_total = _sum_sales_qty(sales_all)
+    desperdicio_total = sum(w.value for w in waste_all)
+    custo_total = _sum_moves_cost(moves_all) + desperdicio_total + sum(p.cost for p in prod_all)
+    lucro_total = faturamento_total - custo_total
+    producao_total = sum(p.cost for p in prod_all)
+
+    faturamento_mes = _sum_sales_total(sales_month) + sum(b.unit_value * b.sold_qty for b in bakery_month)
+    refeicoes_mes = _sum_sales_qty(sales_month)
+    desperdicio_mes = sum(w.value for w in waste_month)
+    custo_mes = _sum_moves_cost(moves_month) + desperdicio_mes + sum(p.cost for p in prod_month)
+    lucro_mes = faturamento_mes - custo_mes
+    producao_mes = sum(p.cost for p in prod_month)
 
     por_periodo = {"Almoço": {"q": 0, "v": 0}, "Janta": {"q": 0, "v": 0}}
     for s in sales_day:
@@ -330,15 +353,13 @@ def dashboard():
         while m <= 0:
             m += 12
             y -= 1
-
         inicio = date(y, m, 1)
         fim = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
-
-        vendas_mes = Sale.query.filter(Sale.sale_date >= inicio, Sale.sale_date < fim).all()
+        vendas_mes_loop = Sale.query.filter(Sale.sale_date >= inicio, Sale.sale_date < fim).all()
         comparativo_meses.append({
             "mes": inicio.strftime("%m/%Y"),
-            "qtd": _sum_sales_qty(vendas_mes),
-            "total": round(_sum_sales_total(vendas_mes), 2)
+            "qtd": _sum_sales_qty(vendas_mes_loop),
+            "total": round(_sum_sales_total(vendas_mes_loop), 2)
         })
 
     resumo_setores = []
@@ -361,13 +382,20 @@ def dashboard():
     custo_janta = sum(p.cost for p in prod_day if p.setor == "Janta") + sum(
         m.value for m in moves_day if m.setor == "Janta" and m.mov_type in ["Saida", "Perda"]
     )
-
     venda_almoco = por_periodo["Almoço"]["v"]
     venda_janta = por_periodo["Janta"]["v"]
     lucro_almoco = venda_almoco - custo_almoco
     lucro_janta = venda_janta - custo_janta
     margem_almoco = round((lucro_almoco / venda_almoco) * 100, 2) if venda_almoco else 0
     margem_janta = round((lucro_janta / venda_janta) * 100, 2) if venda_janta else 0
+
+    comparativo_turnos = {
+        "faturamento_diff": round(venda_almoco - venda_janta, 2),
+        "custo_diff": round(custo_almoco - custo_janta, 2),
+        "lucro_diff": round(lucro_almoco - lucro_janta, 2),
+        "melhor_faturamento": "Almoço" if venda_almoco > venda_janta else ("Janta" if venda_janta > venda_almoco else "Empate"),
+        "melhor_lucro": "Almoço" if lucro_almoco > lucro_janta else ("Janta" if lucro_janta > lucro_almoco else "Empate"),
+    }
 
     ranking_vendas = []
     for meal in MEAL_TYPES:
@@ -384,7 +412,6 @@ def dashboard():
     for m in moves_day:
         if m.mov_type in ["Saida", "Perda"]:
             ranking_produtos[m.item_name] = ranking_produtos.get(m.item_name, 0) + m.quantity
-
     ranking_produtos = [{"item": k, "qtd": v} for k, v in ranking_produtos.items()]
     ranking_produtos.sort(key=lambda x: x["qtd"], reverse=True)
     ranking_produtos = ranking_produtos[:10]
@@ -398,10 +425,8 @@ def dashboard():
             movs = Movement.query.filter_by(mov_date=dia, item_name=item.name).all()
             consumo += sum(p.quantity for p in prod)
             consumo += sum(m.quantity for m in movs if m.mov_type in ["Saida", "Perda"])
-
         consumo_medio = consumo / 7 if consumo else 0
         dias_restantes = (item.stock / consumo_medio) if consumo_medio > 0 else 999
-
         if consumo_medio > 0 and dias_restantes <= 3:
             alertas_compra.append({
                 "item": item.name,
@@ -414,7 +439,6 @@ def dashboard():
     sem_ini, sem_fim = _weekly_range(data_ref)
     sem_ant_ini = sem_ini - timedelta(days=7)
     sem_ant_fim = sem_ini
-
     vendas_semana = Sale.query.filter(Sale.sale_date >= sem_ini, Sale.sale_date < sem_fim).all()
     vendas_semana_ant = Sale.query.filter(Sale.sale_date >= sem_ant_ini, Sale.sale_date < sem_ant_fim).all()
     desperdicio_semana = Waste.query.filter(Waste.waste_date >= sem_ini, Waste.waste_date < sem_fim).all()
@@ -445,10 +469,22 @@ def dashboard():
         total_itens=len(items),
         faturamento=faturamento,
         faturamento_padaria=faturamento_padaria,
+        faturamento_total=faturamento_total,
+        faturamento_mes=faturamento_mes,
         refeicoes=refeicoes,
+        refeicoes_total=refeicoes_total,
+        refeicoes_mes=refeicoes_mes,
         custo=custo,
+        custo_total=custo_total,
+        custo_mes=custo_mes,
         lucro=lucro,
+        lucro_total=lucro_total,
+        lucro_mes=lucro_mes,
         desperdicio=desperdicio,
+        desperdicio_total=desperdicio_total,
+        desperdicio_mes=desperdicio_mes,
+        producao_total=producao_total,
+        producao_mes=producao_mes,
         vendidos_diarios=vendidos_diarios,
         cmv=cmv,
         alertas=alertas,
@@ -468,6 +504,7 @@ def dashboard():
         lucro_janta=lucro_janta,
         margem_almoco=margem_almoco,
         margem_janta=margem_janta,
+        comparativo_turnos=comparativo_turnos,
         ranking_vendas=ranking_vendas,
         ranking_produtos=ranking_produtos,
         alertas_compra=alertas_compra[:10],
@@ -901,9 +938,7 @@ def desperdicio():
             value=qty * item.cost,
             photo_filename=filename
         ))
-
         db.session.commit()
-
         return redirect(url_for("desperdicio", data=request.form["waste_date"]))
 
     editar_id = request.args.get("editar", type=int)
@@ -944,14 +979,9 @@ def editar_desperdicio(waste_id):
     waste.waste_date = datetime.strptime(request.form["waste_date"], "%Y-%m-%d").date()
     waste.quantity = nova_qtd
     waste.reason = request.form.get("reason", "").strip()
-
-    if item:
-        waste.value = nova_qtd * item.cost
-    else:
-        waste.value = 0
+    waste.value = nova_qtd * item.cost if item else 0
 
     db.session.commit()
-
     return redirect(url_for("desperdicio", data=waste.waste_date.strftime("%Y-%m-%d")))
 
 
@@ -994,12 +1024,7 @@ def controle_diario():
         db.session.commit()
         return redirect(url_for("controle_diario", data=request.form["control_date"]))
 
-    filtro = request.args.get("data")
-    if filtro:
-        data_ref = datetime.strptime(filtro, "%Y-%m-%d").date()
-    else:
-        data_ref = date.today()
-
+    data_ref = get_selected_date()
     lista = DailyBakeryControl.query.filter_by(control_date=data_ref).order_by(
         DailyBakeryControl.group_name,
         DailyBakeryControl.item_name
@@ -1051,8 +1076,6 @@ def relatorios():
         return redirect(url_for("login"))
 
     data_ref = get_selected_date()
-    mes_ref = get_selected_month()
-
     sales_day = Sale.query.filter_by(sale_date=data_ref).all()
     moves_day = Movement.query.filter_by(mov_date=data_ref).all()
     waste_day = Waste.query.filter_by(waste_date=data_ref).all()
@@ -1093,18 +1116,14 @@ def relatorios():
         total_tipo = _sum_sales_total(vendas_tipo)
         qtd_tipo = _sum_sales_qty(vendas_tipo)
         if total_tipo or qtd_tipo:
-            ranking_vendas.append({
-                "tipo": meal,
-                "qtd": qtd_tipo,
-                "total": total_tipo
-            })
+            ranking_vendas.append({"tipo": meal, "qtd": qtd_tipo, "total": total_tipo})
     ranking_vendas.sort(key=lambda x: x["total"], reverse=True)
 
     return render_template(
         "relatorios.html",
         user=current_user(),
         data_ref=data_ref,
-        mes_ref=mes_ref,
+        mes_ref=get_selected_month(),
         faturamento=faturamento,
         refeicoes=refeicoes,
         custo=custo,
@@ -1177,7 +1196,6 @@ def exportar_relatorio_xlsx():
     cmv = round((custo / faturamento) * 100, 2) if faturamento else 0
 
     wb = Workbook()
-
     ws = wb.active
     ws.title = "Resumo"
     ws.append(["Relatório diário", data_ref.strftime("%d/%m/%Y")])
@@ -1216,11 +1234,10 @@ def exportar_relatorio_xlsx():
     out = BytesIO()
     wb.save(out)
     out.seek(0)
-
     return send_file(
         out,
         as_attachment=True,
-        download_name=f"relatorio_v44_{data_ref.strftime('%Y%m%d')}.xlsx",
+        download_name=f"relatorio_v50_{data_ref.strftime('%Y%m%d')}.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
@@ -1245,35 +1262,24 @@ def exportar_relatorio_pdf():
     out = BytesIO()
     c = canvas.Canvas(out, pagesize=A4)
     y = 800
-
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, y, "Boi de Minas – Relatório 4.4")
+    c.drawString(50, y, "Boi de Minas – Relatório")
     y -= 30
-
     c.setFont("Helvetica", 11)
-    linhas = [
+    for linha in [
         f"Data: {data_ref.strftime('%d/%m/%Y')}",
         f"Faturamento: R$ {faturamento:.2f}",
-        f"Refeições: {refeicoes}",
+        f"Refeições: {refeicoes:.3f}",
         f"Custo: R$ {custo:.2f}",
         f"Lucro: R$ {lucro:.2f}",
         f"CMV: {cmv:.2f}%",
         f"Desperdício: R$ {sum(w.value for w in waste_day):.2f}",
-    ]
-
-    for linha in linhas:
+    ]:
         c.drawString(50, y, linha)
         y -= 20
-
     c.save()
     out.seek(0)
-
-    return send_file(
-        out,
-        as_attachment=True,
-        download_name=f"relatorio_v44_{data_ref.strftime('%Y%m%d')}.pdf",
-        mimetype="application/pdf"
-    )
+    return send_file(out, as_attachment=True, download_name=f"relatorio_{data_ref.strftime('%Y%m%d')}.pdf", mimetype="application/pdf")
 
 
 @app.route("/exportar/estoque.xlsx")
@@ -1311,13 +1317,7 @@ def exportar_estoque_xlsx():
     out = BytesIO()
     wb.save(out)
     out.seek(0)
-
-    return send_file(
-        out,
-        as_attachment=True,
-        download_name="relatorio_estoque.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    return send_file(out, as_attachment=True, download_name="relatorio_estoque.xlsx", mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 @app.route("/exportar/estoque.pdf")
@@ -1345,15 +1345,12 @@ def exportar_estoque_pdf():
     out = BytesIO()
     c = canvas.Canvas(out, pagesize=landscape(A4))
     y = 560
-
     c.setFont("Helvetica-Bold", 14)
     c.drawString(30, y, "Boi de Minas – Relatório de Estoque")
     y -= 24
-
     c.setFont("Helvetica", 10)
     c.drawString(30, y, f"Área: {area or 'Todas'} | Categoria: {categoria or 'Todas'} | Status: {status or 'Todos'}")
     y -= 24
-
     c.setFont("Helvetica-Bold", 9)
     c.drawString(30, y, "Item")
     c.drawString(210, y, "Área")
@@ -1379,13 +1376,7 @@ def exportar_estoque_pdf():
 
     c.save()
     out.seek(0)
-
-    return send_file(
-        out,
-        as_attachment=True,
-        download_name="relatorio_estoque.pdf",
-        mimetype="application/pdf"
-    )
+    return send_file(out, as_attachment=True, download_name="relatorio_estoque.pdf", mimetype="application/pdf")
 
 
 @app.route("/exportar/vendas.csv")
@@ -1396,28 +1387,13 @@ def exportar_vendas():
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["Data", "Tipo", "Período", "Valor Unitário", "Quantidade", "Total", "Criado por"])
-
     for s in Sale.query.order_by(Sale.sale_date.desc()).all():
-        writer.writerow([
-            s.sale_date,
-            s.meal_type,
-            s.period,
-            s.unit_value,
-            s.quantity,
-            s.unit_value * s.quantity,
-            s.created_by
-        ])
+        writer.writerow([s.sale_date, s.meal_type, s.period, s.unit_value, s.quantity, s.unit_value * s.quantity, s.created_by])
 
     mem = BytesIO()
     mem.write(output.getvalue().encode("utf-8-sig"))
     mem.seek(0)
-
-    return send_file(
-        mem,
-        mimetype="text/csv",
-        as_attachment=True,
-        download_name="vendas.csv"
-    )
+    return send_file(mem, mimetype="text/csv", as_attachment=True, download_name="vendas.csv")
 
 
 @app.route("/exportar/controle_diario.csv")
@@ -1428,34 +1404,13 @@ def exportar_controle_diario():
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["Data", "Grupo", "Item", "Entrada", "Saída", "Vendido", "Valor Unitário", "Faturado", "Observações"])
-
-    for r in DailyBakeryControl.query.order_by(
-        DailyBakeryControl.control_date.desc(),
-        DailyBakeryControl.group_name,
-        DailyBakeryControl.item_name
-    ).all():
-        writer.writerow([
-            r.control_date,
-            r.group_name,
-            r.item_name,
-            r.input_qty,
-            r.output_qty,
-            r.sold_qty,
-            r.unit_value,
-            r.sold_qty * r.unit_value,
-            r.notes
-        ])
+    for r in DailyBakeryControl.query.order_by(DailyBakeryControl.control_date.desc(), DailyBakeryControl.group_name, DailyBakeryControl.item_name).all():
+        writer.writerow([r.control_date, r.group_name, r.item_name, r.input_qty, r.output_qty, r.sold_qty, r.unit_value, r.sold_qty * r.unit_value, r.notes])
 
     mem = BytesIO()
     mem.write(output.getvalue().encode("utf-8-sig"))
     mem.seek(0)
-
-    return send_file(
-        mem,
-        mimetype="text/csv",
-        as_attachment=True,
-        download_name="controle_diario.csv"
-    )
+    return send_file(mem, mimetype="text/csv", as_attachment=True, download_name="controle_diario.csv")
 
 
 if __name__ == "__main__":
