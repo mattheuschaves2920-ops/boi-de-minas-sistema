@@ -75,7 +75,7 @@ class Sale(db.Model):
     meal_type = db.Column(db.String(80), nullable=False)
     period = db.Column(db.String(20), nullable=False)
     unit_value = db.Column(db.Float, nullable=False, default=0)
-    quantity = db.Column(db.Float, nullable=False, default=0)  # agora aceita fracionado
+    quantity = db.Column(db.Float, nullable=False, default=0)
     notes = db.Column(db.String(255), nullable=True)
     created_by = db.Column(db.String(120), nullable=True)
 
@@ -801,7 +801,6 @@ def producao():
     data_ref = get_selected_date()
     editar_id = request.args.get("editar", type=int)
     producao_edicao = db.session.get(Production, editar_id) if editar_id else None
-
     lista = Production.query.filter_by(prod_date=data_ref).order_by(Production.id.desc()).limit(200).all()
 
     return render_template(
@@ -813,6 +812,45 @@ def producao():
         data_ref=data_ref,
         producao_edicao=producao_edicao
     )
+
+
+@app.route("/editar-producao/<int:prod_id>", methods=["POST"])
+def editar_producao(prod_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    prod = db.session.get(Production, prod_id)
+    if not prod:
+        return redirect(url_for("producao"))
+
+    prod.prod_date = datetime.strptime(request.form["prod_date"], "%Y-%m-%d").date()
+    prod.setor = request.form.get("setor", "Geral")
+    prod.item_name = request.form["item_name"].strip()
+    prod.quantity = float(request.form.get("quantity") or 0)
+    prod.cost = float(request.form.get("cost") or 0)
+
+    db.session.commit()
+    return redirect(url_for("producao", data=prod.prod_date.strftime("%Y-%m-%d")))
+
+
+@app.route("/excluir-producao/<int:prod_id>", methods=["POST"])
+def excluir_producao(prod_id):
+    if not require_login():
+        return redirect(url_for("login"))
+
+    prod = db.session.get(Production, prod_id)
+    if not prod:
+        return redirect(url_for("producao"))
+
+    item = Item.query.filter_by(name=prod.item_name).first()
+    if item:
+        item.stock += prod.quantity
+
+    data_prod = prod.prod_date.strftime("%Y-%m-%d")
+    db.session.delete(prod)
+    db.session.commit()
+
+    return redirect(url_for("producao", data=data_prod))
 
 
 @app.route("/desperdicio", methods=["GET", "POST"])
@@ -931,7 +969,6 @@ def excluir_desperdicio(waste_id):
         item.stock += waste.quantity
 
     data_waste = waste.waste_date.strftime("%Y-%m-%d")
-
     db.session.delete(waste)
     db.session.commit()
 
@@ -1061,7 +1098,6 @@ def relatorios():
                 "qtd": qtd_tipo,
                 "total": total_tipo
             })
-
     ranking_vendas.sort(key=lambda x: x["total"], reverse=True)
 
     return render_template(
@@ -1184,7 +1220,7 @@ def exportar_relatorio_xlsx():
     return send_file(
         out,
         as_attachment=True,
-        download_name=f"relatorio_v40_{data_ref.strftime('%Y%m%d')}.xlsx",
+        download_name=f"relatorio_v44_{data_ref.strftime('%Y%m%d')}.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
@@ -1211,7 +1247,7 @@ def exportar_relatorio_pdf():
     y = 800
 
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, y, "Boi de Minas – Relatório 4.0")
+    c.drawString(50, y, "Boi de Minas – Relatório 4.4")
     y -= 30
 
     c.setFont("Helvetica", 11)
@@ -1235,7 +1271,7 @@ def exportar_relatorio_pdf():
     return send_file(
         out,
         as_attachment=True,
-        download_name=f"relatorio_v40_{data_ref.strftime('%Y%m%d')}.pdf",
+        download_name=f"relatorio_v44_{data_ref.strftime('%Y%m%d')}.pdf",
         mimetype="application/pdf"
     )
 
