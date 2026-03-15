@@ -75,7 +75,7 @@ class Sale(db.Model):
     meal_type = db.Column(db.String(80), nullable=False)
     period = db.Column(db.String(20), nullable=False)
     unit_value = db.Column(db.Float, nullable=False, default=0)
-    quantity = db.Column(db.Integer, nullable=False, default=0)
+    quantity = db.Column(db.Float, nullable=False, default=0)
     notes = db.Column(db.String(255), nullable=True)
     created_by = db.Column(db.String(120), nullable=True)
 
@@ -602,7 +602,7 @@ def vendas():
             meal_type=request.form["meal_type"],
             period=request.form["period"],
             unit_value=float(request.form.get("unit_value") or 0),
-            quantity=int(request.form.get("quantity") or 0),
+            quantity=float(str(request.form.get("quantity") or 0).replace(",", ".")),
             notes=request.form.get("notes", "").strip(),
             created_by=current_user().name if current_user() else "",
         ))
@@ -639,7 +639,7 @@ def editar_venda(sale_id):
     venda.meal_type = request.form["meal_type"]
     venda.period = request.form["period"]
     venda.unit_value = float(request.form.get("unit_value") or 0)
-    venda.quantity = int(request.form.get("quantity") or 0)
+    venda.quantity = float(str(request.form.get("quantity") or 0).replace(",", "."))
     venda.notes = request.form.get("notes", "").strip()
 
     db.session.commit()
