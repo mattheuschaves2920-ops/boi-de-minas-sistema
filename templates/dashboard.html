@@ -6,100 +6,81 @@
     <label>Filtrar por dia
       <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
     </label>
-
     <label>Filtrar por mês
       <input type="month" name="mes" value="{{ mes_ref.strftime('%Y-%m') }}">
     </label>
-
     <button class="btn" type="submit">Aplicar filtros</button>
   </form>
 </section>
 
-<div class="grid metrics">
-  <div class="card metric">
-    <span>Produtos cadastrados</span>
-    <strong>{{ total_itens }}</strong>
-  </div>
+<section class="card" style="margin-top:16px;">
+  <h3>Resumo gerencial</h3>
+  <div class="grid metrics">
+    <div class="card metric"><span>Produtos cadastrados</span><strong>{{ total_itens }}</strong></div>
+    <div class="card metric"><span>Faturamento do dia</span><strong>R$ {{ '%.2f'|format(faturamento) }}</strong><small>{{ var_faturamento }}%</small></div>
+    <div class="card metric"><span>Faturamento do mês</span><strong>R$ {{ '%.2f'|format(faturamento_mes) }}</strong></div>
+    <div class="card metric"><span>Faturamento geral</span><strong>R$ {{ '%.2f'|format(faturamento_total) }}</strong></div>
 
-  <div class="card metric">
-    <span>Faturamento do dia</span>
-    <strong>R$ {{ '%.2f'|format(faturamento) }}</strong>
-    <small>{{ var_faturamento }}%</small>
-  </div>
+    <div class="card metric"><span>Refeições do dia</span><strong>{{ '%.3f'|format(refeicoes) }}</strong><small>{{ var_refeicoes }}%</small></div>
+    <div class="card metric"><span>Refeições do mês</span><strong>{{ '%.3f'|format(refeicoes_mes) }}</strong></div>
+    <div class="card metric"><span>Refeições acumuladas</span><strong>{{ '%.3f'|format(refeicoes_total) }}</strong></div>
+    <div class="card metric"><span>Controle diário</span><strong>{{ vendidos_diarios }}</strong></div>
 
-  <div class="card metric">
-    <span>Refeições do dia</span>
-    <strong>{{ refeicoes }}</strong>
-    <small>{{ var_refeicoes }}%</small>
-  </div>
+    <div class="card metric"><span>Custo do dia</span><strong>R$ {{ '%.2f'|format(custo) }}</strong><small>{{ var_custo }}%</small></div>
+    <div class="card metric"><span>Custo do mês</span><strong>R$ {{ '%.2f'|format(custo_mes) }}</strong></div>
+    <div class="card metric"><span>Custo total</span><strong>R$ {{ '%.2f'|format(custo_total) }}</strong></div>
+    <div class="card metric"><span>CMV do dia</span><strong>{{ cmv }}%</strong></div>
 
-  <div class="card metric">
-    <span>Controle diário</span>
-    <strong>{{ vendidos_diarios }}</strong>
+    <div class="card metric"><span>Lucro do dia</span><strong>R$ {{ '%.2f'|format(lucro) }}</strong><small>{{ var_lucro }}%</small></div>
+    <div class="card metric"><span>Lucro do mês</span><strong>R$ {{ '%.2f'|format(lucro_mes) }}</strong></div>
+    <div class="card metric"><span>Lucro total</span><strong>R$ {{ '%.2f'|format(lucro_total) }}</strong></div>
+    <div class="card metric"><span>Produção do mês</span><strong>R$ {{ '%.2f'|format(producao_mes) }}</strong></div>
+
+    <div class="card metric"><span>Desperdício do dia</span><strong>R$ {{ '%.2f'|format(desperdicio) }}</strong></div>
+    <div class="card metric"><span>Desperdício do mês</span><strong>R$ {{ '%.2f'|format(desperdicio_mes) }}</strong></div>
+    <div class="card metric"><span>Desperdício total</span><strong>R$ {{ '%.2f'|format(desperdicio_total) }}</strong></div>
+    <div class="card metric"><span>Produção total</span><strong>R$ {{ '%.2f'|format(producao_total) }}</strong></div>
   </div>
+</section>
+
+<div class="grid two" style="margin-top:16px;">
+  <section class="card">
+    <h3>Comparação Almoço x Janta</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Indicador</th><th>Almoço</th><th>Janta</th></tr>
+        <tr><td>Faturamento</td><td>R$ {{ '%.2f'|format(venda_almoco) }}</td><td>R$ {{ '%.2f'|format(venda_janta) }}</td></tr>
+        <tr><td>Custo</td><td>R$ {{ '%.2f'|format(custo_almoco) }}</td><td>R$ {{ '%.2f'|format(custo_janta) }}</td></tr>
+        <tr><td>Lucro</td><td>R$ {{ '%.2f'|format(lucro_almoco) }}</td><td>R$ {{ '%.2f'|format(lucro_janta) }}</td></tr>
+        <tr><td>Margem</td><td>{{ margem_almoco }}%</td><td>{{ margem_janta }}%</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Diferença entre os turnos</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Indicador</th><th>Resultado</th></tr>
+        <tr><td>Diferença de faturamento</td><td>R$ {{ '%.2f'|format(comparativo_turnos.faturamento_diff) }}</td></tr>
+        <tr><td>Diferença de custo</td><td>R$ {{ '%.2f'|format(comparativo_turnos.custo_diff) }}</td></tr>
+        <tr><td>Diferença de lucro</td><td>R$ {{ '%.2f'|format(comparativo_turnos.lucro_diff) }}</td></tr>
+        <tr><td>Melhor faturamento</td><td>{{ comparativo_turnos.melhor_faturamento }}</td></tr>
+        <tr><td>Melhor lucro</td><td>{{ comparativo_turnos.melhor_lucro }}</td></tr>
+      </table>
+    </div>
+  </section>
 </div>
 
-<div class="grid metrics">
-  <div class="card metric">
-    <span>Custo do dia</span>
-    <strong>R$ {{ '%.2f'|format(custo) }}</strong>
-    <small>{{ var_custo }}%</small>
-  </div>
-
-  <div class="card metric">
-    <span>Lucro do dia</span>
-    <strong>R$ {{ '%.2f'|format(lucro) }}</strong>
-    <small>{{ var_lucro }}%</small>
-  </div>
-
-  <div class="card metric">
-    <span>CMV</span>
-    <strong>{{ cmv }}%</strong>
-  </div>
-
-  <div class="card metric">
-    <span>Desperdício do dia</span>
-    <strong>R$ {{ '%.2f'|format(desperdicio) }}</strong>
-  </div>
-</div>
-
-<div class="grid metrics">
-  <div class="card metric">
-    <span>Venda almoço</span>
-    <strong>R$ {{ '%.2f'|format(venda_almoco) }}</strong>
-  </div>
-
-  <div class="card metric">
-    <span>Custo almoço</span>
-    <strong>R$ {{ '%.2f'|format(custo_almoco) }}</strong>
-  </div>
-
-  <div class="card metric">
-    <span>Lucro almoço</span>
-    <strong>R$ {{ '%.2f'|format(lucro_almoco) }}</strong>
-    <small>{{ margem_almoco }}%</small>
-  </div>
-
-  <div class="card metric">
-    <span>Lucro janta</span>
-    <strong>R$ {{ '%.2f'|format(lucro_janta) }}</strong>
-    <small>{{ margem_janta }}%</small>
-  </div>
-</div>
-
-<div class="grid two">
+<div class="grid two" style="margin-top:16px;">
   <section class="card">
     <h3>Resumo por período</h3>
     <table>
-      <tr>
-        <th>Período</th>
-        <th>Quantidade</th>
-        <th>Faturamento</th>
-      </tr>
+      <tr><th>Período</th><th>Quantidade</th><th>Faturamento</th></tr>
       {% for k, v in por_periodo.items() %}
       <tr>
         <td>{{ k }}</td>
-        <td>{{ v.q }}</td>
+        <td>{{ '%.3f'|format(v.q) }}</td>
         <td>R$ {{ '%.2f'|format(v.v) }}</td>
       </tr>
       {% endfor %}
@@ -110,7 +91,7 @@
     <h3>Alertas de estoque</h3>
     {% if alertas %}
       <ul>
-        {% for item in alertas %}
+        {% for item in alertas[:12] %}
         <li>{{ item.name }} — atual {{ item.stock }} / mínimo {{ item.min_stock }}</li>
         {% endfor %}
       </ul>
@@ -121,60 +102,10 @@
 </div>
 
 <section class="card" style="margin-top:16px;">
-  <h3>Comparativo por dia</h3>
-  <div class="table-wrap">
-    <table>
-      <tr>
-        <th>Data</th>
-        <th>Qtd.</th>
-        <th>Total</th>
-        <th>Almoço</th>
-        <th>Janta</th>
-      </tr>
-      {% for d in comparativo_dias %}
-      <tr>
-        <td>{{ d.data }}</td>
-        <td>{{ d.qtd }}</td>
-        <td>R$ {{ '%.2f'|format(d.total) }}</td>
-        <td>R$ {{ '%.2f'|format(d.almoco) }}</td>
-        <td>R$ {{ '%.2f'|format(d.janta) }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
-</section>
-
-<section class="card" style="margin-top:16px;">
-  <h3>Comparativo por mês</h3>
-  <div class="table-wrap">
-    <table>
-      <tr>
-        <th>Mês</th>
-        <th>Qtd.</th>
-        <th>Total</th>
-      </tr>
-      {% for m in comparativo_meses %}
-      <tr>
-        <td>{{ m.mes }}</td>
-        <td>{{ m.qtd }}</td>
-        <td>R$ {{ '%.2f'|format(m.total) }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
-</section>
-
-<section class="card" style="margin-top:16px;">
   <h3>Resumo por setor no dia</h3>
   <div class="table-wrap">
     <table>
-      <tr>
-        <th>Setor</th>
-        <th>Vendas</th>
-        <th>Produção</th>
-        <th>Saída/Perda</th>
-        <th>Lucro</th>
-      </tr>
+      <tr><th>Setor</th><th>Vendas</th><th>Produção</th><th>Saída/Perda</th><th>Lucro</th></tr>
       {% for s in resumo_setores %}
       <tr>
         <td>{{ s.setor }}</td>
@@ -188,52 +119,52 @@
   </div>
 </section>
 
-<section class="card" style="margin-top:16px;">
-  <h3>Comparativo semanal</h3>
-  <div class="table-wrap">
-    <table>
-      <tr>
-        <th>Indicador</th>
-        <th>Atual</th>
-        <th>Anterior</th>
-        <th>Variação</th>
-      </tr>
-      <tr>
-        <td>Faturamento</td>
-        <td>R$ {{ '%.2f'|format(semanal.faturamento_atual) }}</td>
-        <td>R$ {{ '%.2f'|format(semanal.faturamento_anterior) }}</td>
-        <td>{{ semanal.var_faturamento }}%</td>
-      </tr>
-      <tr>
-        <td>Refeições</td>
-        <td>{{ semanal.qtd_atual }}</td>
-        <td>{{ semanal.qtd_anterior }}</td>
-        <td>{{ semanal.var_qtd }}%</td>
-      </tr>
-      <tr>
-        <td>Desperdício</td>
-        <td>R$ {{ '%.2f'|format(semanal.desperdicio_atual) }}</td>
-        <td>R$ {{ '%.2f'|format(semanal.desperdicio_anterior) }}</td>
-        <td>{{ semanal.var_desperdicio }}%</td>
-      </tr>
-    </table>
-  </div>
-</section>
+<div class="grid two" style="margin-top:16px;">
+  <section class="card">
+    <h3>Comparativo dos últimos dias</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Data</th><th>Qtd.</th><th>Total</th><th>Almoço</th><th>Janta</th></tr>
+        {% for d in comparativo_dias %}
+        <tr>
+          <td>{{ d.data }}</td>
+          <td>{{ '%.3f'|format(d.qtd) }}</td>
+          <td>R$ {{ '%.2f'|format(d.total) }}</td>
+          <td>R$ {{ '%.2f'|format(d.almoco) }}</td>
+          <td>R$ {{ '%.2f'|format(d.janta) }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Comparativo por mês</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Mês</th><th>Qtd.</th><th>Total</th></tr>
+        {% for m in comparativo_meses %}
+        <tr>
+          <td>{{ m.mes }}</td>
+          <td>{{ '%.3f'|format(m.qtd) }}</td>
+          <td>R$ {{ '%.2f'|format(m.total) }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </section>
+</div>
 
 <div class="grid two" style="margin-top:16px;">
   <section class="card">
-    <h3>Ranking de vendas</h3>
+    <h3>Ranking de vendas do dia</h3>
     <div class="table-wrap">
       <table>
-        <tr>
-          <th>Tipo</th>
-          <th>Qtd.</th>
-          <th>Total</th>
-        </tr>
+        <tr><th>Tipo</th><th>Qtd.</th><th>Total</th></tr>
         {% for r in ranking_vendas %}
         <tr>
           <td>{{ r.tipo }}</td>
-          <td>{{ r.qtd }}</td>
+          <td>{{ '%.3f'|format(r.qtd) }}</td>
           <td>R$ {{ '%.2f'|format(r.total) }}</td>
         </tr>
         {% endfor %}
@@ -242,17 +173,14 @@
   </section>
 
   <section class="card">
-    <h3>Produtos mais usados</h3>
+    <h3>Produtos mais usados no dia</h3>
     <div class="table-wrap">
       <table>
-        <tr>
-          <th>Item</th>
-          <th>Quantidade</th>
-        </tr>
+        <tr><th>Item</th><th>Quantidade</th></tr>
         {% for r in ranking_produtos %}
         <tr>
           <td>{{ r.item }}</td>
-          <td>{{ r.qtd }}</td>
+          <td>{{ '%.3f'|format(r.qtd) }}</td>
         </tr>
         {% endfor %}
       </table>
@@ -260,30 +188,37 @@
   </section>
 </div>
 
-<section class="card" style="margin-top:16px;">
-  <h3>Alerta de compra</h3>
-  {% if alertas_compra %}
-  <div class="table-wrap">
+<div class="grid two" style="margin-top:16px;">
+  <section class="card">
+    <h3>Comparativo semanal</h3>
     <table>
-      <tr>
-        <th>Item</th>
-        <th>Estoque</th>
-        <th>Consumo médio/dia</th>
-        <th>Dias restantes</th>
-      </tr>
-      {% for a in alertas_compra %}
-      <tr>
-        <td>{{ a.item }}</td>
-        <td>{{ a.estoque }}</td>
-        <td>{{ a.consumo_medio }}</td>
-        <td>{{ a.dias_restantes }}</td>
-      </tr>
-      {% endfor %}
+      <tr><th>Indicador</th><th>Atual</th><th>Anterior</th><th>Variação</th></tr>
+      <tr><td>Faturamento</td><td>R$ {{ '%.2f'|format(semanal.faturamento_atual) }}</td><td>R$ {{ '%.2f'|format(semanal.faturamento_anterior) }}</td><td>{{ semanal.var_faturamento }}%</td></tr>
+      <tr><td>Refeições</td><td>{{ '%.3f'|format(semanal.qtd_atual) }}</td><td>{{ '%.3f'|format(semanal.qtd_anterior) }}</td><td>{{ semanal.var_qtd }}%</td></tr>
+      <tr><td>Desperdício</td><td>R$ {{ '%.2f'|format(semanal.desperdicio_atual) }}</td><td>R$ {{ '%.2f'|format(semanal.desperdicio_anterior) }}</td><td>{{ semanal.var_desperdicio }}%</td></tr>
     </table>
-  </div>
-  {% else %}
-  <p>Nenhum alerta crítico para compra.</p>
-  {% endif %}
-</section>
+  </section>
+
+  <section class="card">
+    <h3>Alertas de compra</h3>
+    {% if alertas_compra %}
+    <div class="table-wrap">
+      <table>
+        <tr><th>Item</th><th>Estoque</th><th>Consumo médio</th><th>Dias restantes</th></tr>
+        {% for a in alertas_compra %}
+        <tr>
+          <td>{{ a.item }}</td>
+          <td>{{ '%.3f'|format(a.estoque) }}</td>
+          <td>{{ '%.3f'|format(a.consumo_medio) }}</td>
+          <td>{{ a.dias_restantes }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% else %}
+      <p>Nenhum alerta crítico para compra.</p>
+    {% endif %}
+  </section>
+</div>
 
 {% endblock %}
