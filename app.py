@@ -1413,7 +1413,7 @@ def exportar_controle_diario():
     return send_file(mem, mimetype="text/csv", as_attachment=True, download_name="controle_diario.csv")
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     ensure_upload_folder()
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
