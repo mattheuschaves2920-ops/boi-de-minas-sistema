@@ -40,7 +40,8 @@
       </label>
 
       <label>Quantidade
-        <input type="number" name="quantity" value="{{ venda_edicao.quantity if venda_edicao else '' }}" required>
+        <input type="number" step="0.001" min="0" name="quantity" value="{{ venda_edicao.quantity if venda_edicao else '' }}" required>
+        <small>Use decimal para comida/churrasco no quilo. Ex.: 0.250, 0.500, 1.350</small>
       </label>
 
       <label>Observação
@@ -64,6 +65,7 @@
           <th>Tipo</th>
           <th>Período</th>
           <th>Qtd.</th>
+          <th>Unitário</th>
           <th>Total</th>
           <th>Ação</th>
         </tr>
@@ -73,7 +75,8 @@
           <td>{{ v.sale_date.strftime('%d/%m/%Y') }}</td>
           <td>{{ v.meal_type }}</td>
           <td>{{ v.period }}</td>
-          <td>{{ v.quantity }}</td>
+          <td>{{ '%.3f'|format(v.quantity) }}</td>
+          <td>R$ {{ '%.2f'|format(v.unit_value) }}</td>
           <td>R$ {{ '%.2f'|format(v.unit_value * v.quantity) }}</td>
           <td>
             <a class="btn" href="{{ url_for('vendas', editar=v.id, data=data_ref.strftime('%Y-%m-%d')) }}">Editar</a>
