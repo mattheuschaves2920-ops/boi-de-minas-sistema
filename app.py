@@ -32,9 +32,7 @@ class User(db.Model):
 # --- AUXILIARES ---
 def current_user():
     uid = session.get("user_id")
-    if uid:
-        return db.session.get(User, uid)
-    return None
+    return db.session.get(User, uid) if uid else None
 
 def get_selected_date():
     raw = request.args.get("data") or request.form.get("data")
@@ -43,7 +41,7 @@ def get_selected_date():
     except:
         return date.today()
 
-# --- ROTAS PRINCIPAIS ---
+# --- ROTAS ---
 
 @app.route("/setup")
 def setup():
@@ -71,35 +69,37 @@ def dashboard():
     
     data_ref = get_selected_date()
     
-    # Dicionário completo para evitar UndefinedError no template
+    # CONTEXTO COMPLETO PARA EVITAR QUALQUER UNDEFINED ERROR
     contexto = {
         "user": user,
         "data_ref": data_ref,
         "mes_ref": data_ref,
-        # Variáveis de Faturamento
+        
+        # Financeiro
         "faturamento": 0.0,
         "faturamento_mes": 0.0,
-        "faturamento_total": 0.0,  # RESOLVE O ERRO ATUAL
-        # Variáveis de Quantidade
+        "faturamento_total": 0.0,
+        
+        # Quantidades e Produção
         "total_vendas": 0,
-        "total_vendas_mes": 0,
         "total_producao": 0,
-        "total_producao_mes": 0,
+        "refeicoes": 0.0,           # <--- CORREÇÃO DO ERRO ATUAL
+        "total_refeicoes": 0.0,
         "total_desperdicio": 0.0,
         "total_desperdicio_mes": 0.0,
-        # Variáveis de Variação (setas de porcentagem)
+        
+        # Variações e Percentuais
         "var_faturamento": 0.0,
         "var_vendas": 0.0,
         "var_producao": 0.0,
         "var_desperdicio": 0.0,
+        
         # Listas para Gráficos
         "vendas_dia": [],
         "producao_dia": []
     }
     
     return render_template("dashboard.html", **contexto)
-
-# --- DEMAIS ROTAS ---
 
 @app.route("/vendas")
 def vendas():
