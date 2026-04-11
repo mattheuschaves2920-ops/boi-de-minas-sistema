@@ -29,7 +29,7 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# --- AUXILIARES ---
+# --- FUNÇÕES AUXILIARES ---
 def current_user():
     uid = session.get("user_id")
     return db.session.get(User, uid) if uid else None
@@ -68,22 +68,28 @@ def dashboard():
     if not user: return redirect(url_for("login"))
     
     data_ref = get_selected_date()
+    
+    # Adicionando 'faturamento_mes' e nomes alternativos para evitar erros de template
     contexto = {
         "user": user,
         "data_ref": data_ref,
         "mes_ref": data_ref,
         "faturamento": 0.0,
+        "faturamento_mes": 0.0,   # CORREÇÃO DO ERRO ATUAL
         "total_vendas": 0,
         "total_producao": 0,
         "total_desperdicio": 0.0,
         "var_faturamento": 0.0,
         "var_vendas": 0.0,
         "var_producao": 0.0,
-        "var_desperdicio": 0.0
+        "var_desperdicio": 0.0,
+        "vendas_dia": [],         # Caso o gráfico peça
+        "producao_dia": []        # Caso o gráfico peça
     }
+    
     return render_template("dashboard.html", **contexto)
 
-# --- ROTAS EXIGIDAS PELO MENU (URL_FOR) ---
+# --- ROTAS DO MENU ---
 
 @app.route("/vendas")
 def vendas():
