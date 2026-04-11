@@ -35,7 +35,10 @@ class User(db.Model):
 def current_user():
     uid = session.get("user_id")
     if uid:
-        return db.session.get(User, uid)
+        try:
+            return db.session.get(User, uid)
+        except:
+            return None
     return None
 
 def get_selected_date():
@@ -55,7 +58,7 @@ def setup():
         admin.set_password("123456")
         db.session.add(admin)
         db.session.commit()
-    return "Banco de dados pronto! Login: admin | Senha: 123456"
+    return "Banco de dados inicializado! Login: admin | Senha: 123456"
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -73,33 +76,31 @@ def dashboard():
     
     data_ref = get_selected_date()
     
-    # DICIONÁRIO TOTALMENTE BLINDADO (Incluindo var_lucro e outras)
+    # DICIONÁRIO DE CONTEXTO REFORÇADO
+    # Aqui incluímos 'desperdicio', 'var_lucro' e todas que o HTML pode pedir
     contexto = {
         "user": user,
         "data_ref": data_ref,
         "mes_ref": data_ref,
-        # Valores Financeiros
         "faturamento": 0.0,
         "faturamento_mes": 0.0,
         "faturamento_total": 0.0,
         "lucro_mes": 0.0,
         "lucro_total": 0.0,
         "gastos_mes": 0.0,
-        # Quantidades
         "refeicoes": 0.0,
         "total_refeicoes": 0.0,
         "total_vendas": 0,
         "total_producao": 0,
         "total_desperdicio": 0.0,
         "total_desperdicio_mes": 0.0,
-        # Variáveis de Porcentagem (Onde estava dando erro)
+        "desperdicio": 0.0,  # <-- CORREÇÃO DO ÚLTIMO ERRO (linha 55 do HTML)
         "var_faturamento": 0.0,
         "var_vendas": 0.0,
         "var_producao": 0.0,
         "var_desperdicio": 0.0,
-        "var_lucro": 0.0,  # <-- ADICIONADO PARA CORRIGIR O LOG
+        "var_lucro": 0.0,      # <-- GARANTIA PARA O ERRO ANTERIOR
         "meta_atingida": 0,
-        # Listas para tabelas e gráficos
         "vendas_dia": [],
         "producao_dia": [],
         "labels_grafico": []
@@ -125,7 +126,7 @@ def producao():
     return render_template("producao.html", user=u, data_ref=get_selected_date())
 
 @app.route("/desperdicio")
-def desperdicio():
+def desperdicio_rota():
     u = current_user()
     if not u: return redirect(url_for("login"))
     return render_template("desperdicio.html", user=u, data_ref=get_selected_date())
