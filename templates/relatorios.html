@@ -1,126 +1,169 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="card">
-  <form method="get" class="grid two">
-    <label>Filtrar por dia
-      <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
-    </label>
+<section class="card" style="border-top: 4px solid var(--blue);">
+    <form method="get" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: end; gap: 15px;">
+        <label>Visão por Dia
+            <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+        </label>
 
-    <label>Filtrar por mês
-      <input type="month" name="mes" value="{{ mes_ref.strftime('%Y-%m') }}">
-    </label>
+        <label>Visão por Mês
+            <input type="month" name="mes" value="{{ mes_ref.strftime('%Y-%m') }}">
+        </label>
 
-    <button class="btn" type="submit">Aplicar filtros</button>
-  </form>
-
-  <div style="margin-top:12px;">
-    <a class="btn-link" href="{{ url_for('exportar_relatorio_pdf', data=data_ref.strftime('%Y-%m-%d'), mes=mes_ref.strftime('%Y-%m')) }}">Gerar PDF</a>
-    <a class="btn-link" href="{{ url_for('exportar_relatorio_xlsx', data=data_ref.strftime('%Y-%m-%d'), mes=mes_ref.strftime('%Y-%m')) }}">Exportar Excel</a>
-  </div>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn" type="submit" style="flex: 1;">📊 Analisar</button>
+            <div class="dropdown">
+                <button type="button" class="btn" style="background: var(--ink); color: white;">📥 Exportar</button>
+                <div class="dropdown-content">
+                    <a href="{{ url_for('exportar_relatorio_pdf', data=data_ref.strftime('%Y-%m-%d'), mes=mes_ref.strftime('%Y-%m')) }}">Arquivo PDF</a>
+                    <a href="{{ url_for('exportar_relatorio_xlsx', data=data_ref.strftime('%Y-%m-%d'), mes=mes_ref.strftime('%Y-%m')) }}">Planilha Excel</a>
+                </div>
+            </div>
+        </div>
+    </form>
 </section>
 
-<div class="grid metrics">
-  <div class="card metric">
-    <span>Faturamento</span>
-    <strong>R$ {{ '%.2f'|format(faturamento) }}</strong>
-  </div>
+<div class="grid metrics" style="margin-top:16px;">
+    <div class="card metric" style="border-bottom: 4px solid var(--green);">
+        <span>💰 Faturamento Total</span>
+        <strong>R$ {{ '%.2f'|format(faturamento) }}</strong>
+        <small class="muted">{{ refeicoes }} refeições servidas</small>
+    </div>
 
-  <div class="card metric">
-    <span>Refeições</span>
-    <strong>{{ refeicoes }}</strong>
-  </div>
+    <div class="card metric" style="border-bottom: 4px solid var(--red);">
+        <span>📉 Custo Operacional</span>
+        <strong style="color: var(--red);">R$ {{ '%.2f'|format(custo) }}</strong>
+        <small class="muted">Inclui produção e insumos</small>
+    </div>
 
-  <div class="card metric">
-    <span>Custo</span>
-    <strong>R$ {{ '%.2f'|format(custo) }}</strong>
-  </div>
+    <div class="card metric" style="border-bottom: 4px solid {{ '#27ae60' if lucro > 0 else '#e74c3c' }};">
+        <span>📈 Lucro Líquido</span>
+        <strong style="color: {{ '#27ae60' if lucro > 0 else '#e74c3c' }};">R$ {{ '%.2f'|format(lucro) }}</strong>
+        <small class="muted">Resultado do período</small>
+    </div>
 
-  <div class="card metric">
-    <span>Lucro</span>
-    <strong>R$ {{ '%.2f'|format(lucro) }}</strong>
-  </div>
+    <div class="card metric">
+        <span>📊 CMV</span>
+        <strong class="{{ 'error' if cmv > 35 else 'success' }}">{{ cmv }}%</strong>
+        <small class="muted">Meta: abaixo de 35%</small>
+    </div>
 </div>
 
-<div class="grid metrics">
-  <div class="card metric">
-    <span>CMV</span>
-    <strong>{{ cmv }}%</strong>
-  </div>
+<div class="grid metrics" style="margin-top:12px;">
+    <div class="card metric">
+        <span>⚠️ Total de Perdas</span>
+        <strong class="error">R$ {{ '%.2f'|format(total_perdas) }}</strong>
+    </div>
 
-  <div class="card metric">
-    <span>Perdas</span>
-    <strong>R$ {{ '%.2f'|format(total_perdas) }}</strong>
-  </div>
+    <div class="card metric">
+        <span>📅 Controle Diário</span>
+        <strong>R$ {{ '%.2f'|format(total_diario) }}</strong>
+    </div>
+</div>
 
-  <div class="card metric">
-    <span>Controle diário</span>
-    <strong>R$ {{ '%.2f'|format(total_diario) }}</strong>
-  </div>
+<div class="grid two" style="margin-top:16px;">
+    <section class="card">
+        <h3>🍽️ Almoço vs. Janta</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Período</th>
+                        <th>Qtd.</th>
+                        <th style="text-align: right;">Faturamento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for k, v in por_periodo.items() %}
+                    <tr>
+                        <td><strong>{{ k }}</strong></td>
+                        <td>{{ v.q }}</td>
+                        <td style="text-align: right;">R$ {{ '%.2f'|format(v.v) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <h3>🏆 Top Vendas (Hoje)</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo de Produto</th>
+                        <th>Qtd.</th>
+                        <th style="text-align: right;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in ranking_vendas %}
+                    <tr>
+                        <td>{{ r.tipo }}</td>
+                        <td>{{ r.qtd }}</td>
+                        <td style="text-align: right;"><strong>R$ {{ '%.2f'|format(r.total) }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 <section class="card" style="margin-top:16px;">
-  <h3>Comparativo almoço x janta</h3>
-  <div class="table-wrap">
-    <table>
-      <tr>
-        <th>Período</th>
-        <th>Qtd.</th>
-        <th>Faturamento</th>
-      </tr>
-      {% for k, v in por_periodo.items() %}
-      <tr>
-        <td>{{ k }}</td>
-        <td>{{ v.q }}</td>
-        <td>R$ {{ '%.2f'|format(v.v) }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
+    <h3>🏢 Desempenho por Setor</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Setor</th>
+                    <th>Vendas (+)</th>
+                    <th>Produção (-)</th>
+                    <th>Movimentação / Perda (-)</th>
+                    <th style="text-align: right;">Resultado Setorial</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in resumo_setores %}
+                <tr>
+                    <td><strong>{{ s.setor }}</strong></td>
+                    <td class="success">R$ {{ '%.2f'|format(s.venda) }}</td>
+                    <td class="muted">R$ {{ '%.2f'|format(s.producao) }}</td>
+                    <td class="error">R$ {{ '%.2f'|format(s.movimentacao) }}</td>
+                    <td style="text-align: right; font-weight: bold; color: {{ '#27ae60' if s.lucro > 0 else '#e74c3c' }};">
+                        R$ {{ '%.2f'|format(s.lucro) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 
-<section class="card" style="margin-top:16px;">
-  <h3>Resumo por setor</h3>
-  <div class="table-wrap">
-    <table>
-      <tr>
-        <th>Setor</th>
-        <th>Vendas</th>
-        <th>Produção</th>
-        <th>Saída/Perda</th>
-        <th>Lucro</th>
-      </tr>
-      {% for s in resumo_setores %}
-      <tr>
-        <td>{{ s.setor }}</td>
-        <td>R$ {{ '%.2f'|format(s.venda) }}</td>
-        <td>R$ {{ '%.2f'|format(s.producao) }}</td>
-        <td>R$ {{ '%.2f'|format(s.movimentacao) }}</td>
-        <td>R$ {{ '%.2f'|format(s.lucro) }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
-</section>
-
-<section class="card" style="margin-top:16px;">
-  <h3>Ranking de vendas do dia</h3>
-  <div class="table-wrap">
-    <table>
-      <tr>
-        <th>Tipo</th>
-        <th>Qtd.</th>
-        <th>Total</th>
-      </tr>
-      {% for r in ranking_vendas %}
-      <tr>
-        <td>{{ r.tipo }}</td>
-        <td>{{ r.qtd }}</td>
-        <td>R$ {{ '%.2f'|format(r.total) }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
-</section>
+<style>
+    /* Estilo para o botão de exportar estilo Dropdown */
+    .dropdown { position: relative; display: inline-block; flex: 1; }
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #fff;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+        z-index: 100;
+        right: 0;
+        border-radius: 8px;
+    }
+    .dropdown-content a {
+        color: var(--ink);
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        font-size: 0.9rem;
+    }
+    .dropdown-content a:hover { background-color: #f1f1f1; }
+    .dropdown:hover .dropdown-content { display: block; }
+</style>
 
 {% endblock %}
