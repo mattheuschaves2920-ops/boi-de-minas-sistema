@@ -1,95 +1,108 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="card">
-  <form method="get" class="grid two">
-    <label>Filtrar por dia
-      <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
-    </label>
-    <button class="btn" type="submit">Aplicar filtro</button>
-  </form>
+<section class="card" style="margin-bottom: 16px; border-left: 5px solid var(--gold);">
+    <form method="get" class="grid" style="grid-template-columns: 1fr auto; align-items: end; gap: 10px;">
+        <label>Ver vendas do dia:
+            <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+        </label>
+        <button class="btn" type="submit">Atualizar Lista</button>
+    </form>
 </section>
 
-<div class="grid two" style="margin-top:16px;">
-  <section class="card">
-    <h3>{% if venda_edicao %}Editar venda{% else %}Registrar venda{% endif %}</h3>
+<div class="grid two">
+    <section class="card">
+        <header style="margin-bottom: 20px;">
+            <h3 style="margin:0;">{{ '✏️ Editar Venda' if venda_edicao else '🛒 Registrar Venda' }}</h3>
+            <p class="muted" style="font-size: 0.85rem;">Insira os dados do ticket ou peso da balança.</p>
+        </header>
 
-    <form method="post" action="{% if venda_edicao %}{{ url_for('editar_venda', sale_id=venda_edicao.id) }}{% else %}{{ url_for('vendas') }}{% endif %}">
-      <label>Data
-        <input type="date" name="sale_date" required value="{{ venda_edicao.sale_date.strftime('%Y-%m-%d') if venda_edicao else data_ref.strftime('%Y-%m-%d') }}">
-      </label>
+        <form method="post" action="{% if venda_edicao %}{{ url_for('editar_venda', sale_id=venda_edicao.id) }}{% else %}{{ url_for('vendas') }}{% endif %}">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Data
+                    <input type="date" name="sale_date" required value="{{ venda_edicao.sale_date.strftime('%Y-%m-%d') if venda_edicao else data_ref.strftime('%Y-%m-%d') }}">
+                </label>
+                <label>Período
+                    <select name="period">
+                        {% for p in ['Almoço', 'Janta'] %}
+                        <option value="{{ p }}" {% if venda_edicao and venda_edicao.period == p %}selected{% endif %}>{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
 
-      <label>Tipo de refeição
-        <select name="meal_type">
-          {% for t in meal_types %}
-          <option value="{{ t }}" {% if venda_edicao and venda_edicao.meal_type == t %}selected{% endif %}>{{ t }}</option>
-          {% endfor %}
-        </select>
-      </label>
+            <label>Tipo de Refeição
+                <select name="meal_type">
+                    {% for t in meal_types %}
+                    <option value="{{ t }}" {% if venda_edicao and venda_edicao.meal_type == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </label>
 
-      <label>Período
-        <select name="period">
-          {% for p in ['Almoço', 'Janta'] %}
-          <option value="{{ p }}" {% if venda_edicao and venda_edicao.period == p %}selected{% endif %}>{{ p }}</option>
-          {% endfor %}
-        </select>
-      </label>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Valor Unitário (R$)
+                    <input type="text" name="unit_value" id="unit_value" value="{{ venda_edicao.unit_value if venda_edicao else '' }}" required placeholder="0,00">
+                </label>
+                <label>Quantidade / Peso
+                    <input type="text" name="quantity" id="quantity" value="{{ venda_edicao.quantity if venda_edicao else '' }}" required placeholder="0.000">
+                </label>
+            </div>
 
-      <label>Valor unitário
-        <input type="text" name="unit_value" value="{{ venda_edicao.unit_value if venda_edicao else '' }}" required>
-      </label>
+            <label>Observação (Opcional)
+                <input type="text" name="notes" value="{{ venda_edicao.notes if venda_edicao else '' }}" placeholder="Ex: Mesa 10, Cortesia...">
+            </label>
 
-      <label>Quantidade
-        <input type="text" name="quantity" value="{{ venda_edicao.quantity if venda_edicao else '' }}" required>
-        <small>Ex.: 0.250 ou 0,250</small>
-      </label>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn" type="submit" style="flex: 2;">{{ 'Confirmar Edição' if venda_edicao else 'Salvar Venda' }}</button>
+                {% if venda_edicao %}
+                <a href="{{ url_for('vendas') }}" class="btn" style="flex: 1; background: #eee; color: var(--ink); text-align: center;">Cancelar</a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
 
-      <label>Observação
-        <input type="text" name="notes" value="{{ venda_edicao.notes if venda_edicao else '' }}">
-      </label>
+    <section class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin:0;">📋 Vendas Registradas</h3>
+            <div style="text-align: right;">
+                <small class="muted">Total {{ data_ref.strftime('%d/%m') }}</small><br>
+                <strong style="color: var(--green); font-size: 1.2rem;">R$ {{ '%.2f'|format(total_hoje) }}</strong>
+            </div>
+        </div>
 
-      <button class="btn" type="submit">
-        {% if venda_edicao %}Salvar edição{% else %}Salvar venda{% endif %}
-      </button>
-    </form>
-  </section>
-
-  <section class="card">
-    <h3>Últimas vendas</h3>
-    <p><strong>Total do dia:</strong> R$ {{ '%.2f'|format(total_hoje) }}</p>
-
-    <div class="table-wrap">
-      <table>
-        <tr>
-          <th>Data</th>
-          <th>Tipo</th>
-          <th>Período</th>
-          <th>Qtd.</th>
-          <th>Unitário</th>
-          <th>Total</th>
-          <th>Ação</th>
-        </tr>
-
-        {% for v in vendas %}
-        <tr>
-          <td>{{ v.sale_date.strftime('%d/%m/%Y') }}</td>
-          <td>{{ v.meal_type }}</td>
-          <td>{{ v.period }}</td>
-          <td>{{ '%.3f'|format(v.quantity) }}</td>
-          <td>R$ {{ '%.2f'|format(v.unit_value) }}</td>
-          <td>R$ {{ '%.2f'|format(v.unit_value * v.quantity) }}</td>
-          <td>
-            <a class="btn" href="{{ url_for('vendas', editar=v.id, data=data_ref.strftime('%Y-%m-%d')) }}">Editar</a>
-
-            <form method="post" action="{{ url_for('excluir_venda', sale_id=v.id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta venda?');">
-              <button class="btn" type="submit">Excluir</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </table>
-    </div>
-  </section>
+        <div class="table-wrap">
+            <table style="font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th>Tipo/Período</th>
+                        <th>Qtd.</th>
+                        <th>Total</th>
+                        <th style="text-align: right;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vendas %}
+                    <tr>
+                        <td>
+                            <strong>{{ v.meal_type }}</strong><br>
+                            <small class="muted">{{ v.period }}</small>
+                        </td>
+                        <td>{{ '%.3f'|format(v.quantity) }}</td>
+                        <td><strong>R$ {{ '%.2f'|format(v.unit_value * v.quantity) }}</strong></td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{{ url_for('vendas', editar=v.id, data=data_ref.strftime('%Y-%m-%d')) }}" class="btn-link">✏️</a>
+                            <form method="post" action="{{ url_for('excluir_venda', sale_id=v.id) }}" style="display:inline;" onsubmit="return confirm('Excluir venda permanentemente?');">
+                                <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer; padding: 0 5px;">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="muted" style="text-align: center; padding: 20px;">Nenhuma venda para esta data.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 {% endblock %}
