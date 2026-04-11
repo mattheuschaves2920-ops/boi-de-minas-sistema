@@ -2,232 +2,224 @@
 {% block content %}
 
 <div class="grid two">
-  <section class="card">
-    <h3>Cadastrar item</h3>
+    <section class="card" style="border-top: 4px solid var(--gold);">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin:0;">📦 Cadastrar Novo Item</h3>
+            <button type="button" class="btn" onclick="toggleScanner()" id="btn-scan" style="background: var(--ink); color: #fff; padding: 6px 12px; font-size: 0.8rem;">
+                📷 Ler Código
+            </button>
+        </header>
 
-    <div class="barcode-box" style="margin-bottom:12px;">
-      <button type="button" class="btn" onclick="toggleScanner()">Ler código de barras</button>
-      <div id="scanner" class="hidden" style="margin-top:10px; min-height:250px;"></div>
-    </div>
+        <div id="scanner" class="hidden scanner" style="margin-bottom:15px; overflow: hidden;"></div>
 
-    <form method="post">
-      <label>Área
-        <select name="area" id="area">
-          {% for a in areas %}
-          <option value="{{ a }}">{{ a }}</option>
-          {% endfor %}
-        </select>
-      </label>
+        <form method="post" id="form-cadastro">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Área de Estoque
+                    <select name="area" id="area">
+                        {% for a in areas %}
+                        <option value="{{ a }}">{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Código de Barras
+                    <input type="text" name="code" id="code" placeholder="Scan ou digite...">
+                </label>
+            </div>
 
-      <label>Código de barras
-        <input type="text" name="code" id="code">
-      </label>
+            <label>Nome do Produto
+                <input type="text" name="name" id="name" required placeholder="Ex: Picanha Argentina">
+            </label>
 
-      <label>Nome do item
-        <input type="text" name="name" id="name" required>
-      </label>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Categoria
+                    <select name="category" id="category">
+                        {% for c in categories %}
+                        <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label>Unidade Medida
+                    <select name="unit" id="unit">
+                        <option value="kg">Quilograma (kg)</option>
+                        <option value="un">Unidade (un)</option>
+                        <option value="l">Litro (l)</option>
+                        <option value="cx">Caixa (cx)</option>
+                        <option value="pct">Pacote (pct)</option>
+                    </select>
+                </label>
+            </div>
 
-      <label>Categoria
-        <select name="category" id="category">
-          {% for c in categories %}
-          <option value="{{ c }}">{{ c }}</option>
-          {% endfor %}
-        </select>
-      </label>
+            <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <label>Custo (R$)
+                    <input type="number" step="0.01" name="cost" id="cost" value="0.00">
+                </label>
+                <label>Qtd Inicial
+                    <input type="number" step="0.001" name="stock" id="stock" value="0">
+                </label>
+                <label>Est. Mínimo
+                    <input type="number" step="0.001" name="min_stock" id="min_stock" value="0">
+                </label>
+            </div>
 
-      <label>Unidade
-        <select name="unit" id="unit">
-          <option value="kg">kg</option>
-          <option value="un">un</option>
-          <option value="l">l</option>
-          <option value="cx">cx</option>
-          <option value="pct">pct</option>
-        </select>
-      </label>
+            <button class="btn" type="submit" style="width: 100%; margin-top: 15px;">💾 Salvar Produto</button>
+        </form>
+    </section>
 
-      <label>Custo unitário
-        <input type="number" step="0.01" name="cost" id="cost">
-      </label>
+    <section class="card">
+        <h3>🔍 Consultar Estoque</h3>
+        <form method="get" style="display: flex; gap: 5px; margin-bottom: 15px;">
+            <input type="text" name="busca" value="{{ busca or '' }}" placeholder="Nome, categoria ou código..." style="flex: 1;">
+            <button class="btn" type="submit">Buscar</button>
+        </form>
 
-      <label>Estoque atual
-        <input type="number" step="0.001" name="stock" id="stock">
-      </label>
-
-      <label>Estoque mínimo
-        <input type="number" step="0.001" name="min_stock" id="min_stock">
-      </label>
-
-      <button class="btn" type="submit">Salvar item</button>
-    </form>
-  </section>
-
-  <section class="card">
-    <h3>Buscar produto</h3>
-
-    <form method="get" style="margin-bottom:16px;">
-      <label>Buscar por nome, categoria, área ou código
-        <input type="text" name="busca" value="{{ busca or '' }}" placeholder="Ex.: coxinha, bebidas, freezer...">
-      </label>
-      <button class="btn" type="submit">Buscar</button>
-    </form>
-
-    <h3>Itens cadastrados</h3>
-    <div class="table-wrap">
-      <table>
-        <tr>
-          <th>Área</th>
-          <th>Código</th>
-          <th>Item</th>
-          <th>Categoria</th>
-          <th>Estoque</th>
-          <th>Mín.</th>
-          <th>Ação</th>
-        </tr>
-
-        {% for i in itens %}
-        <tr>
-          <td>{{ i.area }}</td>
-          <td>{{ i.code or '' }}</td>
-          <td>{{ i.name }}</td>
-          <td>{{ i.category or '' }}</td>
-          <td>{{ i.stock }}</td>
-          <td>{{ i.min_stock }}</td>
-          <td>
-            <a class="btn" href="{{ url_for('itens', editar=i.id, busca=busca) }}#editar-produto">Editar</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </table>
-    </div>
-  </section>
+        <div class="table-wrap" style="max-height: 500px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Estoque</th>
+                        <th>Status</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in itens %}
+                    <tr>
+                        <td>
+                            <strong>{{ i.name }}</strong><br>
+                            <small class="muted">{{ i.area }} | {{ i.code or 'S/C' }}</small>
+                        </td>
+                        <td>{{ i.stock }} <small>{{ i.unit }}</small></td>
+                        <td>
+                            {% if i.stock <= i.min_stock %}
+                                <span class="error" style="font-size: 10px;">⚠️ BAIXO</span>
+                            {% else %}
+                                <span class="success" style="font-size: 10px;">✅ OK</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a class="btn-link" href="{{ url_for('itens', editar=i.id, busca=busca) }}#editar-produto" style="font-size: 12px;">✏️</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
-<section class="card" id="editar-produto" style="margin-top:16px;">
-  <h3>Editar produto</h3>
+{% if item_edicao %}
+<section class="card" id="editar-produto" style="margin-top:20px; border-left: 5px solid var(--blue); animation: fadeIn 0.5s;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3>✏️ Editando: {{ item_edicao.name }}</h3>
+        <a href="{{ url_for('itens') }}" class="muted" style="text-decoration: none;">✖ Fechar</a>
+    </div>
 
-  <form method="post" action="{% if item_edicao %}{{ url_for('editar_item', item_id=item_edicao.id) }}{% else %}#{% endif %}">
-    <label>Área
-      <select name="area">
-        {% for a in areas %}
-        <option value="{{ a }}" {% if item_edicao and item_edicao.area == a %}selected{% endif %}>{{ a }}</option>
-        {% endfor %}
-      </select>
-    </label>
+    <form method="post" action="{{ url_for('editar_item', item_id=item_edicao.id) }}">
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <label>Área
+                <select name="area">
+                    {% for a in areas %}
+                    <option value="{{ a }}" {% if item_edicao.area == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            
+            <label>Código
+                <input type="text" name="code" value="{{ item_edicao.code or '' }}">
+            </label>
 
-    <label>Código de barras
-      <input type="text" name="code" value="{{ item_edicao.code if item_edicao else '' }}">
-    </label>
+            <label>Nome do Item
+                <input type="text" name="name" value="{{ item_edicao.name }}" required>
+            </label>
 
-    <label>Nome do item
-      <input type="text" name="name" value="{{ item_edicao.name if item_edicao else '' }}" required>
-    </label>
+            <label>Categoria
+                <select name="category">
+                    {% for c in categories %}
+                    <option value="{{ c }}" {% if item_edicao.category == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </label>
 
-    <label>Categoria
-      <select name="category">
-        {% for c in categories %}
-        <option value="{{ c }}" {% if item_edicao and item_edicao.category == c %}selected{% endif %}>{{ c }}</option>
-        {% endfor %}
-      </select>
-    </label>
+            <label>Custo (R$)
+                <input type="number" step="0.01" name="cost" value="{{ item_edicao.cost }}">
+            </label>
 
-    <label>Unidade
-      <select name="unit">
-        <option value="kg" {% if item_edicao and item_edicao.unit == 'kg' %}selected{% endif %}>kg</option>
-        <option value="un" {% if item_edicao and item_edicao.unit == 'un' %}selected{% endif %}>un</option>
-        <option value="l" {% if item_edicao and item_edicao.unit == 'l' %}selected{% endif %}>l</option>
-        <option value="cx" {% if item_edicao and item_edicao.unit == 'cx' %}selected{% endif %}>cx</option>
-        <option value="pct" {% if item_edicao and item_edicao.unit == 'pct' %}selected{% endif %}>pct</option>
-      </select>
-    </label>
-
-    <label>Custo unitário
-      <input type="number" step="0.01" name="cost" value="{{ item_edicao.cost if item_edicao else '' }}">
-    </label>
-
-    <label>Estoque atual
-      <input type="number" step="0.001" name="stock" value="{{ item_edicao.stock if item_edicao else '' }}">
-    </label>
-
-    <label>Estoque mínimo
-      <input type="number" step="0.001" name="min_stock" value="{{ item_edicao.min_stock if item_edicao else '' }}">
-    </label>
-
-    <button class="btn" type="submit">Salvar alteração</button>
-  </form>
+            <label>Estoque Atual
+                <input type="number" step="0.001" name="stock" value="{{ item_edicao.stock }}">
+            </label>
+        </div>
+        
+        <button class="btn" type="submit" style="margin-top: 15px; background: var(--blue); color: white;">Confirmar Alterações</button>
+    </form>
 </section>
+{% endif %}
 
 <script>
+// Lógica de busca automática ao digitar código
 async function preencherPorCodigo(codigo) {
-  if (!codigo) return;
-
-  try {
-    const resp = await fetch(`/buscar-item?code=${encodeURIComponent(codigo)}`);
-    const data = await resp.json();
-
-    if (data.ok) {
-      document.getElementById('code').value = data.item.code || '';
-      document.getElementById('name').value = data.item.name || '';
-      document.getElementById('area').value = data.item.area || 'Estoque Geral';
-      document.getElementById('category').value = data.item.category || 'Outros';
-      document.getElementById('unit').value = data.item.unit || 'un';
-      document.getElementById('cost').value = data.item.cost || 0;
-      document.getElementById('stock').value = data.item.stock || 0;
-      document.getElementById('min_stock').value = data.item.min_stock || 0;
-    }
-  } catch (e) {
-    console.log("Erro ao buscar item pelo código.");
-  }
+    if (!codigo || codigo.length < 3) return;
+    try {
+        const resp = await fetch(`/buscar-item?code=${encodeURIComponent(codigo)}`);
+        const data = await resp.json();
+        if (data.ok) {
+            const i = data.item;
+            document.getElementById('name').value = i.name || '';
+            document.getElementById('area').value = i.area || '';
+            document.getElementById('category').value = i.category || '';
+            document.getElementById('unit').value = i.unit || 'un';
+            document.getElementById('cost').value = i.cost || 0;
+            document.getElementById('stock').value = i.stock || 0;
+            document.getElementById('min_stock').value = i.min_stock || 0;
+            // Feedback visual
+            document.getElementById('form-cadastro').style.background = '#f0fff4';
+            setTimeout(() => document.getElementById('form-cadastro').style.background = 'transparent', 1000);
+        }
+    } catch (e) { console.error("Erro na busca remota."); }
 }
 
-const campoCode = document.getElementById('code');
-if (campoCode) {
-  campoCode.addEventListener('change', function (e) {
-    preencherPorCodigo(e.target.value);
-  });
-}
+document.getElementById('code')?.addEventListener('change', (e) => preencherPorCodigo(e.target.value));
 
+// Scanner de Código de Barras
 let scanner = null;
-
 window.toggleScanner = async function () {
-  const el = document.getElementById("scanner");
+    const el = document.getElementById("scanner");
+    const btn = document.getElementById("btn-scan");
 
-  if (!window.Html5Qrcode) {
-    alert("Leitor de código de barras não carregou.");
-    return;
-  }
-
-  if (scanner) {
-    try { await scanner.stop(); } catch (e) {}
-    scanner = null;
-    el.innerHTML = "";
-    el.classList.add("hidden");
-    return;
-  }
-
-  el.classList.remove("hidden");
-  el.innerHTML = "";
-  scanner = new Html5Qrcode("scanner");
-
-  try {
-    await scanner.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 120 } },
-      async (decodedText) => {
-        document.getElementById("code").value = decodedText;
-        await preencherPorCodigo(decodedText);
-        try { await scanner.stop(); } catch (e) {}
+    if (scanner) {
+        await scanner.stop();
         scanner = null;
-        el.innerHTML = "";
         el.classList.add("hidden");
-      },
-      () => {}
-    );
-  } catch (err) {
-    alert("Não foi possível abrir a câmera. Verifique a permissão.");
-    el.classList.add("hidden");
-    scanner = null;
-  }
+        btn.innerText = "📷 Ler Código";
+        return;
+    }
+
+    el.classList.remove("hidden");
+    btn.innerText = "🛑 Parar Leitura";
+    scanner = new Html5Qrcode("scanner");
+
+    try {
+        await scanner.start(
+            { facingMode: "environment" },
+            { fps: 15, qrbox: { width: 250, height: 150 } },
+            async (text) => {
+                document.getElementById("code").value = text;
+                await preencherPorCodigo(text);
+                toggleScanner(); // Fecha ao ler
+            },
+            () => {}
+        );
+    } catch (err) {
+        alert("Câmera indisponível.");
+        el.classList.add("hidden");
+        btn.innerText = "📷 Ler Código";
+    }
 };
 </script>
+
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.table-wrap td { padding: 8px; }
+</style>
 
 {% endblock %}
