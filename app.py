@@ -29,7 +29,7 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# --- AUXILIARES ---
+# --- FUNÇÕES AUXILIARES ---
 def current_user():
     uid = session.get("user_id")
     return db.session.get(User, uid) if uid else None
@@ -51,7 +51,7 @@ def setup():
         u.set_password("123456")
         db.session.add(u)
         db.session.commit()
-    return "Banco de dados e Tabelas Prontas! Login: admin | Senha: 123456"
+    return "Banco de dados pronto! Login: admin | Senha: 123456"
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -69,16 +69,21 @@ def dashboard():
     
     data_ref = get_selected_date()
     
-    # Preparamos um dicionário com valores padrão para evitar 'UndefinedError'
-    # Adicione aqui qualquer outra variável que o seu template peça futuramente
+    # Adicionando 'var_faturamento' e outras variáveis de variação comuns
+    # para satisfazer as condições do seu template HTML
     contexto = {
         "user": user,
         "data_ref": data_ref,
         "mes_ref": data_ref,
-        "faturamento": 0.0,       # Corrigindo o erro do log
-        "total_vendas": 0,        # Prevenção
-        "total_producao": 0,      # Prevenção
-        "total_desperdicio": 0.0  # Prevenção
+        "faturamento": 0.0,
+        "total_vendas": 0,
+        "total_producao": 0,
+        "total_desperdicio": 0.0,
+        # Variáveis de variação (setinhas para cima/baixo no HTML)
+        "var_faturamento": 0.0,
+        "var_vendas": 0.0,
+        "var_producao": 0.0,
+        "var_desperdicio": 0.0
     }
     
     return render_template("dashboard.html", **contexto)
@@ -87,51 +92,10 @@ def dashboard():
 
 @app.route("/usuarios")
 def usuarios():
-    u = current_user(); 
+    u = current_user()
     if not u: return redirect(url_for("login"))
     return render_template("usuarios.html", user=u, lista=User.query.all())
 
 @app.route("/itens")
 def itens():
-    u = current_user(); 
-    if not u: return redirect(url_for("login"))
-    return render_template("itens.html", user=u, items=[])
-
-@app.route("/vendas")
-def vendas():
-    u = current_user(); 
-    if not u: return redirect(url_for("login"))
-    return render_template("vendas.html", user=u, data_ref=get_selected_date())
-
-@app.route("/producao")
-def producao():
-    u = current_user(); 
-    if not u: return redirect(url_for("login"))
-    return render_template("producao.html", user=u, data_ref=get_selected_date())
-
-@app.route("/controle-diario")
-def controle_diario():
-    u = current_user(); 
-    if not u: return redirect(url_for("login"))
-    return render_template("controle_diario.html", user=u, data_ref=get_selected_date())
-
-@app.route("/desperdicio")
-def desperdicio():
-    u = current_user(); 
-    if not u: return redirect(url_for("login"))
-    return render_template("desperdicio.html", user=u, data_ref=get_selected_date())
-
-@app.route("/relatorios")
-def relatorios():
-    u = current_user(); 
-    if not u: return redirect(url_for("login"))
-    return render_template("relatorios.html", user=u, data_ref=get_selected_date())
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    u = current_user()
