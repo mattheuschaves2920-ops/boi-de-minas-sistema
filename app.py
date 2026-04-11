@@ -29,7 +29,7 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# --- AUXILIARES ---
+# --- FUNÇÕES AUXILIARES ---
 def current_user():
     uid = session.get("user_id")
     if uid:
@@ -37,13 +37,14 @@ def current_user():
     return None
 
 def get_selected_date():
+    """Captura a data do formulário ou usa a data atual."""
     raw = request.args.get("data") or request.form.get("data")
     try:
         return datetime.strptime(raw, "%Y-%m-%d").date()
     except:
         return date.today()
 
-# --- ROTAS ---
+# --- ROTAS PRINCIPAIS ---
 
 @app.route("/setup")
 def setup():
@@ -53,7 +54,7 @@ def setup():
         u.set_password("123456")
         db.session.add(u)
         db.session.commit()
-    return "Tabelas criadas com sucesso!"
+    return "Banco de dados configurado com sucesso! Use admin/123456 para entrar."
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -67,47 +68,65 @@ def login():
 @app.route("/dashboard")
 def dashboard():
     user = current_user()
-    if not user: return redirect(url_for("login"))
-    return render_template("dashboard.html", user=user, data_ref=get_selected_date())
+    if not user:
+        return redirect(url_for("login"))
+    
+    # Resolvendo o erro 'mes_ref' is undefined e 'data_ref'
+    data_ref = get_selected_date()
+    
+    # O template dashboard.html usa mes_ref.strftime
+    # Passamos data_ref para ambos para garantir compatibilidade
+    return render_template(
+        "dashboard.html", 
+        user=user, 
+        data_ref=data_ref, 
+        mes_ref=data_ref
+    )
 
-# --- ROTAS EXIGIDAS PELO MENU (base.html) ---
+# --- ROTAS DO MENU (Para evitar BuildError) ---
 
 @app.route("/usuarios")
 def usuarios():
     user = current_user()
     if not user: return redirect(url_for("login"))
-    lista_usuarios = User.query.all()
-    return render_template("usuarios.html", user=user, lista=lista_usuarios)
+    lista = User.query.all()
+    return render_template("usuarios.html", user=user, lista=lista)
 
 @app.route("/itens")
 def itens():
-    if not current_user(): return redirect(url_for("login"))
-    return render_template("itens.html", user=current_user())
+    user = current_user()
+    if not user: return redirect(url_for("login"))
+    return render_template("itens.html", user=user)
 
 @app.route("/vendas")
 def vendas():
-    if not current_user(): return redirect(url_for("login"))
-    return render_template("vendas.html", user=current_user(), data_ref=get_selected_date())
+    user = current_user()
+    if not user: return redirect(url_for("login"))
+    return render_template("vendas.html", user=user, data_ref=get_selected_date())
 
 @app.route("/producao")
 def producao():
-    if not current_user(): return redirect(url_for("login"))
-    return render_template("producao.html", user=current_user(), data_ref=get_selected_date())
+    user = current_user()
+    if not user: return redirect(url_for("login"))
+    return render_template("producao.html", user=user, data_ref=get_selected_date())
 
 @app.route("/controle-diario")
 def controle_diario():
-    if not current_user(): return redirect(url_for("login"))
-    return render_template("controle_diario.html", user=current_user(), data_ref=get_selected_date())
+    user = current_user()
+    if not user: return redirect(url_for("login"))
+    return render_template("controle_diario.html", user=user, data_ref=get_selected_date())
 
 @app.route("/desperdicio")
 def desperdicio():
-    if not current_user(): return redirect(url_for("login"))
-    return render_template("desperdicio.html", user=current_user(), data_ref=get_selected_date())
+    user = current_user()
+    if not user: return redirect(url_for("login"))
+    return render_template("desperdicio.html", user=user, data_ref=get_selected_date())
 
 @app.route("/relatorios")
 def relatorios():
-    if not current_user(): return redirect(url_for("login"))
-    return render_template("relatorios.html", user=current_user(), data_ref=get_selected_date())
+    user = current_user()
+    if not user: return redirect(url_for("login"))
+    return render_template("relatorios.html", user=user, data_ref=get_selected_date())
 
 @app.route("/logout")
 def logout():
@@ -115,4 +134,6 @@ def logout():
     return redirect(url_for("login"))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Render usa a variável de ambiente PORT
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
