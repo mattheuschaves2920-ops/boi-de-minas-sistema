@@ -1,132 +1,164 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="card">
-  <form method="get" class="grid two">
-    <label>Filtrar por dia
-      <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
-    </label>
-    <button class="btn" type="submit">Aplicar filtro</button>
-  </form>
+<section class="card" style="border-left: 5px solid var(--blue); margin-bottom: 16px;">
+    <form method="get" class="grid" style="grid-template-columns: 1fr auto; align-items: end; gap: 10px;">
+        <label>Consultar movimentações do dia:
+            <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+        </label>
+        <button class="btn" type="submit">🔍 Filtrar</button>
+    </form>
 </section>
 
-<div class="grid two" style="margin-top:16px;">
-  <section class="card">
-    <h3>{% if mov_edicao %}Editar movimentação{% else %}Lançar movimentação{% endif %}</h3>
+<div class="grid two">
+    <section class="card">
+        <header style="margin-bottom: 20px;">
+            <h3 style="margin:0;">
+                {{ '✏️ Editar Movimentação' if mov_edicao else '📦 Lançar Movimentação' }}
+            </h3>
+            <p class="muted" style="font-size: 0.85rem;">Gerencie o fluxo de insumos e suprimentos entre setores.</p>
+        </header>
 
-    <form method="post" action="{% if mov_edicao %}{{ url_for('editar_movimento', mov_id=mov_edicao.id) }}{% else %}{{ url_for('movimentos') }}{% endif %}">
-      <label>Data
-        <input type="date" name="mov_date" required value="{{ mov_edicao.mov_date.strftime('%Y-%m-%d') if mov_edicao else data_ref.strftime('%Y-%m-%d') }}">
-      </label>
+        <form method="post" action="{% if mov_edicao %}{{ url_for('editar_movimento', mov_id=mov_edicao.id) }}{% else %}{{ url_for('movimentos') }}{% endif %}">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Data
+                    <input type="date" name="mov_date" required value="{{ mov_edicao.mov_date.strftime('%Y-%m-%d') if mov_edicao else data_ref.strftime('%Y-%m-%d') }}">
+                </label>
 
-      <label>Tipo
-        <select name="mov_type">
-          {% for t in ['Entrada', 'Saida', 'Perda'] %}
-          <option value="{{ t }}" {% if mov_edicao and mov_edicao.mov_type == t %}selected{% endif %}>{{ t }}</option>
-          {% endfor %}
-        </select>
-      </label>
+                <label>Tipo de Fluxo
+                    <select name="mov_type" id="mov_type" onchange="toggleCusto()">
+                        {% for t in ['Entrada', 'Saida', 'Perda'] %}
+                        <option value="{{ t }}" {% if mov_edicao and mov_edicao.mov_type == t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
 
-      <label>Área
-        <select name="area">
-          {% for a in areas %}
-          <option value="{{ a }}" {% if mov_edicao and mov_edicao.area == a %}selected{% endif %}>{{ a }}</option>
-          {% endfor %}
-        </select>
-      </label>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Área Origem/Destino
+                    <select name="area">
+                        {% for a in areas %}
+                        <option value="{{ a }}" {% if mov_edicao and mov_edicao.area == a %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
 
-      <label>Setor
-        <select name="setor">
-          {% for s in setores %}
-          <option value="{{ s }}" {% if mov_edicao and mov_edicao.setor == s %}selected{% endif %}>{{ s }}</option>
-          {% endfor %}
-        </select>
-      </label>
+                <label>Setor Responsável
+                    <select name="setor">
+                        {% for s in setores %}
+                        <option value="{{ s }}" {% if mov_edicao and mov_edicao.setor == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
 
-      {% if not mov_edicao %}
-      <label>Item
-        <select name="item_id">
-          {% for i in items %}
-          <option value="{{ i.id }}">{{ i.name }} — {{ i.area }}</option>
-          {% endfor %}
-        </select>
-      </label>
+            {% if not mov_edicao %}
+                <label>Item
+                    <select name="item_id" required>
+                        <option value="" disabled selected>Selecione o produto...</option>
+                        {% for i in items %}
+                        <option value="{{ i.id }}">{{ i.name }} ({{ i.area }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
 
-      <label>Código de barras
-        <input type="text" name="barcode">
-      </label>
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label>Quantidade
+                        <input type="number" step="0.001" name="quantity" required placeholder="0.000">
+                    </label>
 
-      <label>Quantidade
-        <input type="number" step="0.001" name="quantity" required>
-      </label>
+                    <label id="label_custo">Custo Unitário (R$)
+                        <input type="number" step="0.01" name="unit_cost" placeholder="Opcional">
+                    </label>
+                </div>
+            {% else %}
+                <label>Item (Edição)
+                    <input type="text" name="item_name" value="{{ mov_edicao.item_name }}" readonly style="background: #f5f5f5;">
+                </label>
 
-      <label>Custo unitário (somente entrada)
-        <input type="number" step="0.01" name="unit_cost">
-      </label>
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label>Quantidade
+                        <input type="number" step="0.001" name="quantity" value="{{ mov_edicao.quantity }}" required>
+                    </label>
 
-      <label>Detalhe
-        <input type="text" name="detail">
-      </label>
+                    <label>Valor Total (R$)
+                        <input type="number" step="0.01" name="value" value="{{ mov_edicao.value }}" required>
+                    </label>
+                </div>
+            {% endif %}
 
-      <button class="btn" type="submit">Salvar movimentação</button>
-      {% else %}
-      <label>Item
-        <input type="text" name="item_name" value="{{ mov_edicao.item_name }}">
-      </label>
+            <label>Observação / Detalhe
+                <input type="text" name="detail" value="{{ mov_edicao.detail or '' }}" placeholder="Ex: NF-123, Reposição de buffet, etc.">
+            </label>
 
-      <label>Quantidade
-        <input type="number" step="0.001" name="quantity" value="{{ mov_edicao.quantity }}" required>
-      </label>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn" type="submit" style="flex: 2;">{{ 'Salvar Alterações' if mov_edicao else 'Registrar Movimento' }}</button>
+                {% if mov_edicao %}
+                    <a href="{{ url_for('movimentos') }}" class="btn" style="flex: 1; background: #eee; color: var(--ink); text-align: center;">Cancelar</a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
 
-      <label>Valor total
-        <input type="number" step="0.01" name="value" value="{{ mov_edicao.value }}" required>
-      </label>
-
-      <label>Detalhe
-        <input type="text" name="detail" value="{{ mov_edicao.detail or '' }}">
-      </label>
-
-      <button class="btn" type="submit">Salvar edição</button>
-      {% endif %}
-    </form>
-  </section>
-
-  <section class="card">
-    <h3>Histórico de movimentações</h3>
-    <div class="table-wrap">
-      <table>
-        <tr>
-          <th>Data</th>
-          <th>Tipo</th>
-          <th>Área</th>
-          <th>Setor</th>
-          <th>Item</th>
-          <th>Qtd.</th>
-          <th>Valor</th>
-          <th>Ação</th>
-        </tr>
-
-        {% for m in movimentos %}
-        <tr>
-          <td>{{ m.mov_date.strftime('%d/%m/%Y') }}</td>
-          <td>{{ m.mov_type }}</td>
-          <td>{{ m.area }}</td>
-          <td>{{ m.setor }}</td>
-          <td>{{ m.item_name }}</td>
-          <td>{{ m.quantity }}</td>
-          <td>R$ {{ '%.2f'|format(m.value) }}</td>
-          <td>
-            <a class="btn" href="{{ url_for('movimentos', editar=m.id, data=data_ref.strftime('%Y-%m-%d')) }}">Editar</a>
-
-            <form method="post" action="{{ url_for('excluir_movimento', mov_id=m.id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta movimentação? O estoque será ajustado automaticamente.');">
-              <button class="btn" type="submit">Excluir</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </table>
-    </div>
-  </section>
+    <section class="card">
+        <h3>📋 Histórico de {{ data_ref.strftime('%d/%m/%Y') }}</h3>
+        <div class="table-wrap">
+            <table style="font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Item / Setor</th>
+                        <th>Qtd.</th>
+                        <th>Valor</th>
+                        <th style="text-align: right;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in movimentos %}
+                    <tr>
+                        <td>
+                            <span class="badge {{ 'success' if m.mov_type == 'Entrada' else ('error' if m.mov_type == 'Perda' else 'info') }}">
+                                {{ m.mov_type }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong>{{ m.item_name }}</strong><br>
+                            <small class="muted">{{ m.setor }}</small>
+                        </td>
+                        <td>{{ m.quantity }}</td>
+                        <td>R$ {{ '%.2f'|format(m.value) }}</td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{{ url_for('movimentos', editar=m.id, data=data_ref.strftime('%Y-%m-%d')) }}" class="btn-link">✏️</a>
+                            <form method="post" action="{{ url_for('excluir_movimento', mov_id=m.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ O estoque será ajustado. Confirmar exclusão?');">
+                                <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="muted" style="text-align: center; padding: 20px;">Sem registros nesta data.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
+
+<script>
+function toggleCusto() {
+    const type = document.getElementById('mov_type').value;
+    const labelCusto = document.getElementById('label_custo');
+    if (labelCusto) {
+        // Geralmente só faz sentido digitar custo em Entradas (compras)
+        labelCusto.style.opacity = type === 'Entrada' ? '1' : '0.5';
+    }
+}
+</script>
+
+<style>
+    .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+    .badge.success { background: #dcfce7; color: #15803d; } /* Entrada */
+    .badge.info { background: #e0f2fe; color: #0369a1; }    /* Saída */
+    .badge.error { background: #fee2e2; color: #b91c1c; }   /* Perda */
+</style>
 
 {% endblock %}
