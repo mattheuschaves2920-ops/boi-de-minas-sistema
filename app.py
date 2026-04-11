@@ -9,7 +9,6 @@ app = Flask(__name__)
 # --- CONFIGURAÇÕES ---
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "boi-minas-2026-seguro")
 
-# Ajuste para o banco de dados (Render usa postgres:// por padrão, mas SQLAlchemy exige postgresql://)
 uri = os.getenv("DATABASE_URL", "sqlite:///boi_de_minas.db")
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -49,18 +48,17 @@ def get_selected_date():
     except (ValueError, TypeError):
         return date.today()
 
-# --- ROTAS PRINCIPAIS ---
+# --- ROTAS ---
 
 @app.route("/setup")
 def setup():
-    """Cria as tabelas e o usuário administrador inicial."""
     db.create_all()
     if not User.query.filter_by(username="admin").first():
         admin = User(name="Administrador", username="admin", role="admin")
         admin.set_password("123456")
         db.session.add(admin)
         db.session.commit()
-    return "Banco de dados inicializado! <br> Login: admin | Senha: 123456 <br><a href='/'>Ir para Login</a>"
+    return "Banco de dados inicializado! <br><a href='/'>Ir para Login</a>"
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -74,36 +72,45 @@ def login():
 @app.route("/dashboard")
 def dashboard():
     user = current_user()
-    if not user:
-        return redirect(url_for("login"))
+    if not user: return redirect(url_for("login"))
     
     data_ref = get_selected_date()
     
-    # Este dicionário garante que TODAS as variáveis esperadas pelo dashboard.html existam,
-    # evitando o erro 'UndefinedError' do Jinja2.
+    # CONTEXTO COMPLETO PARA EVITAR UNDEFINED ERROR
     contexto = {
         "user": user,
         "data_ref": data_ref,
         "mes_ref": data_ref,
+        
+        # Financeiro
         "faturamento": 0.0,
         "faturamento_mes": 0.0,
         "faturamento_total": 0.0,
         "lucro_mes": 0.0,
         "lucro_total": 0.0,
         "gastos_mes": 0.0,
+        
+        # Operacional
         "refeicoes": 0.0,
         "total_refeicoes": 0.0,
         "total_vendas": 0,
         "total_producao": 0,
+        
+        # Desperdício (Incluindo a correção para o erro desperdicio_mes)
+        "desperdicio": 0.0,
+        "desperdicio_mes": 0.0,        # <-- CORREÇÃO AQUI
         "total_desperdicio": 0.0,
         "total_desperdicio_mes": 0.0,
-        "desperdicio": 0.0,      # Necessário para o card de desperdício
+        
+        # Variações e Metas
         "var_faturamento": 0.0,
         "var_vendas": 0.0,
         "var_producao": 0.0,
         "var_desperdicio": 0.0,
-        "var_lucro": 0.0,        # Necessário para a comparação de lucro
+        "var_lucro": 0.0,
         "meta_atingida": 0,
+        
+        # Dados para Gráficos e Tabelas
         "vendas_dia": [],
         "producao_dia": [],
         "labels_grafico": []
@@ -130,7 +137,6 @@ def producao():
 
 @app.route("/desperdicio")
 def desperdicio():
-    """Rota para gestão de desperdício. Mantido o nome para compatibilidade com url_for."""
     u = current_user()
     if not u: return redirect(url_for("login"))
     return render_template("desperdicio.html", user=u, data_ref=get_selected_date())
@@ -164,8 +170,6 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# --- INICIALIZAÇÃO ---
 if __name__ == "__main__":
-    # O Render define a variável de ambiente PORT automaticamente
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
