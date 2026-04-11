@@ -1,26 +1,93 @@
 {% extends "base.html" %}
 {% block content %}
+
 <div class="grid two">
-  <section class="card">
-    <h3>Cadastrar usuário</h3>
-    <form method="post">
-      <label>Nome<input type="text" name="name" required></label>
-      <label>Usuário<input type="text" name="username" required></label>
-      <label>Senha<input type="password" name="password" required></label>
-      <label>Perfil
-        <select name="role">{% for role in roles %}<option>{{ role }}</option>{% endfor %}</select>
-      </label>
-      <button class="btn">Salvar usuário</button>
-    </form>
-  </section>
-  <section class="card">
-    <h3>Usuários cadastrados</h3>
-    <table>
-      <tr><th>Nome</th><th>Usuário</th><th>Perfil</th></tr>
-      {% for u in usuarios %}
-      <tr><td>{{ u.name }}</td><td>{{ u.username }}</td><td>{{ u.role }}</td></tr>
-      {% endfor %}
-    </table>
-  </section>
+    <section class="card" style="border-top: 4px solid var(--ink);">
+        <header style="margin-bottom: 20px;">
+            <h3 style="margin:0;">👤 Gerenciar Acessos</h3>
+            <p class="muted" style="font-size: 0.85rem;">Cadastre novos funcionários e defina níveis de permissão.</p>
+        </header>
+
+        <form method="post">
+            <label>Nome Completo
+                <input type="text" name="name" required placeholder="Ex: João Silva">
+            </label>
+
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Login (Usuário)
+                    <input type="text" name="username" required placeholder="joao.silva">
+                </label>
+
+                <label>Nível de Perfil
+                    <select name="role" required>
+                        <option value="" disabled selected>Selecione...</option>
+                        {% for role in roles %}
+                        <option value="{{ role }}">{{ role }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+
+            <label>Senha de Acesso
+                <input type="password" name="password" required placeholder="••••••••">
+                <small class="muted">Recomendado: Mínimo 6 caracteres.</small>
+            </label>
+
+            <button class="btn" style="width: 100%; margin-top: 15px; background: var(--ink); color: white;">
+                ➕ Salvar Usuário
+            </button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h3>👥 Equipe Cadastrada</h3>
+        <div class="table-wrap">
+            <table style="font-size: 0.9rem;">
+                <thead>
+                    <tr>
+                        <th>Colaborador</th>
+                        <th>Perfil</th>
+                        <th style="text-align: right;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in usuarios %}
+                    <tr>
+                        <td>
+                            <strong>{{ u.name }}</strong><br>
+                            <small class="muted">@{{ u.username }}</small>
+                        </td>
+                        <td>
+                            <span class="badge-role">{{ u.role }}</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <form action="{{ url_for('excluir_usuario', user_id=u.id) }}" method="post" 
+                                  onsubmit="return confirm('⚠️ Tem certeza que deseja remover o acesso de {{ u.name }}?');" 
+                                  style="display:inline;">
+                                <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="muted" style="text-align: center; padding: 20px;">Nenhum usuário cadastrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
+
+<style>
+    /* Estilo para as tags de Perfil */
+    .badge-role {
+        background: #f1f1f1;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        color: var(--ink);
+    }
+</style>
+
 {% endblock %}
