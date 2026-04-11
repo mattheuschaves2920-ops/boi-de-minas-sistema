@@ -9,7 +9,6 @@ app = Flask(__name__)
 # --- CONFIGURAÇÕES ---
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "boi-minas-2026-seguro")
 
-# Ajuste para o banco de dados do Render (PostgreSQL)
 uri = os.getenv("DATABASE_URL", "sqlite:///boi_de_minas.db")
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -35,7 +34,9 @@ class User(db.Model):
 # --- FUNÇÕES DE APOIO ---
 def current_user():
     uid = session.get("user_id")
-    return db.session.get(User, uid) if uid else None
+    if uid:
+        return db.session.get(User, uid)
+    return None
 
 def get_selected_date():
     raw = request.args.get("data") or request.form.get("data")
@@ -44,18 +45,17 @@ def get_selected_date():
     except (ValueError, TypeError):
         return date.today()
 
-# --- ROTAS PRINCIPAIS ---
+# --- ROTAS ---
 
 @app.route("/setup")
 def setup():
-    """Configura o banco e cria o admin inicial"""
     db.create_all()
     if not User.query.filter_by(username="admin").first():
         admin = User(name="Administrador", username="admin", role="admin")
         admin.set_password("123456")
         db.session.add(admin)
         db.session.commit()
-    return "Sistema configurado! Login: admin | Senha: 123456"
+    return "Banco de dados pronto! Login: admin | Senha: 123456"
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -73,35 +73,38 @@ def dashboard():
     
     data_ref = get_selected_date()
     
-    # DICIONÁRIO BLINDADO: Contém todas as variáveis que seu HTML pode pedir
+    # DICIONÁRIO TOTALMENTE BLINDADO (Incluindo var_lucro e outras)
     contexto = {
         "user": user,
         "data_ref": data_ref,
         "mes_ref": data_ref,
+        # Valores Financeiros
         "faturamento": 0.0,
         "faturamento_mes": 0.0,
         "faturamento_total": 0.0,
         "lucro_mes": 0.0,
         "lucro_total": 0.0,
         "gastos_mes": 0.0,
+        # Quantidades
         "refeicoes": 0.0,
         "total_refeicoes": 0.0,
         "total_vendas": 0,
         "total_producao": 0,
         "total_desperdicio": 0.0,
         "total_desperdicio_mes": 0.0,
+        # Variáveis de Porcentagem (Onde estava dando erro)
         "var_faturamento": 0.0,
         "var_vendas": 0.0,
         "var_producao": 0.0,
         "var_desperdicio": 0.0,
+        "var_lucro": 0.0,  # <-- ADICIONADO PARA CORRIGIR O LOG
         "meta_atingida": 0,
+        # Listas para tabelas e gráficos
         "vendas_dia": [],
         "producao_dia": [],
         "labels_grafico": []
     }
     return render_template("dashboard.html", **contexto)
-
-# --- TODAS AS ROTAS CHAMADAS PELO MENU (base.html) ---
 
 @app.route("/controle-diario")
 def controle_diario():
@@ -149,8 +152,7 @@ def relatorios():
 def usuarios():
     u = current_user()
     if not u: return redirect(url_for("login"))
-    lista = User.query.all()
-    return render_template("usuarios.html", user=u, lista=lista)
+    return render_template("usuarios.html", user=u, lista=User.query.all())
 
 @app.route("/logout")
 def logout():
