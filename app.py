@@ -29,10 +29,12 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# --- FUNÇÕES AUXILIARES ---
+# --- AUXILIARES ---
 def current_user():
     uid = session.get("user_id")
-    return db.session.get(User, uid) if uid else None
+    if uid:
+        return db.session.get(User, uid)
+    return None
 
 def get_selected_date():
     raw = request.args.get("data") or request.form.get("data")
@@ -69,27 +71,35 @@ def dashboard():
     
     data_ref = get_selected_date()
     
-    # Adicionando 'faturamento_mes' e nomes alternativos para evitar erros de template
+    # Dicionário completo para evitar UndefinedError no template
     contexto = {
         "user": user,
         "data_ref": data_ref,
         "mes_ref": data_ref,
+        # Variáveis de Faturamento
         "faturamento": 0.0,
-        "faturamento_mes": 0.0,   # CORREÇÃO DO ERRO ATUAL
+        "faturamento_mes": 0.0,
+        "faturamento_total": 0.0,  # RESOLVE O ERRO ATUAL
+        # Variáveis de Quantidade
         "total_vendas": 0,
+        "total_vendas_mes": 0,
         "total_producao": 0,
+        "total_producao_mes": 0,
         "total_desperdicio": 0.0,
+        "total_desperdicio_mes": 0.0,
+        # Variáveis de Variação (setas de porcentagem)
         "var_faturamento": 0.0,
         "var_vendas": 0.0,
         "var_producao": 0.0,
         "var_desperdicio": 0.0,
-        "vendas_dia": [],         # Caso o gráfico peça
-        "producao_dia": []        # Caso o gráfico peça
+        # Listas para Gráficos
+        "vendas_dia": [],
+        "producao_dia": []
     }
     
     return render_template("dashboard.html", **contexto)
 
-# --- ROTAS DO MENU ---
+# --- DEMAIS ROTAS ---
 
 @app.route("/vendas")
 def vendas():
