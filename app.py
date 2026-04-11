@@ -1,8 +1,7 @@
 import os
 from datetime import date, datetime
-from flask import Flask, render_template, request, redirect, url_for, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -17,7 +16,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-# --- MODELOS (Mínimos para rodar) ---
+# --- MODELOS ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
@@ -30,22 +29,21 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-class Item(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(150), nullable=False)
-    stock = db.Column(db.Float, default=0)
-
-# --- FUNÇÕES DE APOIO ---
+# --- AUXILIARES ---
 def current_user():
     uid = session.get("user_id")
-    return db.session.get(User, uid) if uid else None
+    if uid:
+        return db.session.get(User, uid)
+    return None
 
 def get_selected_date():
     raw = request.args.get("data") or request.form.get("data")
-    try: return datetime.strptime(raw, "%Y-%m-%d").date()
-    except: return date.today()
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").date()
+    except:
+        return date.today()
 
-# --- ROTAS DE FLUXO E AUTENTICAÇÃO ---
+# --- ROTAS ---
 
 @app.route("/setup")
 def setup():
@@ -55,7 +53,7 @@ def setup():
         u.set_password("123456")
         db.session.add(u)
         db.session.commit()
-    return "Banco de dados e Tabelas Prontas!"
+    return "Tabelas criadas com sucesso!"
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -68,16 +66,23 @@ def login():
 
 @app.route("/dashboard")
 def dashboard():
-    if not current_user(): return redirect(url_for("login"))
-    return render_template("dashboard.html", user=current_user(), data_ref=get_selected_date())
+    user = current_user()
+    if not user: return redirect(url_for("login"))
+    return render_template("dashboard.html", user=user, data_ref=get_selected_date())
 
-# --- TODAS AS ROTAS DO MENU (Para evitar BuildError) ---
+# --- ROTAS EXIGIDAS PELO MENU (base.html) ---
+
+@app.route("/usuarios")
+def usuarios():
+    user = current_user()
+    if not user: return redirect(url_for("login"))
+    lista_usuarios = User.query.all()
+    return render_template("usuarios.html", user=user, lista=lista_usuarios)
 
 @app.route("/itens")
 def itens():
     if not current_user(): return redirect(url_for("login"))
-    items = Item.query.all()
-    return render_template("itens.html", user=current_user(), items=items)
+    return render_template("itens.html", user=current_user())
 
 @app.route("/vendas")
 def vendas():
@@ -103,11 +108,6 @@ def desperdicio():
 def relatorios():
     if not current_user(): return redirect(url_for("login"))
     return render_template("relatorios.html", user=current_user(), data_ref=get_selected_date())
-
-@app.route("/exportar/<tipo>")
-def exportar(tipo):
-    # Rota genérica caso o template tente exportar algo
-    return f"Exportação de {tipo} em breve!"
 
 @app.route("/logout")
 def logout():
