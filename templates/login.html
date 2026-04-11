@@ -1,16 +1,104 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="login-wrap">
-  <div class="card login-card">
-    <h2>Acesso ao sistema</h2>
-    <p class="muted">Boi de Minas – Ravena</p>
-    {% if error %}<div class="alert">{{ error }}</div>{% endif %}
-    <form method="post">
-      <label>Usuário<input type="text" name="username" required></label>
-      <label>Senha<input type="password" name="password" required></label>
-      <button class="btn">Entrar</button>
-    </form>
-    <p class="small">Primeiro acesso: abra <code>/setup</code> para criar o login inicial <strong>admin / 123456</strong>.</p>
-  </div>
+
+<div class="login-container">
+    <div class="card login-card">
+        <div class="login-header">
+            <div class="brand-icon" style="margin: 0 auto 15px; width: 60px; height: 60px; font-size: 30px;">🍽️</div>
+            <h2>Acesso ao Sistema</h2>
+            <p class="muted">Boi de Minas – Ravena</p>
+        </div>
+
+        {% if error %}
+            <div class="alert error-box">
+                <strong>⚠️ Erro:</strong> {{ error }}
+            </div>
+        {% endif %}
+
+        <form method="post" class="login-form">
+            <label>Usuário
+                <input type="text" name="username" required autofocus placeholder="Digite seu login">
+            </label>
+            
+            <label>Senha
+                <input type="password" name="password" required placeholder="••••••••">
+            </label>
+            
+            <button class="btn btn-login">Entrar no Sistema</button>
+        </form>
+
+        <div class="login-footer">
+            <p class="small">
+                <span>💡</span> <strong>Dica:</strong> Primeiro acesso? Use <code>/setup</code> para criar o usuário mestre (admin / 123456).
+            </p>
+        </div>
+    </div>
 </div>
+
+<style>
+    /* Estilos específicos para a tela de login */
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - 100px); /* Centraliza verticalmente descontando margens */
+        padding: 20px;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 400px;
+        padding: 40px 30px;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        border-top: 5px solid var(--red);
+    }
+
+    .login-header h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 1.5rem;
+    }
+
+    .login-form {
+        margin-top: 30px;
+        text-align: left;
+    }
+
+    .error-box {
+        background: #fff5f5;
+        border: 1px solid #ffcdd2;
+        color: #b71c1c;
+        padding: 12px;
+        border-radius: 8px;
+        margin-top: 20px;
+        font-size: 0.9rem;
+    }
+
+    .btn-login {
+        width: 100%;
+        margin-top: 20px;
+        height: 48px;
+        font-size: 1rem;
+        background: var(--red);
+        color: white;
+    }
+
+    .login-footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+    }
+
+    code {
+        background: #eee;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-family: monospace;
+        color: var(--red);
+    }
+
+    /* Ajuste para esconder a topbar no login se desejar via CSS na base.html ou JS */
+</style>
+
 {% endblock %}
