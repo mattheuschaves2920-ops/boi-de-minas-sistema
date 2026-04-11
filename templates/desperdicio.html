@@ -1,103 +1,132 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="card">
-  <form method="get" class="grid two">
-    <label>Filtrar por dia
-      <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
-    </label>
-    <button class="btn" type="submit">Aplicar filtro</button>
-  </form>
+<section class="card" style="border-left: 5px solid var(--red);">
+    <form method="get" class="grid" style="grid-template-columns: 1fr auto; align-items: end; gap: 10px;">
+        <label>Visualizar desperdícios do dia:
+            <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+        </label>
+        <button class="btn" type="submit">🔍 Filtrar</button>
+    </form>
 </section>
 
 <div class="grid two" style="margin-top:16px;">
-  <section class="card">
-    <h3>{% if desperdicio_edicao %}Editar desperdício{% else %}Registrar desperdício{% endif %}</h3>
+    <section class="card">
+        <header style="margin-bottom: 20px;">
+            <h3 style="margin:0;">
+                {{ '✏️ Editar Lançamento' if desperdicio_edicao else '🗑️ Registrar Desperdício' }}
+            </h3>
+            <p class="muted" style="font-size: 0.85rem;">
+                {{ 'Altere os dados abaixo' if desperdicio_edicao else 'O registro de fotos ajuda na auditoria mensal.' }}
+            </p>
+        </header>
 
-    {% if error %}
-      <p class="error">{{ error }}</p>
-    {% endif %}
+        {% if error %}
+            <div class="card error" style="background: #fff5f5; border: 1px solid #ffcdd2; padding: 10px; margin-bottom: 15px;">
+                ⚠️ {{ error }}
+            </div>
+        {% endif %}
 
-    {% if desperdicio_edicao %}
-    <form method="post" action="{{ url_for('editar_desperdicio', waste_id=desperdicio_edicao.id) }}">
-      <label>Data
-        <input type="date" name="waste_date" required value="{{ desperdicio_edicao.waste_date.strftime('%Y-%m-%d') }}">
-      </label>
+        <form method="post" {% if not desperdicio_edicao %}enctype="multipart/form-data"{% endif %} 
+              action="{{ url_for('editar_desperdicio', waste_id=desperdicio_edicao.id) if desperdicio_edicao else url_for('desperdicio') }}">
+            
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Data da Ocorrência
+                    <input type="date" name="waste_date" required 
+                           value="{{ desperdicio_edicao.waste_date.strftime('%Y-%m-%d') if desperdicio_edicao else data_ref.strftime('%Y-%m-%d') }}">
+                </label>
 
-      <label>Quantidade
-        <input type="number" step="0.001" name="quantity" value="{{ desperdicio_edicao.quantity }}" required>
-      </label>
+                {% if not desperdicio_edicao %}
+                <label>Item do Estoque
+                    <select name="item_id" required>
+                        <option value="" disabled selected>Selecione o item...</option>
+                        {% for i in items %}
+                        <option value="{{ i.id }}">{{ i.name }} ({{ i.area }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                {% else %}
+                <label>Item (Bloqueado)
+                    <input type="text" value="{{ desperdicio_edicao.item_name }}" disabled style="background: #f0f0f0;">
+                </label>
+                {% endif %}
+            </div>
 
-      <label>Motivo
-        <input type="text" name="reason" value="{{ desperdicio_edicao.reason or '' }}">
-      </label>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>Quantidade (Kg/Un)
+                    <input type="number" step="0.001" name="quantity" required 
+                           value="{{ desperdicio_edicao.quantity if desperdicio_edicao else '' }}" placeholder="0.000">
+                </label>
+                
+                <label>Motivo
+                    <select name="reason">
+                        <option value="Vencimento" {{ 'selected' if desperdicio_edicao and desperdicio_edicao.reason == 'Vencimento' }}>Vencimento</option>
+                        <option value="Dano Físico" {{ 'selected' if desperdicio_edicao and desperdicio_edicao.reason == 'Dano Físico' }}>Dano Físico</option>
+                        <option value="Erro de Preparo" {{ 'selected' if desperdicio_edicao and desperdicio_edicao.reason == 'Erro de Preparo' }}>Erro de Preparo</option>
+                        <option value="Outros" {{ 'selected' if desperdicio_edicao and desperdicio_edicao.reason == 'Outros' }}>Outros</option>
+                    </select>
+                </label>
+            </div>
 
-      <button class="btn" type="submit">Salvar edição</button>
-    </form>
-    {% else %}
-    <form method="post" enctype="multipart/form-data">
-      <label>Data
-        <input type="date" name="waste_date" required value="{{ data_ref.strftime('%Y-%m-%d') }}">
-      </label>
+            {% if not desperdicio_edicao %}
+            <label>Evidência (Foto)
+                <div class="scanner" style="margin-top:5px; text-align:center;">
+                    <input type="file" name="photo" accept="image/*" required id="photo-input">
+                    <p class="muted" style="font-size: 11px; margin-top: 5px;">Formatos aceitos: JPG, PNG, WEBP</p>
+                </div>
+            </label>
+            {% endif %}
 
-      <label>Item
-        <select name="item_id" required>
-          {% for i in items %}
-          <option value="{{ i.id }}">{{ i.name }} — {{ i.area }}</option>
-          {% endfor %}
-        </select>
-      </label>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn" type="submit" style="flex: 2; background: var(--red); color: white;">
+                    {{ 'Atualizar Registro' if desperdicio_edicao else 'Confirmar Desperdício' }}
+                </button>
+                {% if desperdicio_edicao %}
+                <a href="{{ url_for('desperdicio') }}" class="btn" style="flex: 1; background: #eee; color: var(--ink); text-align: center;">Cancelar</a>
+                {% endif %}
+            </div>
+        </form>
+    </section>
 
-      <label>Quantidade
-        <input type="number" step="0.001" name="quantity" required>
-      </label>
+    <section class="card">
+        <h3>📋 Ocorrências de {{ data_ref.strftime('%d/%m/%Y') }}</h3>
+        <div class="table-wrap">
+            <table style="font-size: 0.9rem;">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qtd.</th>
+                        <th>Prejuízo</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in lista %}
+                    <tr>
+                        <td>
+                            <strong>{{ d.item_name }}</strong><br>
+                            <small class="muted">{{ d.reason or 'Motivo não informado' }}</small>
+                        </td>
+                        <td>{{ d.quantity }}</td>
+                        <td class="error">R$ {{ '%.2f'|format(d.value) }}</td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="{{ url_for('desperdicio', editar=d.id, data=data_ref.strftime('%Y-%m-%d')) }}" 
+                               class="btn-link" title="Editar" style="padding: 5px 10px; font-size: 12px;">✏️</a>
 
-      <label>Motivo
-        <input type="text" name="reason">
-      </label>
-
-      <label>Foto do desperdício
-        <input type="file" name="photo" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" required>
-      </label>
-
-      <button class="btn" type="submit">Salvar desperdício</button>
-    </form>
-    {% endif %}
-  </section>
-
-  <section class="card">
-    <h3>Histórico de desperdício</h3>
-
-    <div class="table-wrap">
-      <table>
-        <tr>
-          <th>Data</th>
-          <th>Item</th>
-          <th>Qtd.</th>
-          <th>Motivo</th>
-          <th>Valor</th>
-          <th>Ação</th>
-        </tr>
-
-        {% for d in lista %}
-        <tr>
-          <td>{{ d.waste_date.strftime('%d/%m/%Y') }}</td>
-          <td>{{ d.item_name }}</td>
-          <td>{{ d.quantity }}</td>
-          <td>{{ d.reason or '' }}</td>
-          <td>R$ {{ '%.2f'|format(d.value) }}</td>
-          <td>
-            <a class="btn" href="{{ url_for('desperdicio', editar=d.id, data=data_ref.strftime('%Y-%m-%d')) }}">Editar</a>
-
-            <form method="post" action="{{ url_for('excluir_desperdicio', waste_id=d.id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir este desperdício? O estoque será ajustado automaticamente.');">
-              <button class="btn" type="submit">Excluir</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </table>
-    </div>
-  </section>
+                            <form method="post" action="{{ url_for('excluir_desperdicio', waste_id=d.id) }}" 
+                                  style="display:inline;" 
+                                  onsubmit="return confirm('⚠️ ATENÇÃO: A exclusão devolverá {{ d.quantity }} ao estoque. Confirmar?');">
+                                <button class="btn-link" type="submit" style="color: var(--red); cursor: pointer; border: none; background: none; font-size: 12px;">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" style="text-align: center; padding: 20px;" class="muted">Nenhum desperdício registrado nesta data.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 {% endblock %}
