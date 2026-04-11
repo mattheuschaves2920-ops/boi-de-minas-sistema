@@ -1,81 +1,96 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Produção</h2>
+<section class="card" style="border-left: 5px solid var(--green); margin-bottom: 20px;">
+    <form method="get" class="grid" style="grid-template-columns: 1fr auto; align-items: end; gap: 10px;">
+        <label>Consultar produção do dia:
+            <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+        </label>
+        <button class="btn" type="submit">🔍 Filtrar</button>
+    </form>
+</section>
 
-<form method="get">
-<label>Filtrar por dia</label>
-<input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
-<button type="submit">Filtrar</button>
-</form>
+<div class="grid two">
+    <section class="card">
+        <header style="margin-bottom: 20px;">
+            <h3 style="margin:0;">🍳 Registrar Produção</h3>
+            <p class="muted" style="font-size: 0.85rem;">Entrada de itens processados ou fabricados internamente.</p>
+        </header>
 
-<hr>
+        <form method="post">
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+                <label>Data de Produção
+                    <input type="date" name="prod_date" value="{{ data_ref.strftime('%Y-%m-%d') }}" required>
+                </label>
 
-<h3>Lançar produção</h3>
+                <label>Setor Produtor
+                    <select name="setor" required>
+                        <option value="" disabled selected>Selecione...</option>
+                        {% for s in setores %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
 
-<form method="post">
+            <label>Produto Finalizado
+                <select name="item_id" required>
+                    <option value="" disabled selected>Qual item foi produzido?</option>
+                    {% for i in items %}
+                    <option value="{{ i.id }}">{{ i.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
 
-<label>Data</label>
-<input type="date" name="prod_date" value="{{ data_ref.strftime('%Y-%m-%d') }}" required>
+            <label>Quantidade Produzida (Kg/Un)
+                <input type="number" step="0.001" name="quantity" required placeholder="0.000">
+            </label>
 
-<label>Setor</label>
-<select name="setor">
-{% for s in setores %}
-<option value="{{ s }}">{{ s }}</option>
-{% endfor %}
-</select>
+            <button class="btn" type="submit" style="width: 100%; margin-top: 15px; background: var(--green); color: white;">
+                ✅ Confirmar Produção
+            </button>
+        </form>
+    </section>
 
-<label>Item</label>
-<select name="item_id">
-{% for i in items %}
-<option value="{{ i.id }}">{{ i.name }}</option>
-{% endfor %}
-</select>
+    <section class="card">
+        <h3>📋 Produção de {{ data_ref.strftime('%d/%m/%Y') }}</h3>
+        <div class="table-wrap">
+            <table style="font-size: 0.9rem;">
+                <thead>
+                    <tr>
+                        <th>Produto / Setor</th>
+                        <th>Qtd.</th>
+                        <th>Custo Est.</th>
+                        <th style="text-align: right;">Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in lista %}
+                    <tr>
+                        <td>
+                            <strong>{{ p.item_name }}</strong><br>
+                            <small class="muted">{{ p.setor }}</small>
+                        </td>
+                        <td>{{ p.quantity }}</td>
+                        <td class="success">R$ {{ "%.2f"|format(p.cost) }}</td>
+                        <td style="text-align: right;">
+                            <form action="/excluir-producao/{{ p.id }}" method="post" onsubmit="return confirm('⚠️ Excluir este registro removerá o item do estoque. Confirmar?');">
+                                <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="muted" style="text-align: center; padding: 20px;">Nenhuma produção registrada hoje.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
 
-<label>Quantidade</label>
-<input type="number" step="0.001" name="quantity" required>
-
-<button type="submit">Salvar</button>
-
-</form>
-
-<hr>
-
-<h3>Produção do dia</h3>
-
-<table border="1" width="100%">
-
-<tr>
-<th>Data</th>
-<th>Setor</th>
-<th>Item</th>
-<th>Quantidade</th>
-<th>Custo</th>
-<th>Ações</th>
-</tr>
-
-{% for p in lista %}
-
-<tr>
-
-<td>{{ p.prod_date }}</td>
-<td>{{ p.setor }}</td>
-<td>{{ p.item_name }}</td>
-<td>{{ p.quantity }}</td>
-<td>R$ {{ "%.2f"|format(p.cost) }}</td>
-
-<td>
-
-<form action="/excluir-producao/{{ p.id }}" method="post" style="display:inline;">
-<button type="submit">Excluir</button>
-</form>
-
-</td>
-
-</tr>
-
-{% endfor %}
-
-</table>
+<style>
+    /* Estilos locais para estados financeiros */
+    .success { color: #15803d; font-weight: bold; }
+</style>
 
 {% endblock %}
