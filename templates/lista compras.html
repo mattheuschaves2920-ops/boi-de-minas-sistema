@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:1.5rem;">
+    <div>
+        <h2 style="margin:0;">🛒 Lista de Compras</h2>
+        <p class="muted" style="margin:4px 0 0; font-size:0.9rem;">Gerada automaticamente pelos itens abaixo do estoque mínimo.</p>
+    </div>
+    <a class="btn" href="{{ url_for('exportar_lista_compras_xlsx') }}" style="background:var(--green); color:#fff;">
+        📊 Exportar Excel
+    </a>
+</div>
+
+{% if lista %}
+<div class="grid metrics" style="margin-bottom:1.5rem;">
+    <div class="card metric">
+        <span>Itens a comprar</span>
+        <strong style="color:var(--red);">{{ lista|length }}</strong>
+    </div>
+    <div class="card metric">
+        <span>Custo estimado</span>
+        <strong style="color:var(--green);">R$ {{ '%.2f'|format(total_custo) }}</strong>
+    </div>
+</div>
+
+<section class="card" style="padding:0;">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Área</th>
+                    <th>Atual</th>
+                    <th>Mínimo</th>
+                    <th>Falta</th>
+                    <th>Sugestão compra</th>
+                    <th style="text-align:right;">Custo est.</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in lista %}
+                <tr style="background: {% if r.falta > 0 %}#fff5f5{% else %}inherit{% endif %};">
+                    <td>
+                        <strong>{{ r.item.name }}</strong><br>
+                        <small class="muted">{{ r.item.category or '-' }}</small>
+                    </td>
+                    <td><small>{{ r.item.area or '-' }}</small></td>
+                    <td style="color:var(--red); font-weight:600;">{{ r.item.stock }} <small>{{ r.item.unit }}</small></td>
+                    <td>{{ r.item.min_stock }} <small>{{ r.item.unit }}</small></td>
+                    <td style="color:var(--red);">{{ r.falta }} <small>{{ r.item.unit }}</small></td>
+                    <td style="font-weight:600;">{{ r.sugestao }} <small>{{ r.item.unit }}</small></td>
+                    <td style="text-align:right; font-weight:600; color:var(--green);">
+                        R$ {{ '%.2f'|format(r.custo_est) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background:#f9f9f9; font-weight:700;">
+                    <td colspan="6" style="text-align:right; padding:12px;">Total estimado:</td>
+                    <td style="text-align:right; padding:12px; color:var(--green);">
+                        R$ {{ '%.2f'|format(total_custo) }}
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</section>
+
+{% else %}
+<div class="card" style="text-align:center; padding:3rem; border:2px dashed var(--line);">
+    <p style="font-size:2rem; margin-bottom:0.5rem;">✅</p>
+    <p style="font-size:1.1rem; font-weight:600;">Estoque em dia!</p>
+    <p class="muted">Nenhum item abaixo do estoque mínimo no momento.</p>
+</div>
+{% endif %}
+
+{% endblock %}
