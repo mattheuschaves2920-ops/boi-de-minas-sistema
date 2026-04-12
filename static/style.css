@@ -1,240 +1,213 @@
 :root {
-  /* Cores Principais */
-  --bg: #f6f3ee;
-  --card: #ffffff;
-  --ink: #232323;
-  --muted: #666666;
-  --red: #8b0000;
-  --red-light: #b10b0b;
-  --gold: #d4af37;
-  --line: #e8dfd1;
-  --green: #0f8b4c;
-  --blue: #145da0;
-  
-  /* Tokens de Design */
-  --radius: 12px;
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Cores Principais */
+    --bg: #f6f3ee;
+    --card: #ffffff;
+    --ink: #232323;
+    --muted: #666666;
+    --red: #8b0000;
+    --red-light: #b10b0b;
+    --gold: #d4af37;
+    --line: #e8dfd1;
+    --green: #0f8b4c;
+    --blue: #145da0;
+    
+    /* Tokens de Design */
+    --radius: 12px;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
-  box-sizing: border-box;
-  -webkit-font-smoothing: antialiased;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
 }
 
 body {
-  margin: 0;
-  /* Font stack moderna: usa a melhor fonte disponível no sistema do usuário */
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-  line-height: 1.5;
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
 }
 
-/* --- Topbar --- */
+/* --- Topbar (Ajustada) --- */
 .topbar {
-  background: linear-gradient(135deg, var(--red), var(--red-light));
-  padding: 1.5rem 1.25rem;
-  color: #fff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1.5rem;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    background: linear-gradient(135deg, var(--red), var(--red-light));
+    padding: 1rem 1.25rem;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .brand-icon {
-  width: 70px;
-  height: 70px;
-  border-radius: var(--radius);
-  background: #fff;
-  display: grid;
-  place-items: center; /* Centralização moderna */
-  font-size: 40px;
-  box-shadow: var(--shadow);
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius);
+    background: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 35px;
+    box-shadow: var(--shadow);
 }
 
 .brand-text h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  letter-spacing: -0.5px;
+    margin: 0;
+    font-size: 1.3rem;
+    letter-spacing: -0.5px;
 }
 
 .brand-text p {
-  margin: 2px 0 0;
-  color: #f6e3a7;
-  font-size: 0.9rem;
-  opacity: 0.9;
+    margin: 0;
+    color: #f6e3a7;
+    font-size: 0.8rem;
+    opacity: 0.9;
 }
 
 /* --- Navegação --- */
 nav {
-  display: flex;
-  gap: 8px;
+    display: flex;
+    gap: 8px;
 }
 
 nav a {
-  color: #fff;
-  text-decoration: none;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: var(--transition);
+    color: #fff;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: var(--transition);
+    white-space: nowrap;
 }
 
 nav a:hover {
-  background: rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
 }
 
 /* --- Layout --- */
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
 }
 
 .grid {
-  display: grid;
-  gap: 1.25rem;
+    display: grid;
+    gap: 1.25rem;
 }
 
-/* Layout responsivo inteligente: se ajusta sem media queries pesados */
 .metrics {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .two {
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
 }
 
 /* --- Componentes --- */
 .card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  transition: var(--transition);
-}
-
-.card:hover {
-  box-shadow: var(--shadow);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    transition: var(--transition);
 }
 
 .metric span {
-  display: block;
-  color: var(--muted);
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+    display: block;
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-transform: uppercase;
 }
 
 .metric strong {
-  display: block;
-  font-size: 1.75rem;
-  margin-top: 0.5rem;
-  color: var(--red);
-}
-
-/* --- Formulários --- */
-label {
-  display: block;
-  font-weight: 600;
-  font-size: 0.85rem;
-  margin-bottom: 4px;
-}
-
-input, select, textarea {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #d7cfbf;
-  background: #fff;
-  font-size: 1rem;
-  transition: border-color var(--transition);
-}
-
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--red);
-  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
-}
-
-/* --- Botões --- */
-button, .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--gold);
-  color: #403000;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-button:hover {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3);
+    display: block;
+    font-size: 1.6rem;
+    margin-top: 0.5rem;
+    color: var(--red);
 }
 
 /* --- Tabelas --- */
 .table-wrap {
-  overflow-x: auto; /* Garante que a tabela não quebre em telas pequenas */
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+    overflow-x: auto;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
 }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-}
-
-th {
-  background: #faf7f1;
-  padding: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  border-bottom: 2px solid var(--line);
-}
-
-td {
-  padding: 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-tr:last-child td { border: none; }
-
-/* --- Mobile --- */
-@media (max-width: 768px) {
-  .topbar {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .brand {
-    flex-direction: column;
-  }
-
-  nav {
     width: 100%;
-    overflow-x: auto;
-    padding-bottom: 5px;
-  }
+    border-collapse: collapse;
+    background: #fff;
+}
 
-  .two {
-    grid-template-columns: 1fr;
-  }
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+}
+
+th { background: #fafafa; color: var(--muted); font-size: 0.85rem; }
+
+/* --- Botões --- */
+.btn {
+    background: var(--gold);
+    color: #403000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+/* =============================================
+   AJUSTES PARA MOBILE (A parte que você pediu)
+   ============================================= */
+
+@media (max-width: 768px) {
+    .topbar {
+        flex-direction: column; /* Empilha logo e menu */
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .brand {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    nav {
+        width: 100%;
+        justify-content: center;
+        overflow-x: auto; /* Permite scroll lateral se o menu for longo */
+        padding: 5px 0;
+    }
+
+    nav a {
+        padding: 8px 10px;
+        font-size: 0.75rem;
+    }
+
+    .two {
+        grid-template-columns: 1fr; /* Cards ocupam largura total no celular */
+    }
+
+    .brand-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 28px;
+    }
 }
