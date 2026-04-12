@@ -9,7 +9,6 @@ app = Flask(__name__)
 # --- CONFIGURAÇÕES ---
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "boi-minas-2026-seguro")
 
-# Correção para o banco de dados no Render
 uri = os.getenv("DATABASE_URL", "sqlite:///boi_de_minas.db")
 if uri and uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
@@ -53,7 +52,6 @@ def get_selected_date():
 
 @app.route("/setup")
 def setup():
-    """Inicializa o banco de dados e cria o admin inicial."""
     db.create_all()
     if not User.query.filter_by(username="admin").first():
         admin = User(name="Administrador", username="admin", role="admin")
@@ -62,110 +60,37 @@ def setup():
         db.session.commit()
     return "Banco de dados inicializado! <br><a href='/'>Ir para Login</a>"
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"], endpoint="index")
 def login():
-    """Rota principal. Se não houver arquivo index.html, esta é a entrada."""
     if request.method == "POST":
         u = User.query.filter_by(username=request.form.get("username")).first()
         if u and u.check_password(request.form.get("password")):
             session["user_id"] = u.id
             return redirect(url_for("dashboard"))
-    # IMPORTANTE: Verifique se o nome do arquivo na pasta templates é exatamente login.html
     return render_template("login.html")
 
 @app.route("/dashboard")
 def dashboard():
     user = current_user()
-    if not user:
-        return redirect(url_for("login"))
+    if not user: return redirect(url_for("index"))
     
     data_ref = get_selected_date()
-    
-    # Contexto completo para evitar erros de 'Undefined' no Jinja2
     contexto = {
-        "user": user,
-        "data_ref": data_ref,
-        "mes_ref": data_ref,
-        "faturamento": 0.0,
-        "faturamento_mes": 0.0,
-        "faturamento_total": 0.0,
-        "lucro_mes": 0.0,
-        "lucro_total": 0.0,
-        "gastos_mes": 0.0,
-        "refeicoes": 0.0,
-        "total_refeicoes": 0.0,
-        "total_vendas": 0,
-        "total_producao": 0,
-        "desperdicio": 0.0,
-        "desperdicio_mes": 0.0,
-        "total_desperdicio": 0.0,
-        "total_desperdicio_mes": 0.0,
-        "var_faturamento": 0.0,
-        "var_vendas": 0.0,
-        "var_producao": 0.0,
-        "var_desperdicio": 0.0,
-        "var_lucro": 0.0,
-        "meta_atingida": 0,
-        "vendas_dia": [],
-        "producao_dia": [],
-        "labels_grafico": []
+        "user": user, "data_ref": data_ref, "mes_ref": data_ref,
+        "faturamento": 0.0, "faturamento_mes": 0.0, "faturamento_total": 0.0,
+        "lucro_mes": 0.0, "lucro_total": 0.0, "gastos_mes": 0.0,
+        "refeicoes": 0.0, "total_refeicoes": 0.0, "total_vendas": 0, "total_producao": 0,
+        "desperdicio": 0.0, "desperdicio_mes": 0.0, "total_desperdicio": 0.0, "total_desperdicio_mes": 0.0,
+        "var_faturamento": 0.0, "var_vendas": 0.0, "var_producao": 0.0, "var_desperdicio": 0.0, "var_lucro": 0.0,
+        "meta_atingida": 0, "vendas_dia": [], "producao_dia": [], "labels_grafico": []
     }
     return render_template("dashboard.html", **contexto)
-
-@app.route("/controle-diario")
-def controle_diario():
-    u = current_user()
-    if not u: return redirect(url_for("login"))
-    return render_template("controle_diario.html", user=u, data_ref=get_selected_date())
-
-@app.route("/vendas")
-def vendas():
-    u = current_user()
-    if not u: return redirect(url_for("login"))
-    return render_template("vendas.html", user=u, data_ref=get_selected_date())
-
-@app.route("/producao")
-def producao():
-    u = current_user()
-    if not u: return redirect(url_for("login"))
-    return render_template("producao.html", user=u, data_ref=get_selected_date())
-
-@app.route("/desperdicio")
-def desperdicio():
-    u = current_user()
-    if not u: return redirect(url_for("login"))
-    return render_template("desperdicio.html", user=u, data_ref=get_selected_date())
-
-@app.route("/estoque")
-def estoque():
-    u = current_user()
-    if not u: return redirect(url_for("login"))
-    return render_template("estoque.html", user=u)
-
-@app.route("/itens")
-def itens():
-    u = current_user()
-    if not u: return redirect(url_for("login"))
-    return render_template("itens.html", user=u)
-
-@app.route("/relatorios")
-def relatorios():
-    u = current_user()
-    if not u: return redirect(url_for("login"))
-    return render_template("relatorios.html", user=u, data_ref=get_selected_date())
-
-@app.route("/usuarios")
-def usuarios():
-    u = current_user()
-    if not u: return redirect(url_for("login"))
-    return render_template("usuarios.html", user=u, lista=User.query.all())
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return redirect(url_for("index"))
 
-# --- INICIALIZAÇÃO ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
