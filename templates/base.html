@@ -2,51 +2,37 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Boi de Minas Sistema</title>
+    <title>Boi de Minas</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-    <!-- Evita erro do manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 </head>
-
 <body>
-
-    <!-- MENU -->
-    <header>
-        <h1>Boi de Minas 🐂</h1>
-
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">🐂</div>
+            <div class="brand-text">
+                <h1>Boi de Minas</h1>
+                <p>Sistema de Gestão</p>
+            </div>
+        </div>
         <nav>
             <a href="{{ url_for('index') }}">Início</a>
             <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('controle') }}">Controle Diário</a>
-            <a href="{{ url_for('relatorios') }}">Relatórios</a>
+            <a href="{{ url_for('controle') }}">Controle</a>
+            <a href="{{ url_for('relatorios') }}">Estoque</a>
+            {% if session.get('user_id') %}
+                <a href="{{ url_for('logout') }}" style="background: var(--red-light)">Sair</a>
+            {% endif %}
         </nav>
     </header>
 
-    <!-- MENSAGENS (caso use futuramente) -->
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="alert">
-                {% for msg in messages %}
-                    <p>{{ msg }}</p>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
-    <!-- CONTEÚDO DAS PÁGINAS -->
-    <main>
-        {% block content %}
-        {% endblock %}
+    <main class="container">
+        {% block content %}{% endblock %}
     </main>
 
-    <!-- RODAPÉ -->
-    <footer>
-        <p>© 2026 Boi de Minas - Sistema de Gestão</p>
+    <footer style="text-align: center; padding: 2rem; color: var(--muted);">
+        <p>© 2026 Boi de Minas</p>
     </footer>
-
 </body>
 </html>
