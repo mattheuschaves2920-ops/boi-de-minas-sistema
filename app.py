@@ -1,15 +1,17 @@
 import os
 import io
+import time
+import secrets
+from collections import defaultdict
 from datetime import date, datetime
 from functools import wraps
 
 from flask import (Flask, render_template, request, redirect,
-                   url_for, session, flash, jsonify, send_file)
+                   url_for, session, flash, jsonify, send_file, abort, g)
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func
 
-# Exportação
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from reportlab.lib.pagesizes import A4, landscape
@@ -21,16 +23,14 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 # ─── APP & CONFIG ────────────────────────────────────────────────────────────
 
 app = Flask(__name__)
-
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", os.urandom(32))
+app.config["SECRET_KEY"]                  = os.getenv("SECRET_KEY", secrets.token_hex(32))
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["MAX_CONTENT_LENGTH"]          = 16 * 1024 * 1024
 
 uri = os.getenv("DATABASE_URL", "sqlite:///boi_de_minas.db")
 if uri.startswith("postgres://"):
     uri = uri.replace("postgres://", "postgresql://", 1)
-
 app.config["SQLALCHEMY_DATABASE_URI"] = uri
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB upload limit
 
 UPLOAD_FOLDER = os.path.join("static", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -49,7 +49,6 @@ class User(db.Model):
 
     def set_password(self, pw):
         self.password_hash = generate_password_hash(pw)
-
     def check_password(self, pw):
         return check_password_hash(self.password_hash, pw)
 
@@ -82,17 +81,17 @@ class Waste(db.Model):
 
 class Movement(db.Model):
     __tablename__ = "movements"
-    id       = db.Column(db.Integer, primary_key=True)
-    mov_date = db.Column(db.Date, nullable=False, default=date.today)
-    mov_type = db.Column(db.String(20))          # Entrada | Saida | Perda
-    area     = db.Column(db.String(80))
-    setor    = db.Column(db.String(80))
-    item_id  = db.Column(db.Integer, db.ForeignKey("items.id"))
-    item_name= db.Column(db.String(120))
-    quantity = db.Column(db.Float, default=0.0)
-    value    = db.Column(db.Float, default=0.0)
-    detail   = db.Column(db.String(255))
-    item     = db.relationship("Item", backref="movements")
+    id        = db.Column(db.Integer, primary_key=True)
+    mov_date  = db.Column(db.Date, nullable=False, default=date.today)
+    mov_type  = db.Column(db.String(20))
+    area      = db.Column(db.String(80))
+    setor     = db.Column(db.String(80))
+    item_id   = db.Column(db.Integer, db.ForeignKey("items.id"))
+    item_name = db.Column(db.String(120))
+    quantity  = db.Column(db.Float, default=0.0)
+    value     = db.Column(db.Float, default=0.0)
+    detail    = db.Column(db.String(255))
+    item      = db.relationship("Item", backref="movements")
 
 
 class Production(db.Model):
@@ -111,7 +110,7 @@ class Sale(db.Model):
     __tablename__ = "sales"
     id         = db.Column(db.Integer, primary_key=True)
     sale_date  = db.Column(db.Date, nullable=False, default=date.today)
-    period     = db.Column(db.String(20))         # Almoço | Janta
+    period     = db.Column(db.String(20))
     meal_type  = db.Column(db.String(80))
     unit_value = db.Column(db.Float, default=0.0)
     quantity   = db.Column(db.Float, default=0.0)
@@ -130,14 +129,93 @@ class DailyControl(db.Model):
     unit_value   = db.Column(db.Float, default=0.0)
     notes        = db.Column(db.String(255))
 
+
+class AuditLog(db.Model):
+    """Registro de todas as ações do sistema."""
+    __tablename__ = "audit_logs"
+    id          = db.Column(db.Integer, primary_key=True)
+    timestamp   = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    user_id     = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    username    = db.Column(db.String(80))
+    action      = db.Column(db.String(80), nullable=False)
+    resource    = db.Column(db.String(80))
+    resource_id = db.Column(db.Integer, nullable=True)
+    detail      = db.Column(db.String(255))
+    ip_address  = db.Column(db.String(45))
+
+
+class StockAlert(db.Model):
+    """Meta de estoque mínimo e alertas configurados por item."""
+    __tablename__ = "stock_alerts"
+    id          = db.Column(db.Integer, primary_key=True)
+    item_id     = db.Column(db.Integer, db.ForeignKey("items.id"), unique=True)
+    whatsapp    = db.Column(db.String(20))   # número destino do alerta
+    notified_at = db.Column(db.DateTime)
+    item        = db.relationship("Item", backref="alert")
+
+
+class MonthlyGoal(db.Model):
+    """Meta mensal de faturamento."""
+    __tablename__ = "monthly_goals"
+    id        = db.Column(db.Integer, primary_key=True)
+    year      = db.Column(db.Integer, nullable=False)
+    month     = db.Column(db.Integer, nullable=False)
+    goal      = db.Column(db.Float, default=0.0)
+    __table_args__ = (db.UniqueConstraint("year", "month"),)
+
+
 # ─── CONSTANTES ──────────────────────────────────────────────────────────────
 
-AREAS      = ["Cozinha", "Bar", "Confeitaria", "Açougue", "Estoque Geral"]
-CATEGORIES = ["Carnes", "Bebidas", "Laticínios", "Hortifruti", "Grãos", "Temperos", "Descartáveis", "Outros"]
-SETORES    = ["Cozinha", "Bar", "Salão", "Confeitaria", "Açougue"]
-MEAL_TYPES = ["Buffet Kg", "Executivo", "À La Carte", "Rodízio", "Marmita"]
+AREAS        = ["Cozinha", "Bar", "Confeitaria", "Açougue", "Estoque Geral"]
+CATEGORIES   = ["Carnes", "Bebidas", "Laticínios", "Hortifruti", "Grãos",
+                "Temperos", "Descartáveis", "Outros"]
+SETORES      = ["Cozinha", "Bar", "Salão", "Confeitaria", "Açougue"]
+MEAL_TYPES   = ["Buffet Kg", "Executivo", "À La Carte", "Rodízio", "Marmita"]
 DAILY_GROUPS = ["Salgados", "Bolos", "Doces", "Bebidas", "Outros"]
-ROLES      = ["admin", "gerente", "operador"]
+ROLES        = ["admin", "gerente", "operador"]
+
+# ─── RATE LIMITING ───────────────────────────────────────────────────────────
+
+_login_attempts: dict = defaultdict(list)
+MAX_LOGIN_ATTEMPTS = 10
+BLOCK_WINDOW       = 300  # 5 minutos
+
+
+def _is_rate_limited(ip: str) -> bool:
+    now = time.time()
+    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < BLOCK_WINDOW]
+    _login_attempts[ip].append(now)
+    return len(_login_attempts[ip]) > MAX_LOGIN_ATTEMPTS
+
+
+def _reset_rate_limit(ip: str):
+    _login_attempts.pop(ip, None)
+
+
+# ─── CSRF ────────────────────────────────────────────────────────────────────
+
+def _gen_csrf():
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(32)
+    return session["csrf_token"]
+
+
+@app.before_request
+def _csrf_protect():
+    if request.method == "POST":
+        exempt = getattr(app.view_functions.get(request.endpoint), "_csrf_exempt", False)
+        if not exempt:
+            token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
+            if not token or token != session.get("csrf_token"):
+                abort(403)
+
+
+def csrf_exempt(f):
+    f._csrf_exempt = True
+    return f
+
+
+app.jinja_env.globals["csrf_token"] = _gen_csrf
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -184,14 +262,41 @@ def admin_required(f):
     return decorated
 
 
+def audit(action, resource=None, resource_id=None, detail=None):
+    """Registra ação no log de auditoria sem quebrar o fluxo principal."""
+    try:
+        log = AuditLog(
+            user_id=session.get("user_id"),
+            username=session.get("_username", "—"),
+            action=action,
+            resource=resource,
+            resource_id=resource_id,
+            detail=detail,
+            ip_address=request.remote_addr,
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        pass
+
+
+def _ajustar_estoque(item, mov_type, qty):
+    if mov_type == "Entrada":
+        item.stock += qty
+    else:
+        item.stock = max(0.0, item.stock - qty)
+
+
+def _itens_criticos():
+    """Retorna lista de itens com estoque abaixo do mínimo."""
+    return [i for i in Item.query.all() if i.stock <= i.min_stock and i.min_stock > 0]
+
+
 def _pdf_styles():
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
-        "CustomTitle",
-        parent=styles["Title"],
-        fontSize=16,
-        textColor=colors.HexColor("#8b0000"),
-        spaceAfter=12,
+        "CustomTitle", parent=styles["Title"],
+        fontSize=16, textColor=colors.HexColor("#8b0000"), spaceAfter=12,
     )
     return styles, title_style
 
@@ -205,12 +310,22 @@ def _xlsx_header(ws, headers, fill_color="8B0000"):
         cell.font = font
         cell.alignment = Alignment(horizontal="center")
 
+# Injeta variáveis globais nos templates
+@app.context_processor
+def inject_globals():
+    u = current_user()
+    criticos = _itens_criticos() if u else []
+    return dict(
+        current_user=u,
+        itens_criticos=criticos,
+        n_criticos=len(criticos),
+    )
+
 
 # ─── SETUP ───────────────────────────────────────────────────────────────────
 
 @app.route("/setup")
 def setup():
-    """Inicializa o banco. Só funciona se não houver nenhum usuário cadastrado."""
     if User.query.first():
         return "Sistema já inicializado.", 403
     db.create_all()
@@ -218,7 +333,7 @@ def setup():
     admin.set_password("admin@2026!")
     db.session.add(admin)
     db.session.commit()
-    return "Sistema inicializado! Acesse /. Login: admin | Senha: admin@2026!"
+    return "Inicializado! Login: admin | Senha: admin@2026!"
 
 
 # ─── AUTH ────────────────────────────────────────────────────────────────────
@@ -229,16 +344,25 @@ def login():
         return redirect(url_for("dashboard"))
     error = None
     if request.method == "POST":
-        u = User.query.filter_by(username=request.form.get("username")).first()
-        if u and u.check_password(request.form.get("password")):
-            session["user_id"] = u.id
-            return redirect(url_for("dashboard"))
-        error = "Usuário ou senha inválidos."
+        ip = request.remote_addr
+        if _is_rate_limited(ip):
+            error = "Muitas tentativas. Tente novamente em 5 minutos."
+        else:
+            u = User.query.filter_by(username=request.form.get("username")).first()
+            if u and u.check_password(request.form.get("password")):
+                session["user_id"]   = u.id
+                session["_username"] = u.username
+                _reset_rate_limit(ip)
+                audit("LOGIN", resource="User", resource_id=u.id)
+                return redirect(url_for("dashboard"))
+            error = "Usuário ou senha inválidos."
+            audit("LOGIN_FAIL", detail=request.form.get("username"))
     return render_template("login.html", error=error)
 
 
 @app.route("/logout")
 def logout():
+    audit("LOGOUT")
     session.clear()
     return redirect(url_for("index"))
 
@@ -248,41 +372,31 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    user     = current_user()
     data_ref = get_selected_date()
     mes_ref  = get_selected_month()
 
-    # Faturamento do dia (vendas)
     faturamento = db.session.query(
         func.sum(Sale.unit_value * Sale.quantity)
     ).filter(Sale.sale_date == data_ref).scalar() or 0.0
 
-    # Faturamento do mês
     faturamento_mes = db.session.query(
         func.sum(Sale.unit_value * Sale.quantity)
     ).filter(
         func.strftime("%Y-%m", Sale.sale_date) == mes_ref.strftime("%Y-%m")
     ).scalar() or 0.0
 
-    # Refeições do dia
     refeicoes = db.session.query(
         func.sum(Sale.quantity)
     ).filter(Sale.sale_date == data_ref).scalar() or 0.0
 
-    # Custo do dia (movimentos de entrada)
-    custo = db.session.query(
-        func.sum(Movement.value)
-    ).filter(
-        Movement.mov_date == data_ref,
-        Movement.mov_type == "Entrada"
+    custo = db.session.query(func.sum(Movement.value)).filter(
+        Movement.mov_date == data_ref, Movement.mov_type == "Entrada"
     ).scalar() or 0.0
 
-    # Desperdício do dia
     desperdicio = db.session.query(
         func.sum(Waste.value)
     ).filter(Waste.waste_date == data_ref).scalar() or 0.0
 
-    # Desperdício do mês
     desperdicio_mes = db.session.query(
         func.sum(Waste.value)
     ).filter(
@@ -290,28 +404,49 @@ def dashboard():
     ).scalar() or 0.0
 
     lucro = faturamento - custo - desperdicio
-    cmv   = round((custo / faturamento * 100), 1) if faturamento else 0.0
+    cmv   = round(custo / faturamento * 100, 1) if faturamento else 0.0
 
-    # Últimas vendas do dia para gráfico
-    vendas_dia    = Sale.query.filter(Sale.sale_date == data_ref).all()
-    producao_dia  = Production.query.filter(Production.prod_date == data_ref).all()
+    # Meta mensal
+    meta_obj = MonthlyGoal.query.filter_by(
+        year=mes_ref.year, month=mes_ref.month
+    ).first()
+    meta_valor     = meta_obj.goal if meta_obj else 0.0
+    meta_pct       = round(faturamento_mes / meta_valor * 100, 1) if meta_valor else 0.0
+
+    # Dados para gráfico de barras (últimos 7 dias)
+    labels_grafico  = []
+    valores_grafico = []
+    from datetime import timedelta
+    for i in range(6, -1, -1):
+        d = data_ref - timedelta(days=i)
+        v = db.session.query(
+            func.sum(Sale.unit_value * Sale.quantity)
+        ).filter(Sale.sale_date == d).scalar() or 0.0
+        labels_grafico.append(d.strftime("%d/%m"))
+        valores_grafico.append(round(v, 2))
+
+    # Por período hoje
+    vendas_por_periodo = {}
+    rows = db.session.query(
+        Sale.period,
+        func.sum(Sale.quantity),
+        func.sum(Sale.unit_value * Sale.quantity),
+    ).filter(Sale.sale_date == data_ref).group_by(Sale.period).all()
+    for period, q, v in rows:
+        vendas_por_periodo[period or "Outros"] = {"q": q or 0, "v": v or 0}
 
     return render_template("dashboard.html",
-        user=user,
         data_ref=data_ref, mes_ref=mes_ref,
-        faturamento=faturamento,
-        faturamento_mes=faturamento_mes,
-        refeicoes=refeicoes,
-        custo=custo,
-        lucro=lucro,
-        cmv=cmv,
-        desperdicio=desperdicio,
-        desperdicio_mes=desperdicio_mes,
-        vendas_dia=vendas_dia,
-        producao_dia=producao_dia,
-        # zeros para compatibilidade com template antigo
+        faturamento=faturamento, faturamento_mes=faturamento_mes,
+        refeicoes=refeicoes, custo=custo, lucro=lucro, cmv=cmv,
+        desperdicio=desperdicio, desperdicio_mes=desperdicio_mes,
+        meta_valor=meta_valor, meta_pct=meta_pct,
+        labels_grafico=labels_grafico,
+        valores_grafico=valores_grafico,
+        vendas_por_periodo=vendas_por_periodo,
+        # compat
         clientes_almoco=0, venda_almoco=0.0,
-        clientes_janta=0,  venda_janta=0.0,
+        clientes_janta=0, venda_janta=0.0,
     )
 
 
@@ -320,9 +455,7 @@ def dashboard():
 @app.route("/controle", methods=["GET", "POST"])
 @login_required
 def controle():
-    user     = current_user()
     data_ref = get_selected_date()
-
     if request.method == "POST":
         ctrl = DailyControl(
             control_date=datetime.strptime(request.form["control_date"], "%Y-%m-%d").date(),
@@ -336,12 +469,11 @@ def controle():
         )
         db.session.add(ctrl)
         db.session.commit()
-        flash("Lançamento salvo com sucesso!")
+        audit("CREATE", "DailyControl", ctrl.id, ctrl.item_name)
+        flash("Lançamento salvo!")
         return redirect(url_for("controle", data=ctrl.control_date.strftime("%Y-%m-%d")))
 
-    lista = DailyControl.query.filter_by(control_date=data_ref).order_by(DailyControl.group_name).all()
-
-    # Totais por grupo
+    lista  = DailyControl.query.filter_by(control_date=data_ref).order_by(DailyControl.group_name).all()
     totais = {}
     for r in lista:
         g = r.group_name or "Geral"
@@ -351,8 +483,7 @@ def controle():
         totais[g]["faturado"] += r.sold_qty * r.unit_value
 
     return render_template("controle.html",
-        user=user, data_ref=data_ref,
-        daily_groups=DAILY_GROUPS,
+        data_ref=data_ref, daily_groups=DAILY_GROUPS,
         totais=totais, lista=lista,
     )
 
@@ -362,11 +493,9 @@ def controle():
 @app.route("/desperdicio", methods=["GET", "POST"])
 @login_required
 def desperdicio():
-    user     = current_user()
     data_ref = get_selected_date()
     error    = None
 
-    # Edição
     desperdicio_edicao = None
     editar_id = request.args.get("editar", type=int)
     if editar_id:
@@ -381,51 +510,43 @@ def desperdicio():
             desperdicio_edicao.waste_date = waste_date
             desperdicio_edicao.quantity   = qty
             desperdicio_edicao.reason     = reason
-            # Recalcula valor com custo do item
             if desperdicio_edicao.item:
                 desperdicio_edicao.value = qty * desperdicio_edicao.item.cost
             db.session.commit()
+            audit("UPDATE", "Waste", desperdicio_edicao.id, desperdicio_edicao.item_name)
             flash("Desperdício atualizado.")
             return redirect(url_for("desperdicio", data=waste_date.strftime("%Y-%m-%d")))
-        else:
-            item_id = request.form.get("item_id", type=int)
-            item    = db.session.get(Item, item_id)
-            if not item:
-                error = "Item não encontrado."
-            else:
-                # Salvar foto
-                photo_path = None
-                photo = request.files.get("photo")
-                if photo and photo.filename:
-                    ext  = os.path.splitext(photo.filename)[1]
-                    fname = f"waste_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
-                    photo.save(os.path.join(UPLOAD_FOLDER, fname))
-                    photo_path = f"uploads/{fname}"
 
-                w = Waste(
-                    waste_date=waste_date,
-                    item_id=item.id,
-                    item_name=item.name,
-                    quantity=qty,
-                    reason=reason,
-                    value=qty * item.cost,
-                    photo_path=photo_path,
-                )
-                # Desconta do estoque
-                item.stock = max(0, item.stock - qty)
-                db.session.add(w)
-                db.session.commit()
-                flash("Desperdício registrado.")
-                return redirect(url_for("desperdicio", data=waste_date.strftime("%Y-%m-%d")))
+        item_id = request.form.get("item_id", type=int)
+        item    = db.session.get(Item, item_id)
+        if not item:
+            error = "Item não encontrado."
+        else:
+            photo_path = None
+            photo = request.files.get("photo")
+            if photo and photo.filename:
+                ext   = os.path.splitext(photo.filename)[1]
+                fname = f"waste_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
+                photo.save(os.path.join(UPLOAD_FOLDER, fname))
+                photo_path = f"uploads/{fname}"
+
+            w = Waste(
+                waste_date=waste_date, item_id=item.id, item_name=item.name,
+                quantity=qty, reason=reason, value=qty * item.cost,
+                photo_path=photo_path,
+            )
+            item.stock = max(0.0, item.stock - qty)
+            db.session.add(w)
+            db.session.commit()
+            audit("CREATE", "Waste", w.id, f"{item.name} qty={qty}")
+            flash("Desperdício registrado.")
+            return redirect(url_for("desperdicio", data=waste_date.strftime("%Y-%m-%d")))
 
     items = Item.query.order_by(Item.name).all()
     lista = Waste.query.filter_by(waste_date=data_ref).order_by(Waste.id.desc()).all()
-
     return render_template("desperdicio.html",
-        user=user, data_ref=data_ref,
-        items=items, lista=lista,
-        desperdicio_edicao=desperdicio_edicao,
-        error=error,
+        data_ref=data_ref, items=items, lista=lista,
+        desperdicio_edicao=desperdicio_edicao, error=error,
     )
 
 
@@ -440,9 +561,9 @@ def editar_desperdicio(waste_id):
 def excluir_desperdicio(waste_id):
     w = db.session.get(Waste, waste_id)
     if w:
-        # Devolve ao estoque
         if w.item:
             w.item.stock += w.quantity
+        audit("DELETE", "Waste", w.id, w.item_name)
         db.session.delete(w)
         db.session.commit()
         flash("Desperdício excluído e estoque restaurado.")
@@ -454,15 +575,11 @@ def excluir_desperdicio(waste_id):
 @app.route("/itens", methods=["GET", "POST"])
 @login_required
 def itens():
-    user  = current_user()
     busca = request.args.get("busca", "")
-
     if request.method == "POST":
         item = Item(
-            area=request.form.get("area"),
-            code=request.form.get("code"),
-            name=request.form.get("name"),
-            category=request.form.get("category"),
+            area=request.form.get("area"), code=request.form.get("code"),
+            name=request.form.get("name"), category=request.form.get("category"),
             unit=request.form.get("unit", "un"),
             cost=float(request.form.get("cost") or 0),
             stock=float(request.form.get("stock") or 0),
@@ -470,15 +587,16 @@ def itens():
         )
         db.session.add(item)
         db.session.commit()
-        flash(f"Item '{item.name}' cadastrado com sucesso!")
+        audit("CREATE", "Item", item.id, item.name)
+        flash(f"Item '{item.name}' cadastrado!")
         return redirect(url_for("itens"))
 
     query = Item.query
     if busca:
-        like = f"%{busca}%"
-        query = query.filter(
-            db.or_(Item.name.ilike(like), Item.category.ilike(like), Item.code.ilike(like))
-        )
+        like  = f"%{busca}%"
+        query = query.filter(db.or_(
+            Item.name.ilike(like), Item.category.ilike(like), Item.code.ilike(like)
+        ))
     lista = query.order_by(Item.name).all()
 
     item_edicao = None
@@ -487,10 +605,8 @@ def itens():
         item_edicao = db.session.get(Item, editar_id)
 
     return render_template("cadastro_itens.html",
-        user=user, areas=AREAS,
-        categories=CATEGORIES,
-        itens=lista, busca=busca,
-        item_edicao=item_edicao,
+        areas=AREAS, categories=CATEGORIES,
+        itens=lista, busca=busca, item_edicao=item_edicao,
     )
 
 
@@ -507,6 +623,7 @@ def editar_item(item_id):
         item.stock     = float(request.form.get("stock") or 0)
         item.min_stock = float(request.form.get("min_stock") or 0)
         db.session.commit()
+        audit("UPDATE", "Item", item.id, item.name)
         flash(f"Item '{item.name}' atualizado.")
     return redirect(url_for("itens"))
 
@@ -515,7 +632,9 @@ def editar_item(item_id):
 @login_required
 def buscar_item():
     code = request.args.get("code", "")
-    item = Item.query.filter(db.or_(Item.code == code, Item.name.ilike(f"%{code}%"))).first()
+    item = Item.query.filter(
+        db.or_(Item.code == code, Item.name.ilike(f"%{code}%"))
+    ).first()
     if item:
         return jsonify(ok=True, item=dict(
             id=item.id, name=item.name, area=item.area,
@@ -525,36 +644,78 @@ def buscar_item():
     return jsonify(ok=False)
 
 
+# ─── LISTA DE COMPRAS AUTOMÁTICA ─────────────────────────────────────────────
+
+@app.route("/lista-compras")
+@login_required
+def lista_compras():
+    criticos = _itens_criticos()
+    # Calcula quanto precisa comprar (diferença entre mínimo e atual)
+    lista = []
+    for i in criticos:
+        falta = max(0.0, i.min_stock - i.stock)
+        # Sugestão: comprar o dobro do mínimo
+        sugestao = max(falta, i.min_stock)
+        lista.append({
+            "item": i,
+            "falta": round(falta, 3),
+            "sugestao": round(sugestao, 3),
+            "custo_est": round(sugestao * i.cost, 2),
+        })
+    total_custo = sum(l["custo_est"] for l in lista)
+    return render_template("lista_compras.html",
+        lista=lista, total_custo=total_custo,
+    )
+
+
+@app.route("/exportar/lista-compras/xlsx")
+@login_required
+def exportar_lista_compras_xlsx():
+    criticos = _itens_criticos()
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Lista de Compras"
+    _xlsx_header(ws, ["Item", "Área", "Categoria", "Unidade",
+                      "Estoque Atual", "Mínimo", "Falta", "Sugestão", "Custo Est. R$"])
+    for i in criticos:
+        falta    = max(0.0, i.min_stock - i.stock)
+        sugestao = max(falta, i.min_stock)
+        ws.append([
+            i.name, i.area or "", i.category or "", i.unit,
+            i.stock, i.min_stock, round(falta, 3),
+            round(sugestao, 3), round(sugestao * i.cost, 2),
+        ])
+    for col in ws.columns:
+        ws.column_dimensions[col[0].column_letter].width = 18
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_file(buf,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        download_name=f"lista_compras_{date.today()}.xlsx", as_attachment=True)
+
+
 # ─── RELATÓRIO DE ESTOQUE ────────────────────────────────────────────────────
 
 @app.route("/relatorios")
 @login_required
 def relatorios():
-    user         = current_user()
-    area_ref     = request.args.get("area", "")
-    categoria_ref= request.args.get("categoria", "")
-    status_ref   = request.args.get("status", "")
-
+    area_ref      = request.args.get("area", "")
+    categoria_ref = request.args.get("categoria", "")
+    status_ref    = request.args.get("status", "")
     query = Item.query
-    if area_ref:
-        query = query.filter_by(area=area_ref)
-    if categoria_ref:
-        query = query.filter_by(category=categoria_ref)
-
+    if area_ref:      query = query.filter_by(area=area_ref)
+    if categoria_ref: query = query.filter_by(category=categoria_ref)
     lista = query.order_by(Item.name).all()
-
-    if status_ref == "baixo":
-        lista = [i for i in lista if i.stock <= i.min_stock]
-    elif status_ref == "normal":
-        lista = [i for i in lista if i.stock > i.min_stock]
+    if status_ref == "baixo":   lista = [i for i in lista if i.stock <= i.min_stock]
+    elif status_ref == "normal": lista = [i for i in lista if i.stock > i.min_stock]
 
     total_itens  = len(lista)
     itens_baixos = sum(1 for i in lista if i.stock <= i.min_stock)
     valor_total  = sum((i.stock or 0) * (i.cost or 0) for i in lista)
 
     return render_template("relatorio_estoque.html",
-        user=user, itens=lista,
-        areas=AREAS, categories=CATEGORIES,
+        itens=lista, areas=AREAS, categories=CATEGORIES,
         area_ref=area_ref, categoria_ref=categoria_ref, status_ref=status_ref,
         total_itens=total_itens, itens_baixos=itens_baixos, valor_total=valor_total,
     )
@@ -565,9 +726,7 @@ def relatorios():
 @app.route("/movimentos", methods=["GET", "POST"])
 @login_required
 def movimentos():
-    user     = current_user()
-    data_ref = get_selected_date()
-
+    data_ref   = get_selected_date()
     mov_edicao = None
     editar_id  = request.args.get("editar", type=int)
     if editar_id:
@@ -579,11 +738,8 @@ def movimentos():
         qty      = float(request.form.get("quantity") or 0)
 
         if mov_edicao:
-            old_qty  = mov_edicao.quantity
-            old_type = mov_edicao.mov_type
-            # Reverte estoque anterior
             if mov_edicao.item:
-                _ajustar_estoque(mov_edicao.item, old_type, -old_qty)
+                _ajustar_estoque(mov_edicao.item, mov_edicao.mov_type, -mov_edicao.quantity)
             mov_edicao.mov_date = mov_date
             mov_edicao.mov_type = mov_type
             mov_edicao.area     = request.form.get("area")
@@ -594,6 +750,7 @@ def movimentos():
             if mov_edicao.item:
                 _ajustar_estoque(mov_edicao.item, mov_type, qty)
             db.session.commit()
+            audit("UPDATE", "Movement", mov_edicao.id)
             flash("Movimento atualizado.")
         else:
             item_id   = request.form.get("item_id", type=int)
@@ -611,26 +768,17 @@ def movimentos():
                 _ajustar_estoque(item, mov_type, qty)
             db.session.add(m)
             db.session.commit()
+            audit("CREATE", "Movement", m.id, f"{m.item_name} {mov_type}")
             flash("Movimento registrado.")
 
         return redirect(url_for("movimentos", data=mov_date.strftime("%Y-%m-%d")))
 
     items_list = Item.query.order_by(Item.name).all()
     lista      = Movement.query.filter_by(mov_date=data_ref).order_by(Movement.id.desc()).all()
-
     return render_template("movimentos.html",
-        user=user, data_ref=data_ref,
-        areas=AREAS, setores=SETORES,
-        items=items_list, movimentos=lista,
-        mov_edicao=mov_edicao,
+        data_ref=data_ref, areas=AREAS, setores=SETORES,
+        items=items_list, movimentos=lista, mov_edicao=mov_edicao,
     )
-
-
-def _ajustar_estoque(item, mov_type, qty):
-    if mov_type == "Entrada":
-        item.stock += qty
-    else:  # Saida | Perda
-        item.stock = max(0, item.stock - qty)
 
 
 @app.route("/excluir-movimento/<int:mov_id>", methods=["POST"])
@@ -640,6 +788,7 @@ def excluir_movimento(mov_id):
     if m:
         if m.item:
             _ajustar_estoque(m.item, m.mov_type, -m.quantity)
+        audit("DELETE", "Movement", m.id, m.item_name)
         db.session.delete(m)
         db.session.commit()
         flash("Movimento excluído e estoque ajustado.")
@@ -657,35 +806,30 @@ def editar_movimento(mov_id):
 @app.route("/producao", methods=["GET", "POST"])
 @login_required
 def producao():
-    user     = current_user()
     data_ref = get_selected_date()
-
     if request.method == "POST":
         item_id = request.form.get("item_id", type=int)
         item    = db.session.get(Item, item_id)
         qty     = float(request.form.get("quantity") or 0)
-
         p = Production(
             prod_date=datetime.strptime(request.form["prod_date"], "%Y-%m-%d").date(),
             setor=request.form.get("setor"),
             item_id=item.id if item else None,
             item_name=item.name if item else "—",
-            quantity=qty,
-            cost=qty * item.cost if item else 0.0,
+            quantity=qty, cost=qty * item.cost if item else 0.0,
         )
         if item:
             item.stock += qty
         db.session.add(p)
         db.session.commit()
+        audit("CREATE", "Production", p.id, p.item_name)
         flash("Produção registrada e estoque atualizado.")
         return redirect(url_for("producao", data=p.prod_date.strftime("%Y-%m-%d")))
 
     items_list = Item.query.order_by(Item.name).all()
     lista      = Production.query.filter_by(prod_date=data_ref).order_by(Production.id.desc()).all()
-
     return render_template("producao.html",
-        user=user, data_ref=data_ref,
-        setores=SETORES, items=items_list, lista=lista,
+        data_ref=data_ref, setores=SETORES, items=items_list, lista=lista,
     )
 
 
@@ -695,7 +839,8 @@ def excluir_producao(prod_id):
     p = db.session.get(Production, prod_id)
     if p:
         if p.item:
-            p.item.stock = max(0, p.item.stock - p.quantity)
+            p.item.stock = max(0.0, p.item.stock - p.quantity)
+        audit("DELETE", "Production", p.id, p.item_name)
         db.session.delete(p)
         db.session.commit()
         flash("Produção excluída e estoque ajustado.")
@@ -707,9 +852,7 @@ def excluir_producao(prod_id):
 @app.route("/vendas", methods=["GET", "POST"])
 @login_required
 def vendas():
-    user     = current_user()
-    data_ref = get_selected_date()
-
+    data_ref     = get_selected_date()
     venda_edicao = None
     editar_id    = request.args.get("editar", type=int)
     if editar_id:
@@ -718,7 +861,7 @@ def vendas():
     if request.method == "POST":
         sale_date  = datetime.strptime(request.form["sale_date"], "%Y-%m-%d").date()
         unit_value = float(str(request.form.get("unit_value") or "0").replace(",", "."))
-        quantity   = float(str(request.form.get("quantity") or "0").replace(",", "."))
+        quantity   = float(str(request.form.get("quantity")   or "0").replace(",", "."))
 
         if venda_edicao:
             venda_edicao.sale_date  = sale_date
@@ -728,30 +871,27 @@ def vendas():
             venda_edicao.quantity   = quantity
             venda_edicao.notes      = request.form.get("notes")
             db.session.commit()
+            audit("UPDATE", "Sale", venda_edicao.id)
             flash("Venda atualizada.")
         else:
             v = Sale(
-                sale_date=sale_date,
-                period=request.form.get("period"),
+                sale_date=sale_date, period=request.form.get("period"),
                 meal_type=request.form.get("meal_type"),
-                unit_value=unit_value,
-                quantity=quantity,
+                unit_value=unit_value, quantity=quantity,
                 notes=request.form.get("notes"),
             )
             db.session.add(v)
             db.session.commit()
+            audit("CREATE", "Sale", v.id, f"{v.meal_type} R${v.unit_value*v.quantity:.2f}")
             flash("Venda registrada.")
 
         return redirect(url_for("vendas", data=sale_date.strftime("%Y-%m-%d")))
 
     lista_vendas = Sale.query.filter_by(sale_date=data_ref).order_by(Sale.id.desc()).all()
     total_hoje   = sum(v.unit_value * v.quantity for v in lista_vendas)
-
     return render_template("vendas.html",
-        user=user, data_ref=data_ref,
-        meal_types=MEAL_TYPES,
-        vendas=lista_vendas,
-        total_hoje=total_hoje,
+        data_ref=data_ref, meal_types=MEAL_TYPES,
+        vendas=lista_vendas, total_hoje=total_hoje,
         venda_edicao=venda_edicao,
     )
 
@@ -767,6 +907,7 @@ def editar_venda(sale_id):
 def excluir_venda(sale_id):
     v = db.session.get(Sale, sale_id)
     if v:
+        audit("DELETE", "Sale", v.id)
         db.session.delete(v)
         db.session.commit()
         flash("Venda excluída.")
@@ -778,61 +919,74 @@ def excluir_venda(sale_id):
 @app.route("/relatorio-gerencial")
 @login_required
 def relatorio_gerencial():
-    user     = current_user()
     data_ref = get_selected_date()
     mes_ref  = get_selected_month()
 
-    # Dia
-    fat_dia = db.session.query(
-        func.sum(Sale.unit_value * Sale.quantity)
-    ).filter(Sale.sale_date == data_ref).scalar() or 0.0
+    fat_dia     = db.session.query(func.sum(Sale.unit_value * Sale.quantity)).filter(Sale.sale_date == data_ref).scalar() or 0.0
+    ref_dia     = db.session.query(func.sum(Sale.quantity)).filter(Sale.sale_date == data_ref).scalar() or 0.0
+    custo_dia   = db.session.query(func.sum(Movement.value)).filter(Movement.mov_date == data_ref, Movement.mov_type == "Entrada").scalar() or 0.0
+    perdas_dia  = db.session.query(func.sum(Waste.value)).filter(Waste.waste_date == data_ref).scalar() or 0.0
+    diario_dia  = db.session.query(func.sum(DailyControl.sold_qty * DailyControl.unit_value)).filter(DailyControl.control_date == data_ref).scalar() or 0.0
 
-    ref_dia = db.session.query(func.sum(Sale.quantity)).filter(Sale.sale_date == data_ref).scalar() or 0.0
+    lucro = fat_dia - custo_dia - perdas_dia
+    cmv   = round(custo_dia / fat_dia * 100, 1) if fat_dia else 0.0
 
-    custo_dia = db.session.query(func.sum(Movement.value)).filter(
-        Movement.mov_date == data_ref, Movement.mov_type == "Entrada"
-    ).scalar() or 0.0
-
-    perdas_dia = db.session.query(func.sum(Waste.value)).filter(Waste.waste_date == data_ref).scalar() or 0.0
-
-    diario_dia = db.session.query(
-        func.sum(DailyControl.sold_qty * DailyControl.unit_value)
-    ).filter(DailyControl.control_date == data_ref).scalar() or 0.0
-
-    lucro   = fat_dia - custo_dia - perdas_dia
-    cmv     = round(custo_dia / fat_dia * 100, 1) if fat_dia else 0.0
-
-    # Por período (Almoço / Janta)
     por_periodo = {}
-    rows = db.session.query(
-        Sale.period,
-        func.sum(Sale.quantity),
-        func.sum(Sale.unit_value * Sale.quantity),
-    ).filter(Sale.sale_date == data_ref).group_by(Sale.period).all()
-    for period, q, v in rows:
+    for period, q, v in db.session.query(
+        Sale.period, func.sum(Sale.quantity), func.sum(Sale.unit_value * Sale.quantity)
+    ).filter(Sale.sale_date == data_ref).group_by(Sale.period).all():
         por_periodo[period or "Outros"] = {"q": q or 0, "v": v or 0}
 
-    # Top vendas
     ranking_rows = db.session.query(
-        Sale.meal_type,
-        func.sum(Sale.quantity),
+        Sale.meal_type, func.sum(Sale.quantity),
         func.sum(Sale.unit_value * Sale.quantity),
     ).filter(Sale.sale_date == data_ref).group_by(Sale.meal_type).order_by(
         func.sum(Sale.unit_value * Sale.quantity).desc()
     ).limit(5).all()
     ranking_vendas = [{"tipo": r[0], "qtd": r[1] or 0, "total": r[2] or 0} for r in ranking_rows]
 
-    # Setores (mock simplificado — pode expandir com setor nas vendas)
-    resumo_setores = []
-
     return render_template("relatorio_gerencial.html",
-        user=user, data_ref=data_ref, mes_ref=mes_ref,
-        faturamento=fat_dia, refeicoes=ref_dia,
-        custo=custo_dia, lucro=lucro, cmv=cmv,
-        total_perdas=perdas_dia, total_diario=diario_dia,
-        por_periodo=por_periodo, ranking_vendas=ranking_vendas,
-        resumo_setores=resumo_setores,
+        data_ref=data_ref, mes_ref=mes_ref,
+        faturamento=fat_dia, refeicoes=ref_dia, custo=custo_dia,
+        lucro=lucro, cmv=cmv, total_perdas=perdas_dia, total_diario=diario_dia,
+        por_periodo=por_periodo, ranking_vendas=ranking_vendas, resumo_setores=[],
     )
+
+
+# ─── METAS ───────────────────────────────────────────────────────────────────
+
+@app.route("/metas", methods=["GET", "POST"])
+@admin_required
+def metas():
+    if request.method == "POST":
+        year  = int(request.form.get("year") or date.today().year)
+        month = int(request.form.get("month") or date.today().month)
+        goal  = float(request.form.get("goal") or 0)
+        m = MonthlyGoal.query.filter_by(year=year, month=month).first()
+        if m:
+            m.goal = goal
+        else:
+            db.session.add(MonthlyGoal(year=year, month=month, goal=goal))
+        db.session.commit()
+        flash(f"Meta de {month:02d}/{year} definida em R$ {goal:,.2f}")
+        return redirect(url_for("metas"))
+
+    metas_list = MonthlyGoal.query.order_by(
+        MonthlyGoal.year.desc(), MonthlyGoal.month.desc()
+    ).all()
+    return render_template("metas.html", metas=metas_list)
+
+
+# ─── LOG DE AUDITORIA ────────────────────────────────────────────────────────
+
+@app.route("/auditoria")
+@admin_required
+def auditoria():
+    page = request.args.get("page", 1, type=int)
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).paginate(
+        page=page, per_page=50, error_out=False
+    )
+    return render_template("auditoria.html", logs=logs)
 
 
 # ─── USUÁRIOS ────────────────────────────────────────────────────────────────
@@ -840,8 +994,6 @@ def relatorio_gerencial():
 @app.route("/usuarios", methods=["GET", "POST"])
 @admin_required
 def usuarios():
-    user = current_user()
-
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         if User.query.filter_by(username=username).first():
@@ -859,11 +1011,12 @@ def usuarios():
                 novo.set_password(pw)
                 db.session.add(novo)
                 db.session.commit()
-                flash(f"Usuário '{novo.name}' criado com sucesso!")
+                audit("CREATE", "User", novo.id, novo.username)
+                flash(f"Usuário '{novo.name}' criado!")
         return redirect(url_for("usuarios"))
 
     lista = User.query.order_by(User.name).all()
-    return render_template("usuarios.html", user=user, usuarios=lista, roles=ROLES)
+    return render_template("usuarios.html", usuarios=lista, roles=ROLES)
 
 
 @app.route("/excluir-usuario/<int:user_id>", methods=["POST"])
@@ -871,6 +1024,7 @@ def usuarios():
 def excluir_usuario(user_id):
     u = db.session.get(User, user_id)
     if u and u.id != current_user().id:
+        audit("DELETE", "User", u.id, u.username)
         db.session.delete(u)
         db.session.commit()
         flash(f"Usuário '{u.name}' removido.")
@@ -887,35 +1041,31 @@ def exportar_estoque_pdf():
     area_ref      = request.args.get("area", "")
     categoria_ref = request.args.get("categoria", "")
     status_ref    = request.args.get("status", "")
-
     query = Item.query
     if area_ref:      query = query.filter_by(area=area_ref)
     if categoria_ref: query = query.filter_by(category=categoria_ref)
     lista = query.order_by(Item.name).all()
-    if status_ref == "baixo":  lista = [i for i in lista if i.stock <= i.min_stock]
+    if status_ref == "baixo":    lista = [i for i in lista if i.stock <= i.min_stock]
     elif status_ref == "normal": lista = [i for i in lista if i.stock > i.min_stock]
 
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=1*cm, rightMargin=1*cm,
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=1*cm, rightMargin=1*cm,
                             topMargin=1.5*cm, bottomMargin=1.5*cm)
     styles, title_style = _pdf_styles()
-
     elements = [
         Paragraph("Boi de Minas — Relatório de Estoque", title_style),
         Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles["Normal"]),
         Spacer(1, 0.5*cm),
     ]
-
-    headers = ["Item", "Área", "Categoria", "Custo Unit.", "Estoque", "Mínimo", "Subtotal", "Status"]
-    rows    = [headers]
+    rows = [["Item", "Área", "Categoria", "Custo Unit.", "Estoque", "Mínimo", "Subtotal", "Status"]]
     for i in lista:
-        status = "BAIXO" if i.stock <= i.min_stock else "OK"
         rows.append([
             i.name, i.area or "-", i.category or "-",
-            f"R$ {i.cost:.2f}", f"{i.stock} {i.unit}",
-            str(i.min_stock), f"R$ {i.stock * i.cost:.2f}", status,
+            f"R$ {i.cost:.2f}", f"{i.stock} {i.unit}", str(i.min_stock),
+            f"R$ {i.stock * i.cost:.2f}",
+            "BAIXO" if i.stock <= i.min_stock else "OK",
         ])
-
     t = Table(rows, repeatRows=1)
     t.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#8b0000")),
@@ -936,34 +1086,29 @@ def exportar_estoque_pdf():
 @app.route("/exportar/relatorio/pdf")
 @login_required
 def exportar_relatorio_pdf():
-    data_ref = get_selected_date()
-
+    data_ref    = get_selected_date()
     vendas_list = Sale.query.filter_by(sale_date=data_ref).all()
     wastes_list = Waste.query.filter_by(waste_date=data_ref).all()
+    faturamento = sum(v.unit_value * v.quantity for v in vendas_list)
+    total_perdas= sum(w.value for w in wastes_list)
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
                             leftMargin=1.5*cm, rightMargin=1.5*cm,
                             topMargin=1.5*cm, bottomMargin=1.5*cm)
     styles, title_style = _pdf_styles()
-
-    faturamento = sum(v.unit_value * v.quantity for v in vendas_list)
-    total_perdas= sum(w.value for w in wastes_list)
-
     elements = [
-        Paragraph(f"Boi de Minas — Relatório Gerencial", title_style),
+        Paragraph("Boi de Minas — Relatório Gerencial", title_style),
         Paragraph(f"Data: {data_ref.strftime('%d/%m/%Y')}  |  Gerado: {datetime.now().strftime('%H:%M')}", styles["Normal"]),
         Spacer(1, 0.4*cm),
         Paragraph(f"<b>Faturamento:</b> R$ {faturamento:.2f}  |  <b>Perdas:</b> R$ {total_perdas:.2f}", styles["Normal"]),
         Spacer(1, 0.4*cm),
         Paragraph("Vendas do Dia", styles["Heading2"]),
     ]
-
     v_rows = [["Período", "Tipo", "Qtd.", "Unit.", "Total"]]
     for v in vendas_list:
         v_rows.append([v.period, v.meal_type, f"{v.quantity:.3f}",
                        f"R$ {v.unit_value:.2f}", f"R$ {v.unit_value*v.quantity:.2f}"])
-
     tv = Table(v_rows, repeatRows=1, hAlign="LEFT")
     tv.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#8b0000")),
@@ -974,11 +1119,9 @@ def exportar_relatorio_pdf():
         ("GRID",       (0,0), (-1,-1), 0.3, colors.HexColor("#cccccc")),
     ]))
     elements += [tv, Spacer(1, 0.5*cm), Paragraph("Desperdícios", styles["Heading2"])]
-
     w_rows = [["Item", "Motivo", "Qtd.", "Valor"]]
     for w in wastes_list:
         w_rows.append([w.item_name, w.reason or "-", str(w.quantity), f"R$ {w.value:.2f}"])
-
     tw = Table(w_rows, repeatRows=1, hAlign="LEFT")
     tw.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#b10b0b")),
@@ -1003,80 +1146,65 @@ def exportar_estoque_xlsx():
     area_ref      = request.args.get("area", "")
     categoria_ref = request.args.get("categoria", "")
     status_ref    = request.args.get("status", "")
-
     query = Item.query
     if area_ref:       query = query.filter_by(area=area_ref)
     if categoria_ref:  query = query.filter_by(category=categoria_ref)
     lista = query.order_by(Item.name).all()
-    if status_ref == "baixo":   lista = [i for i in lista if i.stock <= i.min_stock]
+    if status_ref == "baixo":    lista = [i for i in lista if i.stock <= i.min_stock]
     elif status_ref == "normal": lista = [i for i in lista if i.stock > i.min_stock]
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Estoque"
-    headers = ["Item", "Código", "Área", "Categoria", "Unidade",
-                "Custo Unit.", "Estoque", "Mínimo", "Subtotal", "Status"]
-    _xlsx_header(ws, headers)
-
+    _xlsx_header(ws, ["Item","Código","Área","Categoria","Unidade",
+                      "Custo Unit.","Estoque","Mínimo","Subtotal","Status"])
     for i, item in enumerate(lista, 2):
         status = "BAIXO" if item.stock <= item.min_stock else "OK"
-        ws.append([
-            item.name, item.code or "", item.area or "",
-            item.category or "", item.unit,
-            item.cost, item.stock, item.min_stock,
-            item.stock * item.cost, status,
-        ])
+        ws.append([item.name, item.code or "", item.area or "",
+                   item.category or "", item.unit, item.cost,
+                   item.stock, item.min_stock, item.stock * item.cost, status])
         if item.stock <= item.min_stock:
             for col in range(1, 11):
                 ws.cell(i, col).fill = PatternFill("solid", fgColor="FFE5E5")
-
     for col in ws.columns:
         ws.column_dimensions[col[0].column_letter].width = 18
-
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    return send_file(buf, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                     download_name=f"estoque_{date.today()}.xlsx", as_attachment=True)
+    return send_file(buf,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        download_name=f"estoque_{date.today()}.xlsx", as_attachment=True)
 
 
 @app.route("/exportar/relatorio/xlsx")
 @login_required
 def exportar_relatorio_xlsx():
     data_ref = get_selected_date()
-
     wb = Workbook()
-
-    # Aba Vendas
     ws_v = wb.active
     ws_v.title = "Vendas"
-    _xlsx_header(ws_v, ["Data", "Período", "Tipo", "Qtd.", "Unit. R$", "Total R$", "Obs."])
+    _xlsx_header(ws_v, ["Data","Período","Tipo","Qtd.","Unit. R$","Total R$","Obs."])
     for v in Sale.query.filter_by(sale_date=data_ref).all():
         ws_v.append([str(v.sale_date), v.period, v.meal_type,
                      v.quantity, v.unit_value, v.unit_value*v.quantity, v.notes or ""])
-
-    # Aba Desperdícios
     ws_w = wb.create_sheet("Desperdícios")
-    _xlsx_header(ws_w, ["Data", "Item", "Motivo", "Qtd.", "Valor R$"], "B10B0B")
+    _xlsx_header(ws_w, ["Data","Item","Motivo","Qtd.","Valor R$"], "B10B0B")
     for w in Waste.query.filter_by(waste_date=data_ref).all():
         ws_w.append([str(w.waste_date), w.item_name, w.reason or "", w.quantity, w.value])
-
-    # Aba Movimentos
     ws_m = wb.create_sheet("Movimentos")
-    _xlsx_header(ws_m, ["Data", "Tipo", "Área", "Setor", "Item", "Qtd.", "Valor R$", "Detalhe"], "145DA0")
+    _xlsx_header(ws_m, ["Data","Tipo","Área","Setor","Item","Qtd.","Valor R$","Detalhe"], "145DA0")
     for m in Movement.query.filter_by(mov_date=data_ref).all():
         ws_m.append([str(m.mov_date), m.mov_type, m.area, m.setor,
                      m.item_name, m.quantity, m.value, m.detail or ""])
-
     for ws in [ws_v, ws_w, ws_m]:
         for col in ws.columns:
             ws.column_dimensions[col[0].column_letter].width = 16
-
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    return send_file(buf, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                     download_name=f"relatorio_{data_ref}.xlsx", as_attachment=True)
+    return send_file(buf,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        download_name=f"relatorio_{data_ref}.xlsx", as_attachment=True)
 
 
 # ─── ENTRY POINT ─────────────────────────────────────────────────────────────
