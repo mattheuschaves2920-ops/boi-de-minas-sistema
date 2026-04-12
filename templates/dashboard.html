@@ -1,81 +1,159 @@
 {% extends "base.html" %}
-
 {% block content %}
 
-<h2>📊 Dashboard</h2>
+<!-- Filtro de data / mês -->
+<form method="get" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:1.5rem;">
+    <label style="font-size:0.85rem; font-weight:600;">
+        Data
+        <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}" style="display:block; margin-top:4px;">
+    </label>
+    <label style="font-size:0.85rem; font-weight:600;">
+        Mês
+        <input type="month" name="mes" value="{{ mes_ref.strftime('%Y-%m') }}" style="display:block; margin-top:4px;">
+    </label>
+    <button class="btn" type="submit">Filtrar</button>
+</form>
 
-<div class="cards">
-
-    <div class="card">
-        <h3>🍛 Almoço</h3>
-        <p>Clientes: {{ clientes_almoco or 0 }}</p>
-        <p>Faturamento: R$ {{ '%.2f'|format(venda_almoco or 0) }}</p>
+<!-- Métricas do dia -->
+<div class="grid metrics">
+    <div class="card metric">
+        <span>💰 Faturamento hoje</span>
+        <strong>R$ {{ '%.2f'|format(faturamento) }}</strong>
+        <small class="muted">{{ refeicoes|round(0)|int }} refeições</small>
     </div>
-
-    <div class="card">
-        <h3>🌙 Janta</h3>
-        <p>Clientes: {{ clientes_janta or 0 }}</p>
-        <p>Faturamento: R$ {{ '%.2f'|format(venda_janta or 0) }}</p>
+    <div class="card metric" style="border-bottom:4px solid var(--red);">
+        <span>📦 Custo operacional</span>
+        <strong style="color:var(--red);">R$ {{ '%.2f'|format(custo) }}</strong>
+        <small class="muted">CMV: {{ cmv }}%</small>
     </div>
-
+    <div class="card metric" style="border-bottom:4px solid {{ '#0f8b4c' if lucro >= 0 else '#c0392b' }};">
+        <span>📈 Lucro líquido</span>
+        <strong style="color:{{ '#0f8b4c' if lucro >= 0 else '#c0392b' }};">R$ {{ '%.2f'|format(lucro) }}</strong>
+        <small class="muted">Hoje</small>
+    </div>
+    <div class="card metric" style="border-bottom:4px solid var(--red);">
+        <span>🗑️ Desperdício</span>
+        <strong style="color:var(--red);">R$ {{ '%.2f'|format(desperdicio) }}</strong>
+        <small class="muted">Mês: R$ {{ '%.2f'|format(desperdicio_mes) }}</small>
+    </div>
 </div>
 
-<hr>
+<!-- Meta mensal -->
+{% if meta_valor > 0 %}
+<div class="card" style="margin-top:1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-size:0.85rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">🎯 Meta do mês</span>
+        <span style="font-weight:700; font-size:1.1rem;">
+            {{ meta_pct }}% — R$ {{ '%.2f'|format(faturamento_mes) }} / R$ {{ '%.2f'|format(meta_valor) }}
+        </span>
+    </div>
+    <div style="height:12px; background:var(--line); border-radius:6px; overflow:hidden;">
+        <div style="height:100%; width:{{ [meta_pct, 100]|min }}%; background:{{ 'var(--green)' if meta_pct >= 100 else ('var(--gold)' if meta_pct >= 70 else 'var(--red)') }}; border-radius:6px; transition:width 0.8s ease;"></div>
+    </div>
+</div>
+{% endif %}
 
-<h3>📈 Resumo Geral</h3>
+<!-- Gráficos -->
+<div class="grid two" style="margin-top:1.25rem;">
+    <div class="card">
+        <h3 style="margin:0 0 1rem;">📊 Faturamento — últimos 7 dias</h3>
+        <div style="position:relative; height:220px;">
+            <canvas id="chartFaturamento" role="img" aria-label="Gráfico de faturamento dos últimos 7 dias"></canvas>
+        </div>
+    </div>
 
-<table border="1" cellpadding="8">
-    <thead>
-        <tr>
-            <th>Tipo</th>
-            <th>Clientes</th>
-            <th>Faturamento</th>
-        </tr>
-    </thead>
+    <div class="card">
+        <h3 style="margin:0 0 1rem;">🍽️ Almoço vs Janta — hoje</h3>
+        <div style="position:relative; height:220px;">
+            <canvas id="chartPeriodo" role="img" aria-label="Comparativo de faturamento por período"></canvas>
+        </div>
+    </div>
+</div>
 
-    <tbody>
-        <tr>
-            <td>Almoço</td>
-            <td>{{ clientes_almoco or 0 }}</td>
-            <td>R$ {{ '%.2f'|format(venda_almoco or 0) }}</td>
-        </tr>
+<!-- Atalhos rápidos -->
+<div class="grid metrics" style="margin-top:1.25rem;">
+    <a href="{{ url_for('vendas') }}" class="card" style="text-decoration:none; text-align:center; color:var(--ink);">
+        <div style="font-size:1.8rem;">🛒</div>
+        <strong>Registrar Venda</strong>
+    </a>
+    <a href="{{ url_for('controle') }}" class="card" style="text-decoration:none; text-align:center; color:var(--ink);">
+        <div style="font-size:1.8rem;">📝</div>
+        <strong>Controle Diário</strong>
+    </a>
+    <a href="{{ url_for('desperdicio') }}" class="card" style="text-decoration:none; text-align:center; color:var(--ink);">
+        <div style="font-size:1.8rem;">🗑️</div>
+        <strong>Desperdício</strong>
+    </a>
+    <a href="{{ url_for('lista_compras') }}" class="card" style="text-decoration:none; text-align:center; color:var(--ink);">
+        <div style="font-size:1.8rem;">🛒</div>
+        <strong>Lista de Compras</strong>
+        {% if n_criticos > 0 %}
+        <span style="display:block; color:var(--red); font-size:0.8rem;">{{ n_criticos }} item(s) crítico(s)</span>
+        {% endif %}
+    </a>
+</div>
 
-        <tr>
-            <td>Janta</td>
-            <td>{{ clientes_janta or 0 }}</td>
-            <td>R$ {{ '%.2f'|format(venda_janta or 0) }}</td>
-        </tr>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const isDark   = document.documentElement.getAttribute('data-theme') === 'dark';
+const gridColor= isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+const textColor= isDark ? '#c0c0c0' : '#666666';
 
-        <tr>
-            <td><strong>Total</strong></td>
-            <td><strong>{{ (clientes_almoco or 0) + (clientes_janta or 0) }}</strong></td>
-            <td>
-                <strong>
-                    R$ {{
-                        '%.2f'|format(
-                            (venda_almoco or 0) + (venda_janta or 0)
-                        )
-                    }}
-                </strong>
-            </td>
-        </tr>
-    </tbody>
-</table>
+// Gráfico de faturamento (7 dias)
+new Chart(document.getElementById('chartFaturamento'), {
+    type: 'bar',
+    data: {
+        labels: {{ labels_grafico | tojson }},
+        datasets: [{
+            label: 'Faturamento R$',
+            data: {{ valores_grafico | tojson }},
+            backgroundColor: '#8b0000cc',
+            borderColor: '#8b0000',
+            borderWidth: 1,
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: textColor }, grid: { color: gridColor } },
+            y: {
+                ticks: {
+                    color: textColor,
+                    callback: v => 'R$ ' + v.toLocaleString('pt-BR', {minimumFractionDigits: 2})
+                },
+                grid: { color: gridColor }
+            }
+        }
+    }
+});
 
-<style>
-.cards {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
-}
+// Gráfico de períodos
+const periodoLabels = {{ vendas_por_periodo.keys() | list | tojson }};
+const periodoValues = {{ vendas_por_periodo.values() | list | map(attribute='v') | list | tojson }};
 
-.card {
-    flex: 1;
-    padding: 15px;
-    background: #f4f4f4;
-    border-radius: 10px;
-    text-align: center;
-}
-</style>
+new Chart(document.getElementById('chartPeriodo'), {
+    type: 'doughnut',
+    data: {
+        labels: periodoLabels.length ? periodoLabels : ['Sem dados'],
+        datasets: [{
+            data: periodoValues.length ? periodoValues : [1],
+            backgroundColor: ['#8b0000', '#d4af37', '#145da0', '#0f8b4c'],
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: { color: textColor, padding: 16 }
+            }
+        }
+    }
+});
+</script>
 
 {% endblock %}
