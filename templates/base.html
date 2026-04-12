@@ -1,67 +1,52 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <title>Boi de Minas Sistema</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#8b0000">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    <title>{{ title or 'Boi de Minas – Ravena' }}</title>
-    
-    <link rel="manifest" href="/static/manifest.json">
-    <link rel="apple-touch-icon" href="/static/icon-192.png">
-    
+
+    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    
-    <script src="https://unpkg.com/html5-qrcode" defer></script>
+
+    <!-- Evita erro do manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 </head>
+
 <body>
 
-{% if user %}
-<header class="topbar">
-    <div class="brand">
-        <div class="brand-icon" aria-hidden="true">🍽️</div>
-        <div class="brand-text">
-            <h1>Boi de Minas</h1>
-            <p>Ravena — Sistema de Gestão</p>
-        </div>
-    </div>
+    <!-- MENU -->
+    <header>
+        <h1>Boi de Minas 🐂</h1>
 
-    <nav aria-label="Navegação Principal">
-        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a href="{{ url_for('itens') }}">Estoque</a>
-        <a href="{{ url_for('vendas') }}">Refeições</a>
-        <a href="{{ url_for('producao') }}">Produção</a>
-        <a href="{{ url_for('desperdicio') }}">Desperdício</a>
-        <a href="{{ url_for('controle_diario') }}">Controle</a>
-        
-        <a href="{{ url_for('relatorios') }}">Relatórios</a>
-        
-        {% if user.role == 'admin' %}
-        <a href="{{ url_for('usuarios') }}" style="border: 1px solid rgba(255,255,255,0.3)">Usuários</a>
+        <nav>
+            <a href="{{ url_for('index') }}">Início</a>
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('controle') }}">Controle Diário</a>
+            <a href="{{ url_for('relatorios') }}">Relatórios</a>
+        </nav>
+    </header>
+
+    <!-- MENSAGENS (caso use futuramente) -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="alert">
+                {% for msg in messages %}
+                    <p>{{ msg }}</p>
+                {% endfor %}
+            </div>
         {% endif %}
-        
-        <a href="{{ url_for('logout') }}" class="btn-logout">Sair</a>
-    </nav>
-</header>
-{% endif %}
-
-<main class="container" id="main-content">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} card">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
     {% endwith %}
 
-    {% block content %}{% endblock %}
-</main>
+    <!-- CONTEÚDO DAS PÁGINAS -->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
 
-<footer style="text-align: center; padding: 20px; color: var(--muted); font-size: 0.8rem;">
-    &copy; {{ now.year if now else '2024' }} Boi de Minas Churrascaria.
-</footer>
+    <!-- RODAPÉ -->
+    <footer>
+        <p>© 2026 Boi de Minas - Sistema de Gestão</p>
+    </footer>
 
 </body>
 </html>
