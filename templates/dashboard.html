@@ -1,168 +1,81 @@
 {% extends "base.html" %}
+
 {% block content %}
 
-<section class="card" style="margin-bottom: 20px; border-left: 5px solid var(--gold);">
-    <form method="get" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: end; gap: 15px;">
-        <label>Consultar Dia:
-            <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
-        </label>
-        <label>Consultar Mês:
-            <input type="month" name="mes" value="{{ mes_ref.strftime('%Y-%m') }}">
-        </label>
-        <button class="btn" type="submit" style="height: 44px;">📊 Atualizar Visão</button>
-    </form>
-</section>
+<h2>📊 Dashboard</h2>
 
-<h3 style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-    <span>📈</span> Indicadores de Desempenho
-</h3>
-<div class="grid metrics" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-    
-    <div class="card metric">
-        <span>Faturamento Dia</span>
-        <strong>R$ {{ '%.2f'|format(faturamento) }}</strong>
-        <small class="{{ 'success' if var_faturamento > 0 else 'error' }}">
-            {{ '▲' if var_faturamento > 0 else '▼' }} {{ var_faturamento }}%
-        </small>
+<div class="cards">
+
+    <div class="card">
+        <h3>🍛 Almoço</h3>
+        <p>Clientes: {{ clientes_almoco or 0 }}</p>
+        <p>Faturamento: R$ {{ '%.2f'|format(venda_almoco or 0) }}</p>
     </div>
 
-    <div class="card metric">
-        <span>Faturamento Mês</span>
-        <strong>R$ {{ '%.2f'|format(faturamento_mes) }}</strong>
-        <span class="muted" style="font-size: 11px;">Geral: R$ {{ '%.2f'|format(faturamento_total) }}</span>
+    <div class="card">
+        <h3>🌙 Janta</h3>
+        <p>Clientes: {{ clientes_janta or 0 }}</p>
+        <p>Faturamento: R$ {{ '%.2f'|format(venda_janta or 0) }}</p>
     </div>
 
-    <div class="card metric">
-        <span>Refeições (Kg/Un)</span>
-        <strong>{{ '%.2f'|format(refeicoes) }}</strong>
-        <small class="info">{{ var_refeicoes }}% vs ontem</small>
-    </div>
-
-    <div class="card metric" style="background: #fffcf0;">
-        <span>CMV do Dia</span>
-        <strong style="color: var(--blue);">{{ cmv }}%</strong>
-        <small class="muted">Custo Mercadoria Vendida</small>
-    </div>
-
-    <div class="card metric">
-        <span>Lucro Líquido (Mês)</span>
-        <strong class="success">R$ {{ '%.2f'|format(lucro_mes) }}</strong>
-        <small class="{{ 'success' if var_lucro > 0 else 'error' }}">Var: {{ var_lucro }}%</small>
-    </div>
-
-    <div class="card metric" style="border: 1px solid #ffcdd2;">
-        <span>Desperdício (Dia)</span>
-        <strong class="error">R$ {{ '%.2f'|format(desperdicio) }}</strong>
-        <small class="muted">Mês: R$ {{ '%.2f'|format(desperdicio_mes) }}</small>
-    </div>
 </div>
 
-<div class="grid two" style="margin-top:20px;">
-    <section class="card">
-        <h3>🌓 Almoço vs Janta</h3>
-        <div class="table-wrap">
-            <table class="table-hover">
-                <thead>
-                    <tr><th>Indicador</th><th>Almoço</th><th>Janta</th></tr>
-                </thead>
-                <tbody>
-                    <tr><td>Faturamento</td><td>R$ {{ '%.2f'|format(venda_almoco) }}</td><td>R$ {{ '%.2f'|format(venda_janta) }}</td></tr>
-                    <tr><td>Custo (Insumos)</td><td>R$ {{ '%.2f'|format(custo_almoco) }}</td><td>R$ {{ '%.2f'|format(custo_janta) }}</td></tr>
-                    <tr style="background: #f9f9f9; font-weight: bold;">
-                        <td>Margem Bruta</td>
-                        <td class="success">{{ margem_almoco }}%</td>
-                        <td class="success">{{ margem_janta }}%</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
+<hr>
 
-    <section class="card">
-        <h3>⚖️ Análise de Turnos</h3>
-        <div class="table-wrap">
-            <table>
-                <tr><td>Diferença de Venda</td><td class="info">R$ {{ '%.2f'|format(comparativo_turnos.faturamento_diff) }}</td></tr>
-                <tr><td>Melhor Faturamento</td><td><span class="badge">{{ comparativo_turnos.melhor_faturamento }}</span></td></tr>
-                <tr><td>Melhor Lucratividade</td><td><span class="badge gold">{{ comparativo_turnos.melhor_lucro }}</span></td></tr>
-            </table>
-        </div>
-    </section>
-</div>
+<h3>📈 Resumo Geral</h3>
 
-<div class="grid two" style="margin-top:20px;">
-    <section class="card" style="border-top: 4px solid #b00020;">
-        <h3>⚠️ Alerta Crítico de Estoque</h3>
-        {% if alertas %}
-            <div class="stock-alerts">
-                {% for item in alertas[:8] %}
-                <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line);">
-                    <span>{{ item.name }}</span>
-                    <span class="error">{{ item.stock }} / <small>mín: {{ item.min_stock }}</small></span>
-                </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p class="success">✅ Todos os níveis estão normais.</p>
-        {% endif %}
-    </section>
+<table border="1" cellpadding="8">
+    <thead>
+        <tr>
+            <th>Tipo</th>
+            <th>Clientes</th>
+            <th>Faturamento</th>
+        </tr>
+    </thead>
 
-    <section class="card" style="border-top: 4px solid var(--blue);">
-        <h3>🛒 Planejamento de Compra</h3>
-        {% if alertas_compra %}
-        <div class="table-wrap">
-            <table style="font-size: 0.85rem;">
-                <thead>
-                    <tr><th>Item</th><th>Estoque</th><th>Dias Rest.</th></tr>
-                </thead>
-                <tbody>
-                    {% for a in alertas_compra %}
-                    <tr>
-                        <td>{{ a.item }}</td>
-                        <td>{{ '%.1f'|format(a.estoque) }}</td>
-                        <td><span class="badge {{ 'error' if a.dias_restantes < 3 else 'info' }}">{{ a.dias_restantes }} dias</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% endif %}
-    </section>
-</div>
+    <tbody>
+        <tr>
+            <td>Almoço</td>
+            <td>{{ clientes_almoco or 0 }}</td>
+            <td>R$ {{ '%.2f'|format(venda_almoco or 0) }}</td>
+        </tr>
 
-<div class="grid two" style="margin-top:20px;">
-    <section class="card">
-        <h3>🏆 Top Vendas (Tipo)</h3>
-        <table>
-            {% for r in ranking_vendas %}
-            <tr>
-                <td>{{ r.tipo }}</td>
-                <td style="text-align: right;"><strong>R$ {{ '%.2f'|format(r.total) }}</strong></td>
-            </tr>
-            {% endfor %}
-        </table>
-    </section>
+        <tr>
+            <td>Janta</td>
+            <td>{{ clientes_janta or 0 }}</td>
+            <td>R$ {{ '%.2f'|format(venda_janta or 0) }}</td>
+        </tr>
 
-    <section class="card">
-        <h3>📦 Itens mais Consumidos (Dia)</h3>
-        <table>
-            {% for r in ranking_produtos %}
-            <tr>
-                <td>{{ r.item }}</td>
-                <td style="text-align: right;">{{ '%.2f'|format(r.qtd) }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </section>
-</div>
+        <tr>
+            <td><strong>Total</strong></td>
+            <td><strong>{{ (clientes_almoco or 0) + (clientes_janta or 0) }}</strong></td>
+            <td>
+                <strong>
+                    R$ {{
+                        '%.2f'|format(
+                            (venda_almoco or 0) + (venda_janta or 0)
+                        )
+                    }}
+                </strong>
+            </td>
+        </tr>
+    </tbody>
+</table>
 
 <style>
-    .badge {
-        background: #eee; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;
-    }
-    .badge.gold { background: var(--gold); color: #fff; }
-    .table-hover tr:hover { background: #fdfaf4; }
-    .stock-alerts div:last-child { border: none; }
+.cards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.card {
+    flex: 1;
+    padding: 15px;
+    background: #f4f4f4;
+    border-radius: 10px;
+    text-align: center;
+}
 </style>
 
 {% endblock %}
