@@ -2,37 +2,54 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Boi de Minas</title>
+    <title>Boi de Minas Sistema</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 </head>
 <body>
-    <header class="topbar">
-        <div class="brand">
-            <div class="brand-icon">🐂</div>
-            <div class="brand-text">
-                <h1>Boi de Minas</h1>
-                <p>Sistema de Gestão</p>
-            </div>
+
+<header class="topbar">
+    <div class="brand">
+        <div class="brand-icon">🐂</div>
+        <div class="brand-text">
+            <h1>Boi de Minas</h1>
+            <p>Sistema de Gestão · {{ user.name if user else '' }}</p>
         </div>
-        <nav>
-            <a href="{{ url_for('index') }}">Início</a>
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('controle') }}">Controle</a>
-            <a href="{{ url_for('relatorios') }}">Estoque</a>
-            {% if session.get('user_id') %}
-                <a href="{{ url_for('logout') }}" style="background: var(--red-light)">Sair</a>
-            {% endif %}
-        </nav>
-    </header>
+    </div>
 
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
+    <nav>
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('vendas') }}">Vendas</a>
+        <a href="{{ url_for('controle') }}">Controle</a>
+        <a href="{{ url_for('desperdicio') }}">Desperdício</a>
+        <a href="{{ url_for('movimentos') }}">Movimentos</a>
+        <a href="{{ url_for('producao') }}">Produção</a>
+        <a href="{{ url_for('itens') }}">Estoque</a>
+        <a href="{{ url_for('relatorios') }}">Relatórios</a>
+        {% if user and user.role in ('admin', 'gerente') %}
+        <a href="{{ url_for('relatorio_gerencial') }}">Gerencial</a>
+        <a href="{{ url_for('usuarios') }}">Usuários</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}" style="background: rgba(255,255,255,0.2);">Sair</a>
+    </nav>
+</header>
 
-    <footer style="text-align: center; padding: 2rem; color: var(--muted);">
-        <p>© 2026 Boi de Minas</p>
-    </footer>
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div style="background:#d4edda; border:1px solid #c3e6cb; color:#155724; padding:12px 20px; font-size:0.9rem;">
+            {% for msg in messages %}<p style="margin:0;">✅ {{ msg }}</p>{% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<main class="container">
+    {% block content %}{% endblock %}
+</main>
+
+<footer style="text-align:center; padding: 2rem 1rem; color: #999; font-size: 0.8rem; border-top: 1px solid #e8dfd1; margin-top: 3rem;">
+    © 2026 Boi de Minas — Sistema de Gestão
+</footer>
+
 </body>
 </html>
