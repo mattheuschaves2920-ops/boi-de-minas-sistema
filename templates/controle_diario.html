@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div class="grid two">
     <section class="card">
-        <h3><span aria-hidden="true">📝</span> Registro de Salgados e Bolos</h3>
+        <h3>📝 Registro de Salgados e Bolos</h3>
         <form method="post" id="daily-form">
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                 <label>Data
@@ -15,62 +14,43 @@
                     </select>
                 </label>
             </div>
-
             <label>Nome do Item
-                <input type="text" name="item_name" placeholder="Ex: Coxinha, Bolo de Cenoura..." required>
+                <input type="text" name="item_name" placeholder="Ex: Coxinha..." required>
             </label>
-
             <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                <label title="Quantidade inicial + reposição">Entrada
+                <label>Entrada
                     <input type="number" name="input_qty" id="in" min="0" value="0" required>
                 </label>
-                <label title="O que sobrou no final do dia">Sobra (Saída)
+                <label>Sobra
                     <input type="number" name="output_qty" id="out" min="0" value="0" required>
                 </label>
                 <label>Vendido
-                    <input type="number" name="sold_qty" id="sold" min="0" value="0" required class="info">
+                    <input type="number" name="sold_qty" id="sold" readonly style="background:#e3f2fd">
                 </label>
             </div>
-
-            <label>Valor Unitário de Venda (R$)
-                <input type="number" step="0.01" name="unit_value" min="0" placeholder="0,00">
+            <label>Valor Unitário (R$)
+                <input type="number" step="0.01" name="unit_value" placeholder="0,00">
             </label>
-
-            <label>Observações
-                <textarea name="notes" placeholder="Perdas, promoções ou detalhes da reposição..." style="min-height: 60px;"></textarea>
-            </label>
-
             <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Salvar Lançamento</button>
         </form>
     </section>
 
     <section class="card">
-        <h3><span aria-hidden="true">📊</span> Resumo do Dia</h3>
-        <form method="get" class="grid" style="grid-template-columns: 1fr auto; align-items: end; gap: 8px; margin-bottom: 20px;">
-            <label>Consultar outra data:
-                <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
-            </label>
-            <button class="btn">Filtrar</button>
-        </form>
-
+        <h3>📊 Resumo do Dia</h3>
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr>
-                        <th>Grupo</th>
-                        <th>Vendido</th>
-                        <th>Total Faturado</th>
-                    </tr>
+                    <tr><th>Grupo</th><th>Vendido</th><th>Faturado</th></tr>
                 </thead>
                 <tbody>
                     {% for g, t in totais.items() %}
                     <tr>
                         <td><strong>{{ g }}</strong></td>
                         <td>{{ t.vendido }} un.</td>
-                        <td class="success">R$ {{ '%.2f'|format(t.faturado) }}</td>
+                        <td style="color:var(--green)">R$ {{ '%.2f'|format(t.faturado) }}</td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="3" style="text-align:center;">Nenhum dado para este dia.</td></tr>
+                    <tr><td colspan="3" style="text-align:center;">Nenhum dado hoje.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -78,70 +58,15 @@
     </section>
 </div>
 
-<section class="card" style="margin-top:1.5rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="margin:0;">Lançamentos de {{ data_ref.strftime('%d/%m/%Y') }}</h3>
-        <span class="muted" style="font-size: 0.8rem;">{{ lista|length }} itens registrados</span>
-    </div>
-    
-    <div class="table-wrap">
-        <table class="table-detailed">
-            <thead>
-                <tr>
-                    <th>Grupo</th>
-                    <th>Item</th>
-                    <th>Entrada</th>
-                    <th>Sobra</th>
-                    <th>Vendido</th>
-                    <th>Unit.</th>
-                    <th>Subtotal</th>
-                    <th>Obs.</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for r in lista %}
-                <tr>
-                    <td><small>{{ r.group_name }}</small></td>
-                    <td><strong>{{ r.item_name }}</strong></td>
-                    <td>{{ r.input_qty }}</td>
-                    <td>{{ r.output_qty }}</td>
-                    <td class="info">{{ r.sold_qty }}</td>
-                    <td>{{ '%.2f'|format(r.unit_value) }}</td>
-                    <td class="success">R$ {{ '%.2f'|format(r.sold_qty * r.unit_value) }}</td>
-                    <td style="font-size: 0.8rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">{{ r.notes or '-' }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
-
 <script>
-// Define a data atual se for um novo lançamento
-const dateInput = document.getElementById('control_date');
-if (!dateInput.value) {
-    dateInput.value = new Date().toISOString().slice(0,10);
-}
-
-// Lógica de cálculo automático: Vendido = Entrada - Saída
-const inQty = document.getElementById('in');
-const outQty = document.getElementById('out');
-const soldQty = document.getElementById('sold');
-
-function calcularVenda() {
-    const total = (parseInt(inQty.value) || 0) - (parseInt(outQty.value) || 0);
-    soldQty.value = total > 0 ? total : 0;
-}
-
-inQty.addEventListener('input', calcularVenda);
-outQty.addEventListener('input', calcularVenda);
+    const inQty = document.getElementById('in');
+    const outQty = document.getElementById('out');
+    const soldQty = document.getElementById('sold');
+    function calcular() {
+        const total = (parseInt(inQty.value) || 0) - (parseInt(outQty.value) || 0);
+        soldQty.value = total > 0 ? total : 0;
+    }
+    inQty.addEventListener('input', calcular);
+    outQty.addEventListener('input', calcular);
 </script>
-
-<style>
-    /* Estilos específicos para esta página */
-    .table-detailed th { font-size: 0.75rem; text-transform: uppercase; }
-    .table-detailed td { vertical-align: middle; }
-    input.info { background-color: #e3f2fd; border-color: var(--blue); font-weight: bold; }
-</style>
-
 {% endblock %}
