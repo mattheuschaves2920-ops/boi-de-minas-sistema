@@ -1,123 +1,38 @@
 {% extends "base.html" %}
 {% block content %}
-
-<section class="card" style="border-top: 4px solid var(--blue);">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
-        <h3 style="margin:0;">📋 Relatório de Estoque</h3>
-        <div style="display: flex; gap: 8px;">
-            <a class="btn-link" style="background: #e74c3c; color: white;" href="{{ url_for('exportar_estoque_pdf', area=area_ref, categoria=categoria_ref, status=status_ref) }}">📑 PDF</a>
-            <a class="btn-link" style="background: #27ae60; color: white;" href="{{ url_for('exportar_estoque_xlsx', area=area_ref, categoria=categoria_ref, status=status_ref) }}">📊 Excel</a>
+<section class="card">
+    <h3>📋 Relatório de Estoque</h3>
+    <div class="grid metrics">
+        <div class="card metric">
+            <span>Mix de Produtos</span>
+            <strong>{{ total_itens }}</strong>
+        </div>
+        <div class="card metric">
+            <span>Itens Críticos</span>
+            <strong style="color:var(--red)">{{ itens_baixos }}</strong>
+        </div>
+        <div class="card metric">
+            <span>Capital Total</span>
+            <strong style="color:var(--green)">R$ {{ '%.2f'|format(valor_total) }}</strong>
         </div>
     </div>
-
-    <form method="get" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; gap: 12px;">
-        <label>Segmento / Área
-            <select name="area">
-                <option value="">Todas as Áreas</option>
-                {% for a in areas %}
-                <option value="{{ a }}" {% if area_ref == a %}selected{% endif %}>{{ a }}</option>
-                {% endfor %}
-            </select>
-        </label>
-
-        <label>Categoria
-            <select name="categoria">
-                <option value="">Todas as Categorias</option>
-                {% for c in categories %}
-                <option value="{{ c }}" {% if categoria_ref == c %}selected{% endif %}>{{ c }}</option>
-                {% endfor %}
-            </select>
-        </label>
-
-        <label>Status do Estoque
-            <select name="status">
-                <option value="" {% if not status_ref %}selected{% endif %}>Todos os Status</option>
-                <option value="baixo" {% if status_ref == 'baixo' %}selected{% endif %}>🔴 Abaixo do Mínimo</option>
-                <option value="normal" {% if status_ref == 'normal' %}selected{% endif %}>🟢 Somente Normal</option>
-            </select>
-        </label>
-
-        <button class="btn" type="submit" style="width: 100%;">Filtrar Resultados</button>
-    </form>
 </section>
 
-<div class="grid metrics" style="margin-top:16px;">
-    <div class="card metric">
-        <span>Mix de Produtos</span>
-        <strong>{{ total_itens }}</strong>
-        <small class="muted">Itens cadastrados</small>
-    </div>
-
-    <div class="card metric" style="border-bottom: 4px solid var(--red);">
-        <span>Itens Críticos</span>
-        <strong class="{{ 'error' if itens_baixos > 0 else 'success' }}">{{ itens_baixos }}</strong>
-        <small class="muted">Necessitam reposição</small>
-    </div>
-
-    <div class="card metric" style="border-bottom: 4px solid var(--green);">
-        <span>Capital Imobilizado</span>
-        <strong class="success">R$ {{ '%.2f'|format(valor_total) }}</strong>
-        <small class="muted">Valor total em estoque</small>
-    </div>
+<div class="table-wrap" style="margin-top:20px">
+    <table>
+        <thead>
+            <tr><th>Item</th><th>Área</th><th>Estoque</th><th>Valor Total</th></tr>
+        </thead>
+        <tbody>
+            {% for i in itens %}
+            <tr>
+                <td>{{ i.name }}</td>
+                <td>{{ i.area }}</td>
+                <td>{{ i.stock }}</td>
+                <td>R$ {{ '%.2f'|format(i.stock * i.cost) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
-
-<section class="card" style="margin-top:16px; padding: 0;">
-    <div class="table-wrap">
-        <table style="font-size: 0.9rem;">
-            <thead>
-                <tr style="background: #fafafa;">
-                    <th>Item / Código</th>
-                    <th>Área / Cat.</th>
-                    <th>Custo Unit.</th>
-                    <th>Estoque Atual</th>
-                    <th>Mínimo</th>
-                    <th>Subtotal</th>
-                    <th style="text-align: center;">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for i in itens %}
-                {% set is_low = (i.stock or 0) <= (i.min_stock or 0) %}
-                <tr style="{{ 'background-color: #fff5f5;' if is_low }}">
-                    <td>
-                        <strong>{{ i.name }}</strong><br>
-                        <small class="muted">{{ i.code or 'S/C' }}</small>
-                    </td>
-                    <td>
-                        <small>{{ i.area }}</small><br>
-                        <small class="muted">{{ i.category or '-' }}</small>
-                    </td>
-                    <td>R$ {{ '%.2f'|format(i.cost or 0) }} / <small>{{ i.unit }}</small></td>
-                    <td><strong>{{ i.stock }}</strong></td>
-                    <td><small class="muted">{{ i.min_stock }}</small></td>
-                    <td><strong>R$ {{ '%.2f'|format((i.stock or 0) * (i.cost or 0)) }}</strong></td>
-                    <td style="text-align: center;">
-                        {% if is_low %}
-                            <span class="badge error">BAIXO</span>
-                        {% else %}
-                            <span class="badge success">OK</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
-
-<style>
-    .badge {
-        padding: 4px 8px;
-        border-radius: 20px;
-        font-size: 10px;
-        font-weight: bold;
-        text-transform: uppercase;
-    }
-    .badge.error { background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; }
-    .badge.success { background: #dcfce7; color: #15803d; border: 1px solid #4ade80; }
-    
-    /* Zebra na tabela para facilitar leitura */
-    table tbody tr:nth-child(even) { background-color: rgba(0,0,0,0.01); }
-</style>
-
 {% endblock %}
