@@ -17,7 +17,10 @@
             <p class="muted" style="font-size: 0.85rem;">Entrada de itens processados ou fabricados internamente.</p>
         </header>
 
+        <!-- CORRIGIDO: adicionado csrf_token -->
         <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
                 <label>Data de Produção
                     <input type="date" name="prod_date" value="{{ data_ref.strftime('%Y-%m-%d') }}" required>
@@ -74,7 +77,9 @@
                         <td>{{ p.quantity }}</td>
                         <td class="success">R$ {{ "%.2f"|format(p.cost) }}</td>
                         <td style="text-align: right;">
+                            <!-- CORRIGIDO: csrf_token adicionado no form de exclusão -->
                             <form action="/excluir-producao/{{ p.id }}" method="post" onsubmit="return confirm('⚠️ Excluir este registro removerá o item do estoque. Confirmar?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
                             </form>
                         </td>
@@ -89,7 +94,6 @@
 </div>
 
 <style>
-    /* Estilos locais para estados financeiros */
     .success { color: #15803d; font-weight: bold; }
 </style>
 
