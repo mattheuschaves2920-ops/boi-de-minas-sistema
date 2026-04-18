@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-
 <div class="grid two">
     <section class="card" style="border-top: 4px solid var(--ink);">
         <header style="margin-bottom: 20px;">
@@ -8,16 +7,16 @@
             <p class="muted" style="font-size: 0.85rem;">Cadastre novos funcionários e defina níveis de permissão.</p>
         </header>
 
+        <!-- CORRIGIDO: adicionado csrf_token -->
         <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label>Nome Completo
                 <input type="text" name="name" required placeholder="Ex: João Silva">
             </label>
-
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                 <label>Login (Usuário)
                     <input type="text" name="username" required placeholder="joao.silva">
                 </label>
-
                 <label>Nível de Perfil
                     <select name="role" required>
                         <option value="" disabled selected>Selecione...</option>
@@ -27,12 +26,10 @@
                     </select>
                 </label>
             </div>
-
             <label>Senha de Acesso
-                <input type="password" name="password" required placeholder="••••••••">
+                <input type="password" name="password" required placeholder="••••••••" minlength="6">
                 <small class="muted">Recomendado: Mínimo 6 caracteres.</small>
             </label>
-
             <button class="btn" style="width: 100%; margin-top: 15px; background: var(--ink); color: white;">
                 ➕ Salvar Usuário
             </button>
@@ -61,9 +58,12 @@
                             <span class="badge-role">{{ u.role }}</span>
                         </td>
                         <td style="text-align: right;">
-                            <form action="{{ url_for('excluir_usuario', user_id=u.id) }}" method="post" 
-                                  onsubmit="return confirm('⚠️ Tem certeza que deseja remover o acesso de {{ u.name }}?');" 
-                                  style="display:inline;">
+                            <!-- CORRIGIDO: csrf_token + confirm seguro via data-attribute -->
+                            <form action="{{ url_for('excluir_usuario', user_id=u.id) }}" method="post"
+                                  style="display:inline;"
+                                  class="form-excluir-usuario"
+                                  data-nome="{{ u.name }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
                             </form>
                         </td>
@@ -78,7 +78,6 @@
 </div>
 
 <style>
-    /* Estilo para as tags de Perfil */
     .badge-role {
         background: #f1f1f1;
         padding: 2px 8px;
@@ -89,5 +88,17 @@
         color: var(--ink);
     }
 </style>
+
+<script>
+// CORRIGIDO: confirm seguro sem interpolação Jinja dentro de string JS
+document.querySelectorAll('.form-excluir-usuario').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+        const nome = form.getAttribute('data-nome');
+        if (!confirm('⚠️ Tem certeza que deseja remover o acesso de ' + nome + '?')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
 
 {% endblock %}
