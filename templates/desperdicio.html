@@ -27,8 +27,10 @@
             </div>
         {% endif %}
 
+        <!-- CORRIGIDO: adicionado csrf_token -->
         <form method="post" {% if not desperdicio_edicao %}enctype="multipart/form-data"{% endif %} 
               action="{{ url_for('editar_desperdicio', waste_id=desperdicio_edicao.id) if desperdicio_edicao else url_for('desperdicio') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                 <label>Data da Ocorrência
@@ -113,9 +115,12 @@
                             <a href="{{ url_for('desperdicio', editar=d.id, data=data_ref.strftime('%Y-%m-%d')) }}" 
                                class="btn-link" title="Editar" style="padding: 5px 10px; font-size: 12px;">✏️</a>
 
+                            <!-- CORRIGIDO: confirm com dados seguros via data-attribute + JS -->
                             <form method="post" action="{{ url_for('excluir_desperdicio', waste_id=d.id) }}" 
-                                  style="display:inline;" 
-                                  onsubmit="return confirm('⚠️ ATENÇÃO: A exclusão devolverá {{ d.quantity }} ao estoque. Confirmar?');">
+                                  style="display:inline;"
+                                  class="form-excluir"
+                                  data-qty="{{ d.quantity }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button class="btn-link" type="submit" style="color: var(--red); cursor: pointer; border: none; background: none; font-size: 12px;">🗑️</button>
                             </form>
                         </td>
@@ -128,5 +133,17 @@
         </div>
     </section>
 </div>
+
+<script>
+// CORRIGIDO: confirm seguro sem interpolação Jinja dentro de string JS
+document.querySelectorAll('.form-excluir').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+        const qty = form.getAttribute('data-qty');
+        if (!confirm('⚠️ ATENÇÃO: A exclusão devolverá ' + qty + ' ao estoque. Confirmar?')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
 
 {% endblock %}
