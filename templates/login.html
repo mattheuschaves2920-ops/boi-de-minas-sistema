@@ -15,7 +15,9 @@
             </div>
         {% endif %}
 
+        <!-- CORRIGIDO: adicionado csrf_token no formulário de login -->
         <form method="post" class="login-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label>Usuário
                 <input type="text" name="username" required autofocus placeholder="Digite seu login">
             </label>
@@ -36,12 +38,11 @@
 </div>
 
 <style>
-    /* Estilos específicos para a tela de login */
     .login-container {
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: calc(100vh - 100px); /* Centraliza verticalmente descontando margens */
+        min-height: calc(100vh - 100px);
         padding: 20px;
     }
 
@@ -97,8 +98,6 @@
         font-family: monospace;
         color: var(--red);
     }
-
-    /* Ajuste para esconder a topbar no login se desejar via CSS na base.html ou JS */
 </style>
 
 {% endblock %}
