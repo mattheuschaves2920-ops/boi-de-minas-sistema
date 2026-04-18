@@ -95,9 +95,9 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-const isDark   = document.documentElement.getAttribute('data-theme') === 'dark';
-const gridColor= isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
-const textColor= isDark ? '#c0c0c0' : '#666666';
+const isDark    = document.documentElement.getAttribute('data-theme') === 'dark';
+const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+const textColor = isDark ? '#c0c0c0' : '#666666';
 
 // Gráfico de faturamento (7 dias)
 new Chart(document.getElementById('chartFaturamento'), {
@@ -130,16 +130,19 @@ new Chart(document.getElementById('chartFaturamento'), {
     }
 });
 
-// Gráfico de períodos
+// CORRIGIDO: proteção contra dados vazios no gráfico de período
 const periodoLabels = {{ vendas_por_periodo.keys() | list | tojson }};
-const periodoValues = {{ vendas_por_periodo.values() | list | map(attribute='v') | list | tojson }};
+// CORRIGIDO: .values() não suporta | map(attribute=) — processado via loop no backend
+// Certifique-se de que o backend passa 'vendas_por_periodo_values' como lista de números
+const periodoValues = {{ vendas_por_periodo.values() | list | tojson }};
+const periodoValuesNum = periodoValues.map(v => (typeof v === 'object' && v !== null) ? (v.v || 0) : (v || 0));
 
 new Chart(document.getElementById('chartPeriodo'), {
     type: 'doughnut',
     data: {
         labels: periodoLabels.length ? periodoLabels : ['Sem dados'],
         datasets: [{
-            data: periodoValues.length ? periodoValues : [1],
+            data: periodoValuesNum.length ? periodoValuesNum : [1],
             backgroundColor: ['#8b0000', '#d4af37', '#145da0', '#0f8b4c'],
         }]
     },
