@@ -3,7 +3,9 @@
 <div class="grid two">
     <section class="card">
         <h3>📝 Registro de Salgados e Bolos</h3>
+        <!-- CORRIGIDO: adicionado csrf_token -->
         <form method="post" id="daily-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                 <label>Data
                     <input type="date" name="control_date" id="control_date" required>
