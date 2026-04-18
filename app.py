@@ -3,11 +3,11 @@ import io
 import time
 import secrets
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from functools import wraps
 
 from flask import (Flask, render_template, request, redirect,
-                   url_for, session, flash, jsonify, send_file, abort, g)
+                   url_for, session, flash, jsonify, send_file, abort)
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func
@@ -23,9 +23,13 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 # ─── APP & CONFIG ────────────────────────────────────────────────────────────
 
 app = Flask(__name__)
-app.config["SECRET_KEY"]                  = os.getenv("SECRET_KEY", secrets.token_hex(32))
+app.config["SECRET_KEY"]                     = os.getenv("SECRET_KEY", secrets.token_hex(32))
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["MAX_CONTENT_LENGTH"]          = 16 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"]             = 16 * 1024 * 1024
+# CORRIGIDO: SESSION_COOKIE_HTTPONLY e SAMESITE para maior segurança
+app.config["SESSION_COOKIE_HTTPONLY"]        = True
+app.config["SESSION_COOKIE_SAMESITE"]        = "Lax"
+# Em produção com HTTPS, ative: app.config["SESSION_COOKIE_SECURE"] = True
 
 uri = os.getenv("DATABASE_URL", "sqlite:///boi_de_minas.db")
 if uri.startswith("postgres://"):
@@ -34,6 +38,9 @@ app.config["SQLALCHEMY_DATABASE_URI"] = uri
 
 UPLOAD_FOLDER = os.path.join("static", "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# CORRIGIDO: extensões de imagem permitidas para upload
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 
 db = SQLAlchemy(app)
 
@@ -49,6 +56,7 @@ class User(db.Model):
 
     def set_password(self, pw):
         self.password_hash = generate_password_hash(pw)
+
     def check_password(self, pw):
         return check_password_hash(self.password_hash, pw)
 
@@ -131,7 +139,6 @@ class DailyControl(db.Model):
 
 
 class AuditLog(db.Model):
-    """Registro de todas as ações do sistema."""
     __tablename__ = "audit_logs"
     id          = db.Column(db.Integer, primary_key=True)
     timestamp   = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -145,22 +152,20 @@ class AuditLog(db.Model):
 
 
 class StockAlert(db.Model):
-    """Meta de estoque mínimo e alertas configurados por item."""
     __tablename__ = "stock_alerts"
     id          = db.Column(db.Integer, primary_key=True)
     item_id     = db.Column(db.Integer, db.ForeignKey("items.id"), unique=True)
-    whatsapp    = db.Column(db.String(20))   # número destino do alerta
+    whatsapp    = db.Column(db.String(20))
     notified_at = db.Column(db.DateTime)
     item        = db.relationship("Item", backref="alert")
 
 
 class MonthlyGoal(db.Model):
-    """Meta mensal de faturamento."""
     __tablename__ = "monthly_goals"
-    id        = db.Column(db.Integer, primary_key=True)
-    year      = db.Column(db.Integer, nullable=False)
-    month     = db.Column(db.Integer, nullable=False)
-    goal      = db.Column(db.Float, default=0.0)
+    id    = db.Column(db.Integer, primary_key=True)
+    year  = db.Column(db.Integer, nullable=False)
+    month = db.Column(db.Integer, nullable=False)
+    goal  = db.Column(db.Float, default=0.0)
     __table_args__ = (db.UniqueConstraint("year", "month"),)
 
 
@@ -173,6 +178,14 @@ SETORES      = ["Cozinha", "Bar", "Salão", "Confeitaria", "Açougue"]
 MEAL_TYPES   = ["Buffet Kg", "Executivo", "À La Carte", "Rodízio", "Marmita"]
 DAILY_GROUPS = ["Salgados", "Bolos", "Doces", "Bebidas", "Outros"]
 ROLES        = ["admin", "gerente", "operador"]
+
+# CORRIGIDO: tipos e áreas válidos para validação de formulários
+_VALID_MOV_TYPES  = {"Entrada", "Saida", "Perda"}
+_VALID_AREAS      = set(AREAS)
+_VALID_SETORES    = set(SETORES)
+_VALID_MEAL_TYPES = set(MEAL_TYPES)
+_VALID_GROUPS     = set(DAILY_GROUPS)
+_VALID_ROLES      = set(ROLES)
 
 # ─── RATE LIMITING ───────────────────────────────────────────────────────────
 
@@ -216,6 +229,8 @@ def csrf_exempt(f):
 
 
 app.jinja_env.globals["csrf_token"] = _gen_csrf
+# CORRIGIDO: expõe now() para os templates (usado em metas.html)
+app.jinja_env.globals["now"] = datetime.now
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -263,7 +278,6 @@ def admin_required(f):
 
 
 def audit(action, resource=None, resource_id=None, detail=None):
-    """Registra ação no log de auditoria sem quebrar o fluxo principal."""
     try:
         log = AuditLog(
             user_id=session.get("user_id"),
@@ -288,7 +302,6 @@ def _ajustar_estoque(item, mov_type, qty):
 
 
 def _itens_criticos():
-    """Retorna lista de itens com estoque abaixo do mínimo."""
     return [i for i in Item.query.all() if i.stock <= i.min_stock and i.min_stock > 0]
 
 
@@ -310,7 +323,23 @@ def _xlsx_header(ws, headers, fill_color="8B0000"):
         cell.font = font
         cell.alignment = Alignment(horizontal="center")
 
-# Injeta variáveis globais nos templates
+
+# CORRIGIDO: validação de extensão de arquivo de upload
+def _allowed_file(filename: str) -> bool:
+    return (
+        "." in filename
+        and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+    )
+
+
+# CORRIGIDO: parse seguro de float vindo de formulário
+def _parse_float(value, default=0.0) -> float:
+    try:
+        return float(str(value or "").replace(",", "."))
+    except (ValueError, TypeError):
+        return default
+
+
 @app.context_processor
 def inject_globals():
     u = current_user()
@@ -324,8 +353,12 @@ def inject_globals():
 
 # ─── SETUP ───────────────────────────────────────────────────────────────────
 
+# CORRIGIDO: rota /setup bloqueada por variável de ambiente.
+# Em produção, defina ALLOW_SETUP=0 no ambiente para desativar completamente.
 @app.route("/setup")
 def setup():
+    if os.getenv("ALLOW_SETUP", "1") != "1":
+        abort(404)
     if User.query.first():
         return "Sistema já inicializado.", 403
     db.create_all()
@@ -350,6 +383,7 @@ def login():
         else:
             u = User.query.filter_by(username=request.form.get("username")).first()
             if u and u.check_password(request.form.get("password")):
+                session.clear()          # CORRIGIDO: limpa sessão anterior antes de criar nova
                 session["user_id"]   = u.id
                 session["_username"] = u.username
                 _reset_rate_limit(ip)
@@ -406,17 +440,13 @@ def dashboard():
     lucro = faturamento - custo - desperdicio
     cmv   = round(custo / faturamento * 100, 1) if faturamento else 0.0
 
-    # Meta mensal
-    meta_obj = MonthlyGoal.query.filter_by(
-        year=mes_ref.year, month=mes_ref.month
-    ).first()
-    meta_valor     = meta_obj.goal if meta_obj else 0.0
-    meta_pct       = round(faturamento_mes / meta_valor * 100, 1) if meta_valor else 0.0
+    meta_obj   = MonthlyGoal.query.filter_by(year=mes_ref.year, month=mes_ref.month).first()
+    meta_valor = meta_obj.goal if meta_obj else 0.0
+    meta_pct   = round(faturamento_mes / meta_valor * 100, 1) if meta_valor else 0.0
 
-    # Dados para gráfico de barras (últimos 7 dias)
+    # Gráfico dos últimos 7 dias
     labels_grafico  = []
     valores_grafico = []
-    from datetime import timedelta
     for i in range(6, -1, -1):
         d = data_ref - timedelta(days=i)
         v = db.session.query(
@@ -444,9 +474,6 @@ def dashboard():
         labels_grafico=labels_grafico,
         valores_grafico=valores_grafico,
         vendas_por_periodo=vendas_por_periodo,
-        # compat
-        clientes_almoco=0, venda_almoco=0.0,
-        clientes_janta=0, venda_janta=0.0,
     )
 
 
@@ -457,14 +484,19 @@ def dashboard():
 def controle():
     data_ref = get_selected_date()
     if request.method == "POST":
+        # CORRIGIDO: validação do group_name contra lista permitida
+        group = request.form.get("group_name")
+        if group not in _VALID_GROUPS:
+            group = "Outros"
+
         ctrl = DailyControl(
             control_date=datetime.strptime(request.form["control_date"], "%Y-%m-%d").date(),
-            group_name=request.form.get("group_name"),
-            item_name=request.form.get("item_name"),
-            input_qty=float(request.form.get("input_qty") or 0),
-            output_qty=float(request.form.get("output_qty") or 0),
-            sold_qty=float(request.form.get("sold_qty") or 0),
-            unit_value=float(request.form.get("unit_value") or 0),
+            group_name=group,
+            item_name=request.form.get("item_name", "").strip(),
+            input_qty=_parse_float(request.form.get("input_qty")),
+            output_qty=_parse_float(request.form.get("output_qty")),
+            sold_qty=_parse_float(request.form.get("sold_qty")),
+            unit_value=_parse_float(request.form.get("unit_value")),
             notes=request.form.get("notes"),
         )
         db.session.add(ctrl)
@@ -503,7 +535,7 @@ def desperdicio():
 
     if request.method == "POST":
         waste_date = datetime.strptime(request.form["waste_date"], "%Y-%m-%d").date()
-        qty        = float(request.form.get("quantity") or 0)
+        qty        = _parse_float(request.form.get("quantity"))  # CORRIGIDO: usa _parse_float
         reason     = request.form.get("reason")
 
         if desperdicio_edicao:
@@ -524,23 +556,28 @@ def desperdicio():
         else:
             photo_path = None
             photo = request.files.get("photo")
+            # CORRIGIDO: valida extensão antes de salvar o arquivo
             if photo and photo.filename:
-                ext   = os.path.splitext(photo.filename)[1]
-                fname = f"waste_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
-                photo.save(os.path.join(UPLOAD_FOLDER, fname))
-                photo_path = f"uploads/{fname}"
+                if not _allowed_file(photo.filename):
+                    error = "Formato de imagem inválido. Use JPG, PNG ou WEBP."
+                else:
+                    ext   = os.path.splitext(photo.filename)[1].lower()
+                    fname = f"waste_{secrets.token_hex(8)}{ext}"   # CORRIGIDO: nome aleatório (evita colisão e path traversal)
+                    photo.save(os.path.join(UPLOAD_FOLDER, fname))
+                    photo_path = f"uploads/{fname}"
 
-            w = Waste(
-                waste_date=waste_date, item_id=item.id, item_name=item.name,
-                quantity=qty, reason=reason, value=qty * item.cost,
-                photo_path=photo_path,
-            )
-            item.stock = max(0.0, item.stock - qty)
-            db.session.add(w)
-            db.session.commit()
-            audit("CREATE", "Waste", w.id, f"{item.name} qty={qty}")
-            flash("Desperdício registrado.")
-            return redirect(url_for("desperdicio", data=waste_date.strftime("%Y-%m-%d")))
+            if not error:
+                w = Waste(
+                    waste_date=waste_date, item_id=item.id, item_name=item.name,
+                    quantity=qty, reason=reason, value=qty * item.cost,
+                    photo_path=photo_path,
+                )
+                item.stock = max(0.0, item.stock - qty)
+                db.session.add(w)
+                db.session.commit()
+                audit("CREATE", "Waste", w.id, f"{item.name} qty={qty}")
+                flash("Desperdício registrado.")
+                return redirect(url_for("desperdicio", data=waste_date.strftime("%Y-%m-%d")))
 
     items = Item.query.order_by(Item.name).all()
     lista = Waste.query.filter_by(waste_date=data_ref).order_by(Waste.id.desc()).all()
@@ -577,14 +614,25 @@ def excluir_desperdicio(waste_id):
 def itens():
     busca = request.args.get("busca", "")
     if request.method == "POST":
+        # CORRIGIDO: valida área contra lista permitida
+        area = request.form.get("area")
+        if area not in _VALID_AREAS:
+            area = None
+
         item = Item(
-            area=request.form.get("area"), code=request.form.get("code"),
-            name=request.form.get("name"), category=request.form.get("category"),
+            area=area,
+            code=request.form.get("code", "").strip(),
+            name=request.form.get("name", "").strip(),
+            category=request.form.get("category"),
             unit=request.form.get("unit", "un"),
-            cost=float(request.form.get("cost") or 0),
-            stock=float(request.form.get("stock") or 0),
-            min_stock=float(request.form.get("min_stock") or 0),
+            cost=_parse_float(request.form.get("cost")),
+            stock=_parse_float(request.form.get("stock")),
+            min_stock=_parse_float(request.form.get("min_stock")),
         )
+        if not item.name:
+            flash("Nome do item é obrigatório.")
+            return redirect(url_for("itens"))
+
         db.session.add(item)
         db.session.commit()
         audit("CREATE", "Item", item.id, item.name)
@@ -615,13 +663,14 @@ def itens():
 def editar_item(item_id):
     item = db.session.get(Item, item_id)
     if item:
-        item.area      = request.form.get("area")
-        item.code      = request.form.get("code")
-        item.name      = request.form.get("name")
+        area = request.form.get("area")
+        item.area      = area if area in _VALID_AREAS else item.area
+        item.code      = request.form.get("code", "").strip()
+        item.name      = request.form.get("name", "").strip() or item.name
         item.category  = request.form.get("category")
-        item.cost      = float(request.form.get("cost") or 0)
-        item.stock     = float(request.form.get("stock") or 0)
-        item.min_stock = float(request.form.get("min_stock") or 0)
+        item.cost      = _parse_float(request.form.get("cost"))
+        item.stock     = _parse_float(request.form.get("stock"))
+        item.min_stock = _parse_float(request.form.get("min_stock"))
         db.session.commit()
         audit("UPDATE", "Item", item.id, item.name)
         flash(f"Item '{item.name}' atualizado.")
@@ -644,28 +693,24 @@ def buscar_item():
     return jsonify(ok=False)
 
 
-# ─── LISTA DE COMPRAS AUTOMÁTICA ─────────────────────────────────────────────
+# ─── LISTA DE COMPRAS ────────────────────────────────────────────────────────
 
 @app.route("/lista-compras")
 @login_required
 def lista_compras():
-    criticos = _itens_criticos()
-    # Calcula quanto precisa comprar (diferença entre mínimo e atual)
-    lista = []
+    criticos    = _itens_criticos()
+    lista       = []
     for i in criticos:
-        falta = max(0.0, i.min_stock - i.stock)
-        # Sugestão: comprar o dobro do mínimo
+        falta    = max(0.0, i.min_stock - i.stock)
         sugestao = max(falta, i.min_stock)
         lista.append({
-            "item": i,
-            "falta": round(falta, 3),
+            "item":     i,
+            "falta":    round(falta, 3),
             "sugestao": round(sugestao, 3),
-            "custo_est": round(sugestao * i.cost, 2),
+            "custo_est":round(sugestao * i.cost, 2),
         })
     total_custo = sum(l["custo_est"] for l in lista)
-    return render_template("lista_compras.html",
-        lista=lista, total_custo=total_custo,
-    )
+    return render_template("lista_compras.html", lista=lista, total_custo=total_custo)
 
 
 @app.route("/exportar/lista-compras/xlsx")
@@ -707,7 +752,7 @@ def relatorios():
     if area_ref:      query = query.filter_by(area=area_ref)
     if categoria_ref: query = query.filter_by(category=categoria_ref)
     lista = query.order_by(Item.name).all()
-    if status_ref == "baixo":   lista = [i for i in lista if i.stock <= i.min_stock]
+    if status_ref == "baixo":    lista = [i for i in lista if i.stock <= i.min_stock]
     elif status_ref == "normal": lista = [i for i in lista if i.stock > i.min_stock]
 
     total_itens  = len(lista)
@@ -734,8 +779,13 @@ def movimentos():
 
     if request.method == "POST":
         mov_date = datetime.strptime(request.form["mov_date"], "%Y-%m-%d").date()
+        # CORRIGIDO: valida mov_type contra lista permitida
         mov_type = request.form.get("mov_type")
-        qty      = float(request.form.get("quantity") or 0)
+        if mov_type not in _VALID_MOV_TYPES:
+            flash("Tipo de movimentação inválido.")
+            return redirect(url_for("movimentos"))
+
+        qty = _parse_float(request.form.get("quantity"))
 
         if mov_edicao:
             if mov_edicao.item:
@@ -745,7 +795,7 @@ def movimentos():
             mov_edicao.area     = request.form.get("area")
             mov_edicao.setor    = request.form.get("setor")
             mov_edicao.quantity = qty
-            mov_edicao.value    = float(request.form.get("value") or 0)
+            mov_edicao.value    = _parse_float(request.form.get("value"))
             mov_edicao.detail   = request.form.get("detail")
             if mov_edicao.item:
                 _ajustar_estoque(mov_edicao.item, mov_type, qty)
@@ -755,7 +805,7 @@ def movimentos():
         else:
             item_id   = request.form.get("item_id", type=int)
             item      = db.session.get(Item, item_id)
-            unit_cost = float(request.form.get("unit_cost") or (item.cost if item else 0))
+            unit_cost = _parse_float(request.form.get("unit_cost")) or (item.cost if item else 0)
             m = Movement(
                 mov_date=mov_date, mov_type=mov_type,
                 area=request.form.get("area"), setor=request.form.get("setor"),
@@ -810,16 +860,21 @@ def producao():
     if request.method == "POST":
         item_id = request.form.get("item_id", type=int)
         item    = db.session.get(Item, item_id)
-        qty     = float(request.form.get("quantity") or 0)
+        # CORRIGIDO: verifica se item existe antes de usar
+        if not item:
+            flash("Item não encontrado.")
+            return redirect(url_for("producao"))
+
+        qty = _parse_float(request.form.get("quantity"))
         p = Production(
             prod_date=datetime.strptime(request.form["prod_date"], "%Y-%m-%d").date(),
             setor=request.form.get("setor"),
-            item_id=item.id if item else None,
-            item_name=item.name if item else "—",
-            quantity=qty, cost=qty * item.cost if item else 0.0,
+            item_id=item.id,
+            item_name=item.name,
+            quantity=qty,
+            cost=qty * item.cost,
         )
-        if item:
-            item.stock += qty
+        item.stock += qty
         db.session.add(p)
         db.session.commit()
         audit("CREATE", "Production", p.id, p.item_name)
@@ -860,13 +915,19 @@ def vendas():
 
     if request.method == "POST":
         sale_date  = datetime.strptime(request.form["sale_date"], "%Y-%m-%d").date()
-        unit_value = float(str(request.form.get("unit_value") or "0").replace(",", "."))
-        quantity   = float(str(request.form.get("quantity")   or "0").replace(",", "."))
+        unit_value = _parse_float(request.form.get("unit_value"))  # CORRIGIDO: usa _parse_float
+        quantity   = _parse_float(request.form.get("quantity"))
+
+        # CORRIGIDO: valida meal_type
+        meal_type = request.form.get("meal_type")
+        if meal_type not in _VALID_MEAL_TYPES:
+            flash("Tipo de refeição inválido.")
+            return redirect(url_for("vendas"))
 
         if venda_edicao:
             venda_edicao.sale_date  = sale_date
             venda_edicao.period     = request.form.get("period")
-            venda_edicao.meal_type  = request.form.get("meal_type")
+            venda_edicao.meal_type  = meal_type
             venda_edicao.unit_value = unit_value
             venda_edicao.quantity   = quantity
             venda_edicao.notes      = request.form.get("notes")
@@ -876,8 +937,7 @@ def vendas():
         else:
             v = Sale(
                 sale_date=sale_date, period=request.form.get("period"),
-                meal_type=request.form.get("meal_type"),
-                unit_value=unit_value, quantity=quantity,
+                meal_type=meal_type, unit_value=unit_value, quantity=quantity,
                 notes=request.form.get("notes"),
             )
             db.session.add(v)
@@ -922,11 +982,11 @@ def relatorio_gerencial():
     data_ref = get_selected_date()
     mes_ref  = get_selected_month()
 
-    fat_dia     = db.session.query(func.sum(Sale.unit_value * Sale.quantity)).filter(Sale.sale_date == data_ref).scalar() or 0.0
-    ref_dia     = db.session.query(func.sum(Sale.quantity)).filter(Sale.sale_date == data_ref).scalar() or 0.0
-    custo_dia   = db.session.query(func.sum(Movement.value)).filter(Movement.mov_date == data_ref, Movement.mov_type == "Entrada").scalar() or 0.0
-    perdas_dia  = db.session.query(func.sum(Waste.value)).filter(Waste.waste_date == data_ref).scalar() or 0.0
-    diario_dia  = db.session.query(func.sum(DailyControl.sold_qty * DailyControl.unit_value)).filter(DailyControl.control_date == data_ref).scalar() or 0.0
+    fat_dia    = db.session.query(func.sum(Sale.unit_value * Sale.quantity)).filter(Sale.sale_date == data_ref).scalar() or 0.0
+    ref_dia    = db.session.query(func.sum(Sale.quantity)).filter(Sale.sale_date == data_ref).scalar() or 0.0
+    custo_dia  = db.session.query(func.sum(Movement.value)).filter(Movement.mov_date == data_ref, Movement.mov_type == "Entrada").scalar() or 0.0
+    perdas_dia = db.session.query(func.sum(Waste.value)).filter(Waste.waste_date == data_ref).scalar() or 0.0
+    diario_dia = db.session.query(func.sum(DailyControl.sold_qty * DailyControl.unit_value)).filter(DailyControl.control_date == data_ref).scalar() or 0.0
 
     lucro = fat_dia - custo_dia - perdas_dia
     cmv   = round(custo_dia / fat_dia * 100, 1) if fat_dia else 0.0
@@ -961,7 +1021,11 @@ def metas():
     if request.method == "POST":
         year  = int(request.form.get("year") or date.today().year)
         month = int(request.form.get("month") or date.today().month)
-        goal  = float(request.form.get("goal") or 0)
+        # CORRIGIDO: valida intervalo de mês e ano
+        if not (1 <= month <= 12) or not (2024 <= year <= 2100):
+            flash("Mês ou ano inválido.")
+            return redirect(url_for("metas"))
+        goal = _parse_float(request.form.get("goal"))
         m = MonthlyGoal.query.filter_by(year=year, month=month).first()
         if m:
             m.goal = goal
@@ -996,6 +1060,12 @@ def auditoria():
 def usuarios():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
+        # CORRIGIDO: valida role contra lista permitida
+        role = request.form.get("role", "operador")
+        if role not in _VALID_ROLES:
+            flash("Perfil inválido.")
+            return redirect(url_for("usuarios"))
+
         if User.query.filter_by(username=username).first():
             flash(f"Usuário '{username}' já existe.")
         else:
@@ -1004,9 +1074,9 @@ def usuarios():
                 flash("Senha deve ter no mínimo 6 caracteres.")
             else:
                 novo = User(
-                    name=request.form.get("name"),
+                    name=request.form.get("name", "").strip(),
                     username=username,
-                    role=request.form.get("role", "operador"),
+                    role=role,
                 )
                 novo.set_password(pw)
                 db.session.add(novo)
@@ -1086,11 +1156,11 @@ def exportar_estoque_pdf():
 @app.route("/exportar/relatorio/pdf")
 @login_required
 def exportar_relatorio_pdf():
-    data_ref    = get_selected_date()
-    vendas_list = Sale.query.filter_by(sale_date=data_ref).all()
-    wastes_list = Waste.query.filter_by(waste_date=data_ref).all()
-    faturamento = sum(v.unit_value * v.quantity for v in vendas_list)
-    total_perdas= sum(w.value for w in wastes_list)
+    data_ref     = get_selected_date()
+    vendas_list  = Sale.query.filter_by(sale_date=data_ref).all()
+    wastes_list  = Waste.query.filter_by(waste_date=data_ref).all()
+    faturamento  = sum(v.unit_value * v.quantity for v in vendas_list)
+    total_perdas = sum(w.value for w in wastes_list)
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
@@ -1147,8 +1217,8 @@ def exportar_estoque_xlsx():
     categoria_ref = request.args.get("categoria", "")
     status_ref    = request.args.get("status", "")
     query = Item.query
-    if area_ref:       query = query.filter_by(area=area_ref)
-    if categoria_ref:  query = query.filter_by(category=categoria_ref)
+    if area_ref:      query = query.filter_by(area=area_ref)
+    if categoria_ref: query = query.filter_by(category=categoria_ref)
     lista = query.order_by(Item.name).all()
     if status_ref == "baixo":    lista = [i for i in lista if i.stock <= i.min_stock]
     elif status_ref == "normal": lista = [i for i in lista if i.stock > i.min_stock]
