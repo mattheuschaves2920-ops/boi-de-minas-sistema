@@ -71,7 +71,7 @@
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 {% for msg in messages %}
-                    showToast("{{ msg }}");
+                    showToast({{ msg | tojson }});
                 {% endfor %}
             });
         </script>
@@ -205,12 +205,13 @@
 </style>
 
 <script>
-/* ── Dark mode ── */
-(function() {
+/* ── Dark mode: inicializa APÓS o DOM estar pronto (CORRIGIDO) ── */
+document.addEventListener('DOMContentLoaded', function() {
     const saved = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', saved);
-    document.getElementById('dark-icon').textContent = saved === 'dark' ? '☀️' : '🌙';
-})();
+    const icon = document.getElementById('dark-icon');
+    if (icon) icon.textContent = saved === 'dark' ? '☀️' : '🌙';
+});
 
 function toggleDark() {
     const html    = document.documentElement;
@@ -218,7 +219,8 @@ function toggleDark() {
     const next    = current === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
-    document.getElementById('dark-icon').textContent = next === 'dark' ? '☀️' : '🌙';
+    const icon = document.getElementById('dark-icon');
+    if (icon) icon.textContent = next === 'dark' ? '☀️' : '🌙';
 }
 
 /* ── Hamburger ── */
@@ -227,19 +229,19 @@ function toggleMenu() {
     nav.classList.toggle('open');
 }
 
-/* ── Toast ── */
+/* ── Toast (CORRIGIDO: ícone correto para erro) ── */
 function showToast(msg, type) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.style.background = type === 'error' ? '#c0392b' : '#2d6a4f';
-    toast.textContent = '✅ ' + msg;
+    toast.textContent = (type === 'error' ? '❌ ' : '✅ ') + msg;
     container.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
 }
 
 /* ── CSRF: injeta em todos os fetch POST do sistema ── */
-const CSRF_TOKEN = "{{ csrf_token() }}";
+const CSRF_TOKEN = {{ csrf_token() | tojson }};
 const _origFetch = window.fetch;
 window.fetch = function(url, opts = {}) {
     if (opts.method && opts.method.toUpperCase() === 'POST') {
