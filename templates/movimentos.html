@@ -19,7 +19,10 @@
             <p class="muted" style="font-size: 0.85rem;">Gerencie o fluxo de insumos e suprimentos entre setores.</p>
         </header>
 
+        <!-- CORRIGIDO: adicionado csrf_token -->
         <form method="post" action="{% if mov_edicao %}{{ url_for('editar_movimento', mov_id=mov_edicao.id) }}{% else %}{{ url_for('movimentos') }}{% endif %}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                 <label>Data
                     <input type="date" name="mov_date" required value="{{ mov_edicao.mov_date.strftime('%Y-%m-%d') if mov_edicao else data_ref.strftime('%Y-%m-%d') }}">
@@ -129,7 +132,9 @@
                         <td>R$ {{ '%.2f'|format(m.value) }}</td>
                         <td style="text-align: right; white-space: nowrap;">
                             <a href="{{ url_for('movimentos', editar=m.id, data=data_ref.strftime('%Y-%m-%d')) }}" class="btn-link">✏️</a>
+                            <!-- CORRIGIDO: csrf_token adicionado no form de exclusão -->
                             <form method="post" action="{{ url_for('excluir_movimento', mov_id=m.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ O estoque será ajustado. Confirmar exclusão?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
                             </form>
                         </td>
@@ -148,7 +153,6 @@ function toggleCusto() {
     const type = document.getElementById('mov_type').value;
     const labelCusto = document.getElementById('label_custo');
     if (labelCusto) {
-        // Geralmente só faz sentido digitar custo em Entradas (compras)
         labelCusto.style.opacity = type === 'Entrada' ? '1' : '0.5';
     }
 }
@@ -156,9 +160,9 @@ function toggleCusto() {
 
 <style>
     .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-    .badge.success { background: #dcfce7; color: #15803d; } /* Entrada */
-    .badge.info { background: #e0f2fe; color: #0369a1; }    /* Saída */
-    .badge.error { background: #fee2e2; color: #b91c1c; }   /* Perda */
+    .badge.success { background: #dcfce7; color: #15803d; }
+    .badge.info    { background: #e0f2fe; color: #0369a1; }
+    .badge.error   { background: #fee2e2; color: #b91c1c; }
 </style>
 
 {% endblock %}
