@@ -7,7 +7,7 @@ from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
 
-# Configurações de Segurança
+# Configurações
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", secrets.token_hex(32))
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///boi_de_minas.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -15,36 +15,85 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
 
-# --- MODELO DE DADOS ---
+# --- MODELO ---
 class Sale(db.Model):
     __tablename__ = "sales"
     id = db.Column(db.Integer, primary_key=True)
     sale_date = db.Column(db.Date, nullable=False)
-    period = db.Column(db.String(20))
     meal_type = db.Column(db.String(80))
     unit_value = db.Column(db.Float, default=0.0)
     quantity = db.Column(db.Float, default=1.0)
-    notes = db.Column(db.String(255))
 
-# --- FUNÇÃO PARA EVITAR ERRO NO MENU ---
-# Isso garante que 'current_user' e 'n_criticos' existam em todas as páginas
+# --- CONTEXTO GLOBAL (Evita erro de variáveis faltando no base.html) ---
 @app.context_processor
 def inject_globals():
     return {
-        'current_user': None, # Ou um objeto de usuário se tiver login
+        'current_user': None,
         'n_criticos': 0
     }
 
-# --- ROTAS ---
+# --- ROTAS OBRIGATÓRIAS (Uma para cada link do seu menu) ---
 
 @app.route("/")
 def home():
     return redirect(url_for("vendas"))
 
+@app.route("/dashboard")
+def dashboard():
+    return "<h1>Dashboard</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/controle")
+def controle():
+    return "<h1>Controle</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/desperdicio")
+def desperdicio():
+    return "<h1>Desperdício</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/movimentos")
+def movimentos():
+    return "<h1>Movimentos</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/producao")
+def producao():
+    return "<h1>Produção</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/itens")
+def itens():
+    return "<h1>Estoque</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/lista_compras")
+def lista_compras():
+    return "<h1>Lista de Compras</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/relatorio_gerencial")
+def relatorio_gerencial():
+    return "<h1>Relatório</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/metas")
+def metas():
+    return "<h1>Metas</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/usuarios")
+def usuarios():
+    return "<h1>Usuários</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/auditoria")
+def auditoria():
+    return "<h1>Auditoria</h1><a href='/vendas'>Voltar</a>"
+
+@app.route("/logout")
+def logout():
+    return redirect(url_for("vendas"))
+
+# --- ROTA DE VENDAS ---
 @app.route("/vendas", methods=["GET", "POST"])
 def vendas():
     data_str = request.args.get("data")
-    data_ref = datetime.strptime(data_str, "%Y-%m-%d").date() if data_str else date.today()
+    try:
+        data_ref = datetime.strptime(data_str, "%Y-%m-%d").date() if data_str else date.today()
+    except:
+        data_ref = date.today()
 
     if request.method == "POST":
         try:
@@ -74,24 +123,16 @@ def vendas():
                            data_ref=data_ref,
                            meal_types=["Marmitex P", "Marmitex G", "Self-Service", "Bebida"])
 
-# Criar rotas vazias para os outros botões não darem erro 404
-@app.route("/dashboard")
-@app.route("/controle")
-@app.route("/desperdicio")
-@app.route("/movimentos")
-@app.route("/producao")
-@app.route("/itens")
-@app.route("/lista_compras")
-@app.route("/relatorio_gerencial")
-@app.route("/metas")
-@app.route("/usuarios")
-@app.route("/auditoria")
-@app.route("/logout")
-def placeholder():
-    return "<h1>Em construção</h1><p>Esta tela será implementada em breve.</p><a href='/vendas'>Voltar</a>"
+@app.route("/vendas/excluir/<int:sale_id>", methods=["POST"])
+def excluir_venda(sale_id):
+    venda = db.session.get(Sale, sale_id)
+    if venda:
+        db.session.delete(venda)
+        db.session.commit()
+    return redirect(url_for("vendas"))
 
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
