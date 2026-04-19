@@ -14,13 +14,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
 
-# --- HELPERS ---
-def _parse_float(value, default=0.0):
-    try:
-        return float(str(value or "0").replace(",", "."))
-    except:
-        return default
-
 # --- MODELOS ---
 class Sale(db.Model):
     __tablename__ = "sales"
@@ -32,14 +25,32 @@ class Sale(db.Model):
     quantity = db.Column(db.Float, default=0.0)
     notes = db.Column(db.String(255))
 
-# --- ROTAS ---
+# --- HELPERS ---
+def _parse_float(value, default=0.0):
+    try:
+        return float(str(value or "0").replace(",", "."))
+    except:
+        return default
+
+# --- ROTAS NOVAS (Para evitar BuildError) ---
+
 @app.route("/")
 def home():
     return redirect(url_for("vendas"))
 
+@app.route("/dashboard")
+def dashboard():
+    # Rota temporária para o erro sumir
+    return "<h1>Dashboard em desenvolvimento</h1><a href='/vendas'>Voltar para Vendas</a>"
+
+@app.route("/estoque")
+def estoque():
+    return "<h1>Estoque em desenvolvimento</h1><a href='/vendas'>Voltar para Vendas</a>"
+
+# --- ROTA DE VENDAS ---
+
 @app.route("/vendas", methods=["GET", "POST"])
 def vendas():
-    # Filtro de data
     data_str = request.args.get("data")
     if data_str:
         try:
@@ -54,7 +65,6 @@ def vendas():
     if editar_id:
         venda_edicao = db.session.get(Sale, editar_id)
 
-    # Variável que estava faltando para o HTML
     tipos_refeicao = ["Marmitex P", "Marmitex G", "Self-Service", "Bebida", "Sobremesa"]
 
     if request.method == "POST":
@@ -102,5 +112,7 @@ def excluir_venda(sale_id):
     return redirect(url_for("vendas"))
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
