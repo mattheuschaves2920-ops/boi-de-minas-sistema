@@ -1,9 +1,9 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/app.py b/app.py
-index 8e215023585f65cc6283d8c9c0c1ba563aaef9d2..a369176358f4e63b9ec2e986013f8a3d8b80e5b8 100644
+index 8e215023585f65cc6283d8c9c0c1ba563aaef9d2..50d1d70d6a5a3a4c23b0e15ff1393a266e0f9758 100644
 --- a/app.py
 +++ b/app.py
-@@ -1,127 +1,783 @@
+@@ -1,127 +1,787 @@
  import os
 +from dataclasses import dataclass
  from datetime import date, datetime
@@ -74,6 +74,10 @@ index 8e215023585f65cc6283d8c9c0c1ba563aaef9d2..a369176358f4e63b9ec2e986013f8a3d
      motivo = db.Column(db.String(200))
  
 -# --- PROCESSADOR DE CONTEXTO (Para o base.html funcionar) ---
++
++with app.app_context():
++    db.create_all()
++
 +
 +@dataclass
 +class SimpleLog:
@@ -325,11 +329,11 @@ index 8e215023585f65cc6283d8c9c0c1ba563aaef9d2..a369176358f4e63b9ec2e986013f8a3d
 +            db.session.add(venda)
 +            _log_action("Criação", "Venda", f"Venda criada: {meal_type}")
 +            flash("Venda registrada!", "success")
-+
-+        db.session.commit()
-+        return redirect(url_for("vendas", data=sale_date.strftime("%Y-%m-%d")))
  
 -@app.route("/itens")
++        db.session.commit()
++        return redirect(url_for("vendas", data=sale_date.strftime("%Y-%m-%d")))
++
 +    vendas_dia = Venda.query.filter(Venda.data == data_ref).order_by(Venda.id.desc()).all()
 +    venda_edicao = None
 +    if editar_id:
@@ -451,13 +455,15 @@ index 8e215023585f65cc6283d8c9c0c1ba563aaef9d2..a369176358f4e63b9ec2e986013f8a3d
 +            "reason": registro.motivo,
 +            "item_name": item.nome if item else "Item removido",
 +        }
-+
-+    itens_db, lista = _dados_desperdicio(data_ref)
-+    items_template = [{"id": i.id, "name": i.nome, "area": i.categoria or "-"} for i in itens_db]
  
 -# Rotas Complementares (Mapeando todos os botões do seu menu)
 -@app.route("/controle")
 -def controle(): return render_template("controle.html")
++    itens_db, lista = _dados_desperdicio(data_ref)
++    items_template = [{"id": i.id, "name": i.nome, "area": i.categoria or "-"} for i in itens_db]
+ 
+-@app.route("/movimentos")
+-def movimentos(): return render_template("movimentos.html")
 +    return render_template(
 +        "desperdicio.html",
 +        data_ref=data_ref,
@@ -466,12 +472,8 @@ index 8e215023585f65cc6283d8c9c0c1ba563aaef9d2..a369176358f4e63b9ec2e986013f8a3d
 +        items=items_template,
 +        lista=lista,
 +    )
- 
--@app.route("/movimentos")
--def movimentos(): return render_template("movimentos.html")
- 
--@app.route("/producao")
--def producao(): return render_template("producao.html")
++
++
 +@app.route("/desperdicio/<int:waste_id>/editar", methods=["POST"])
 +def editar_desperdicio(waste_id: int):
 +    registro = Desperdicio.query.get_or_404(waste_id)
@@ -627,7 +629,9 @@ index 8e215023585f65cc6283d8c9c0c1ba563aaef9d2..a369176358f4e63b9ec2e986013f8a3d
 +    _log_action("Exclusão", "Produção", f"Produção {prod_id} excluída", prod_id)
 +    flash("Produção excluída.", "success")
 +    return redirect(url_for("producao", data=data_ref.strftime("%Y-%m-%d")))
-+
+ 
+-@app.route("/producao")
+-def producao(): return render_template("producao.html")
  
  @app.route("/lista_compras")
 -def lista_compras(): return render_template("lista-compras.html")
@@ -720,7 +724,9 @@ index 8e215023585f65cc6283d8c9c0c1ba563aaef9d2..a369176358f4e63b9ec2e986013f8a3d
 +        year = request.form.get("year", type=int) or date.today().year
 +        month = request.form.get("month", type=int) or date.today().month
 +        goal = request.form.get("goal", type=float) or 0
-+
+ 
+-@app.route("/metas")
+-def metas(): return render_template("metas.html")
 +        existente = next((m for m in METAS_DATA if m["year"] == year and m["month"] == month), None)
 +        if existente:
 +            existente["goal"] = goal
@@ -730,9 +736,7 @@ index 8e215023585f65cc6283d8c9c0c1ba563aaef9d2..a369176358f4e63b9ec2e986013f8a3d
 +            METAS_DATA.append({"year": year, "month": month, "goal": goal})
 +            flash("Meta cadastrada.", "success")
 +            _log_action("Criação", "Meta", f"Meta {month}/{year} cadastrada")
- 
--@app.route("/metas")
--def metas(): return render_template("metas.html")
++
 +        return redirect(url_for("metas"))
 +
 +    metas_view = []
