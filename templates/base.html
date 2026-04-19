@@ -2,15 +2,30 @@
 <html lang="pt-br" data-theme="light">
 <head>
     <meta charset="UTF-8">
+
+    <!-- SEO básico -->
     <title>Boi de Minas Sistema</title>
+    <meta name="description" content="Sistema de gestão Boi de Minas">
+
+    <!-- Mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- PWA -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#8b0000">
+
+    <!-- Segurança -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
 
-<!-- TOPBAR -->
+<!-- ───────────── HEADER ───────────── -->
 <header class="topbar">
+
     <div class="brand">
         <div class="brand-icon">🐂</div>
         <div class="brand-text">
@@ -19,12 +34,13 @@
         </div>
     </div>
 
-    <!-- Botão hambúrguer (mobile) -->
-    <button class="hamburger" id="hamburger" aria-label="Abrir menu" onclick="toggleMenu()">
+    <!-- MENU MOBILE -->
+    <button class="hamburger" onclick="toggleMenu()" aria-label="Abrir menu">
         <span></span><span></span><span></span>
     </button>
 
     <nav id="main-nav">
+
         <a href="{{ url_for('dashboard') }}">Dashboard</a>
         <a href="{{ url_for('vendas') }}">Vendas</a>
         <a href="{{ url_for('controle') }}">Controle</a>
@@ -32,6 +48,7 @@
         <a href="{{ url_for('movimentos') }}">Movimentos</a>
         <a href="{{ url_for('producao') }}">Produção</a>
         <a href="{{ url_for('itens') }}">Estoque</a>
+
         {% if n_criticos > 0 %}
         <a href="{{ url_for('lista_compras') }}" class="nav-alert">
             🛒 Compras <span class="badge-alert">{{ n_criticos }}</span>
@@ -39,6 +56,7 @@
         {% else %}
         <a href="{{ url_for('lista_compras') }}">🛒 Compras</a>
         {% endif %}
+
         {% if current_user and current_user.role in ('admin', 'gerente') %}
         <a href="{{ url_for('relatorio_gerencial') }}">Gerencial</a>
         <a href="{{ url_for('metas') }}">Metas</a>
@@ -46,210 +64,108 @@
         <a href="{{ url_for('auditoria') }}">Auditoria</a>
         {% endif %}
 
-        <!-- Dark mode toggle -->
-        <button class="dark-toggle" onclick="toggleDark()" title="Alternar tema" aria-label="Modo escuro">
+        <!-- Dark Mode -->
+        <button class="dark-toggle" onclick="toggleDark()" aria-label="Modo escuro">
             <span id="dark-icon">🌙</span>
         </button>
 
         <a href="{{ url_for('logout') }}" class="nav-logout">Sair</a>
+
     </nav>
 </header>
 
-<!-- ALERTA DE ESTOQUE CRÍTICO (banner) -->
+<!-- ───────────── ALERTA ESTOQUE ───────────── -->
 {% if n_criticos > 0 %}
 <div class="stock-banner">
-    ⚠️ <strong>{{ n_criticos }} item(s)</strong> com estoque abaixo do mínimo.
-    <a href="{{ url_for('lista_compras') }}">Ver lista de compras →</a>
+    ⚠️ <strong>{{ n_criticos }}</strong> item(s) com estoque baixo.
+    <a href="{{ url_for('lista_compras') }}">Ver lista →</a>
 </div>
 {% endif %}
 
-<!-- TOAST NOTIFICATIONS -->
-<div id="toast-container" aria-live="polite"></div>
+<!-- ───────────── TOAST ───────────── -->
+<div id="toast-container"></div>
 
 {% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                {% for msg in messages %}
-                    showToast({{ msg | tojson }});
-                {% endfor %}
-            });
-        </script>
-    {% endif %}
+{% if messages %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    {% for msg in messages %}
+        showToast({{ msg | tojson }});
+    {% endfor %}
+});
+</script>
+{% endif %}
 {% endwith %}
 
-<!-- CONTEÚDO -->
+<!-- ───────────── CONTEÚDO ───────────── -->
 <main class="container">
     {% block content %}{% endblock %}
 </main>
 
-<footer style="text-align:center; padding:2rem 1rem; color:#999; font-size:0.8rem; border-top:1px solid var(--line); margin-top:3rem;">
+<!-- ───────────── FOOTER ───────────── -->
+<footer class="footer">
     © 2026 Boi de Minas — Sistema de Gestão
 </footer>
 
-<style>
-/* ── Dark mode ── */
-[data-theme="dark"] {
-    --bg:   #1a1a1a;
-    --card: #242424;
-    --ink:  #e8e8e8;
-    --muted:#a0a0a0;
-    --line: #333333;
-    --red:  #c0392b;
-    --gold: #d4af37;
-    --green:#0f8b4c;
-    --blue: #145da0;
-}
-
-/* ── Hamburger ── */
-.hamburger {
-    display: none;
-    flex-direction: column;
-    gap: 5px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-}
-.hamburger span {
-    display: block;
-    width: 24px;
-    height: 2px;
-    background: #fff;
-    border-radius: 2px;
-    transition: 0.3s;
-}
-
-/* ── Dark toggle ── */
-.dark-toggle {
-    background: rgba(255,255,255,0.1);
-    border: none;
-    color: #fff;
-    padding: 8px 10px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: var(--transition);
-}
-.dark-toggle:hover { background: rgba(255,255,255,0.25); }
-
-/* ── Stock alert badge ── */
-.badge-alert {
-    background: #fff;
-    color: var(--red);
-    font-size: 10px;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 10px;
-    margin-left: 4px;
-}
-.nav-alert { background: rgba(255,200,0,0.2) !important; }
-.nav-logout { background: rgba(255,255,255,0.15) !important; }
-
-/* ── Stock banner ── */
-.stock-banner {
-    background: #fff3cd;
-    border-bottom: 2px solid #ffc107;
-    color: #7d5a00;
-    padding: 10px 20px;
-    font-size: 0.9rem;
-    text-align: center;
-}
-.stock-banner a { color: #7d5a00; font-weight: 600; }
-
-/* ── Toast notifications ── */
-#toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.toast {
-    background: #2d6a4f;
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    animation: slideIn 0.3s ease, fadeOut 0.4s ease 3.5s forwards;
-    max-width: 320px;
-}
-@keyframes slideIn {
-    from { opacity: 0; transform: translateX(40px); }
-    to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes fadeOut {
-    to { opacity: 0; transform: translateX(40px); }
-}
-
-/* ── Mobile responsive ── */
-@media (max-width: 900px) {
-    .hamburger { display: flex; }
-
-    #main-nav {
-        display: none;
-        flex-direction: column;
-        width: 100%;
-        gap: 4px;
-        padding-top: 10px;
-    }
-    #main-nav.open { display: flex; }
-    #main-nav a { width: 100%; text-align: center; }
-
-    .topbar { flex-wrap: wrap; }
-    .brand   { flex: 1; }
-}
-</style>
-
+<!-- ───────────── JS ───────────── -->
 <script>
-/* ── Dark mode: inicializa APÓS o DOM estar pronto (CORRIGIDO) ── */
-document.addEventListener('DOMContentLoaded', function() {
+
+/* ───── DARK MODE ───── */
+document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', saved);
-    const icon = document.getElementById('dark-icon');
-    if (icon) icon.textContent = saved === 'dark' ? '☀️' : '🌙';
+    updateIcon(saved);
 });
 
 function toggleDark() {
-    const html    = document.documentElement;
-    const current = html.getAttribute('data-theme');
-    const next    = current === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', next);
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
+    updateIcon(next);
+}
+
+function updateIcon(mode) {
     const icon = document.getElementById('dark-icon');
-    if (icon) icon.textContent = next === 'dark' ? '☀️' : '🌙';
+    if (icon) icon.textContent = mode === 'dark' ? '☀️' : '🌙';
 }
 
-/* ── Hamburger ── */
+/* ───── MENU MOBILE ───── */
 function toggleMenu() {
-    const nav = document.getElementById('main-nav');
-    nav.classList.toggle('open');
+    document.getElementById('main-nav').classList.toggle('open');
 }
 
-/* ── Toast (CORRIGIDO: ícone correto para erro) ── */
-function showToast(msg, type) {
+/* ───── TOAST ───── */
+function showToast(msg, type = 'success') {
     const container = document.getElementById('toast-container');
+
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.style.background = type === 'error' ? '#c0392b' : '#2d6a4f';
-    toast.textContent = (type === 'error' ? '❌ ' : '✅ ') + msg;
+
+    if (type === 'error') {
+        toast.classList.add('toast-error');
+        toast.textContent = '❌ ' + msg;
+    } else {
+        toast.textContent = '✅ ' + msg;
+    }
+
     container.appendChild(toast);
+
     setTimeout(() => toast.remove(), 4000);
 }
 
-/* ── CSRF: injeta em todos os fetch POST do sistema ── */
+/* ───── CSRF GLOBAL ───── */
 const CSRF_TOKEN = {{ csrf_token() | tojson }};
-const _origFetch = window.fetch;
-window.fetch = function(url, opts = {}) {
-    if (opts.method && opts.method.toUpperCase() === 'POST') {
-        opts.headers = opts.headers || {};
-        opts.headers['X-CSRF-Token'] = CSRF_TOKEN;
+
+const _fetch = window.fetch;
+window.fetch = function(url, options = {}) {
+    if (options.method && options.method.toUpperCase() === 'POST') {
+        options.headers = options.headers || {};
+        options.headers['X-CSRF-Token'] = CSRF_TOKEN;
     }
-    return _origFetch(url, opts);
+    return _fetch(url, options);
 };
+
 </script>
 
 </body>
