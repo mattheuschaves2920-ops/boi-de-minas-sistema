@@ -19,7 +19,6 @@
             <p class="muted" style="font-size: 0.85rem;">Gerencie o fluxo de insumos e suprimentos entre setores.</p>
         </header>
 
-        <!-- CORRIGIDO: adicionado csrf_token -->
         <form method="post" action="{% if mov_edicao %}{{ url_for('editar_movimento', mov_id=mov_edicao.id) }}{% else %}{{ url_for('movimentos') }}{% endif %}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -29,7 +28,7 @@
                 </label>
 
                 <label>Tipo de Fluxo
-                    <select name="mov_type" id="mov_type" onchange="toggleCusto()">
+                    <select name="mov_type" id="mov_type">
                         {% for t in ['Entrada', 'Saida', 'Perda'] %}
                         <option value="{{ t }}" {% if mov_edicao and mov_edicao.mov_type == t %}selected{% endif %}>{{ t }}</option>
                         {% endfor %}
@@ -67,7 +66,7 @@
 
                 <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                     <label>Quantidade
-                        <input type="number" step="0.001" name="quantity" required placeholder="0.000">
+                        <input type="number" step="0.001" name="quantity" min="0.001" required placeholder="0.000">
                     </label>
 
                     <label id="label_custo">Custo Unitário (R$)
@@ -81,7 +80,7 @@
 
                 <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                     <label>Quantidade
-                        <input type="number" step="0.001" name="quantity" value="{{ mov_edicao.quantity }}" required>
+                        <input type="number" step="0.001" name="quantity" min="0.001" value="{{ mov_edicao.quantity }}" required>
                     </label>
 
                     <label>Valor Total (R$)
@@ -95,7 +94,9 @@
             </label>
 
             <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <button class="btn" type="submit" style="flex: 2;">{{ 'Salvar Alterações' if mov_edicao else 'Registrar Movimento' }}</button>
+                <button class="btn" type="submit" style="flex: 2;">
+                    {{ 'Salvar Alterações' if mov_edicao else 'Registrar Movimento' }}
+                </button>
                 {% if mov_edicao %}
                     <a href="{{ url_for('movimentos') }}" class="btn" style="flex: 1; background: #eee; color: var(--ink); text-align: center;">Cancelar</a>
                 {% endif %}
@@ -129,11 +130,15 @@
                             <small class="muted">{{ m.setor }}</small>
                         </td>
                         <td>{{ m.quantity }}</td>
-                        <td>R$ {{ '%.2f'|format(m.value) }}</td>
+                        <td style="color:
+                            {{ '#0f8b4c' if m.mov_type == 'Entrada' else '#c0392b' if m.mov_type == 'Perda' else '#145da0' }}">
+                            R$ {{ '%.2f'|format(m.value) }}
+                        </td>
                         <td style="text-align: right; white-space: nowrap;">
                             <a href="{{ url_for('movimentos', editar=m.id, data=data_ref.strftime('%Y-%m-%d')) }}" class="btn-link">✏️</a>
-                            <!-- CORRIGIDO: csrf_token adicionado no form de exclusão -->
-                            <form method="post" action="{{ url_for('excluir_movimento', mov_id=m.id) }}" style="display:inline;" onsubmit="return confirm('⚠️ O estoque será ajustado. Confirmar exclusão?');">
+
+                            <form method="post" action="{{ url_for('excluir_movimento', mov_id=m.id) }}" style="display:inline;"
+                                  onsubmit="return confirm('⚠️ Essa ação vai alterar o estoque do item. Deseja realmente excluir?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
                             </form>
@@ -151,18 +156,32 @@
 <script>
 function toggleCusto() {
     const type = document.getElementById('mov_type').value;
+    const inputCusto = document.querySelector('[name="unit_cost"]');
     const labelCusto = document.getElementById('label_custo');
-    if (labelCusto) {
-        labelCusto.style.opacity = type === 'Entrada' ? '1' : '0.5';
+
+    if (inputCusto && labelCusto) {
+        if (type === 'Entrada') {
+            inputCusto.disabled = false;
+            labelCusto.style.opacity = '1';
+        } else {
+            inputCusto.disabled = true;
+            inputCusto.value = '';
+            labelCusto.style.opacity = '0.5';
+        }
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    toggleCusto();
+    document.getElementById('mov_type')?.addEventListener('change', toggleCusto);
+});
 </script>
 
 <style>
-    .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-    .badge.success { background: #dcfce7; color: #15803d; }
-    .badge.info    { background: #e0f2fe; color: #0369a1; }
-    .badge.error   { background: #fee2e2; color: #b91c1c; }
+.badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+.badge.success { background: #dcfce7; color: #15803d; }
+.badge.info    { background: #e0f2fe; color: #0369a1; }
+.badge.error   { background: #fee2e2; color: #b91c1c; }
 </style>
 
 {% endblock %}
