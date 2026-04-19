@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="card" style="margin-bottom: 16px; border-left: 5px solid var(--gold);">
+<section class="card" style="margin-bottom: 16px; border-left: 5px solid #d4af37;">
     <form method="get" class="grid" style="grid-template-columns: 1fr auto; align-items: end; gap: 10px;">
         <label>Ver vendas do dia:
             <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
@@ -11,31 +11,22 @@
 </section>
 
 <div class="grid two">
-
     <section class="card">
         <header style="margin-bottom: 20px;">
-            <h3 style="margin:0;">
-                {{ '✏️ Editar Venda' if venda_edicao else '🛒 Registrar Venda' }}
-            </h3>
+            <h3 style="margin:0;">{{ '✏️ Editar Venda' if venda_edicao else '🛒 Registrar Venda' }}</h3>
         </header>
 
-        <form method="post" 
-              action="{{ url_for('vendas', editar=venda_edicao.id if venda_edicao else None) }}">
-            
+        <form method="post" action="{{ url_for('vendas', editar=venda_edicao.id if venda_edicao else None) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                 <label>Data
-                    <input type="date" name="sale_date" required
-                           value="{{ (venda_edicao.sale_date if venda_edicao else data_ref).strftime('%Y-%m-%d') }}">
+                    <input type="date" name="sale_date" required value="{{ (venda_edicao.sale_date if venda_edicao else data_ref).strftime('%Y-%m-%d') }}">
                 </label>
-
                 <label>Período
                     <select name="period">
                         {% for p in ['Almoço', 'Janta'] %}
-                        <option value="{{ p }}" {% if venda_edicao and venda_edicao.period == p %}selected{% endif %}>
-                            {{ p }}
-                        </option>
+                        <option value="{{ p }}" {% if venda_edicao and venda_edicao.period == p %}selected{% endif %}>{{ p }}</option>
                         {% endfor %}
                     </select>
                 </label>
@@ -44,35 +35,22 @@
             <label>Tipo de Refeição
                 <select name="meal_type">
                     {% for t in meal_types %}
-                    <option value="{{ t }}" {% if venda_edicao and venda_edicao.meal_type == t %}selected{% endif %}>
-                        {{ t }}
-                    </option>
+                    <option value="{{ t }}" {% if venda_edicao and venda_edicao.meal_type == t %}selected{% endif %}>{{ t }}</option>
                     {% endfor %}
                 </select>
             </label>
 
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                 <label>Valor Unitário (R$)
-                    <input type="number" step="0.01" min="0" name="unit_value"
-                           value="{{ venda_edicao.unit_value if venda_edicao else '' }}"
-                           required placeholder="0.00">
+                    <input type="number" step="0.01" name="unit_value" value="{{ venda_edicao.unit_value if venda_edicao else '' }}" required>
                 </label>
-
-                <label>Quantidade / Peso
-                    <input type="number" step="0.001" min="0" name="quantity"
-                           value="{{ venda_edicao.quantity if venda_edicao else '' }}"
-                           required placeholder="0.000">
+                <label>Quantidade
+                    <input type="number" step="0.001" name="quantity" value="{{ venda_edicao.quantity if venda_edicao else '' }}" required>
                 </label>
             </div>
 
-            <label>Observação
-                <input type="text" name="notes" value="{{ venda_edicao.notes if venda_edicao else '' }}">
-            </label>
-
             <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <button class="btn" type="submit" style="flex: 2;">
-                    {{ 'Confirmar Edição' if venda_edicao else 'Salvar Venda' }}
-                </button>
+                <button class="btn" type="submit" style="flex: 2;">Salvar</button>
                 {% if venda_edicao %}
                 <a href="{{ url_for('vendas') }}" class="btn" style="flex: 1; background: #eee; text-align: center;">Cancelar</a>
                 {% endif %}
@@ -81,55 +59,33 @@
     </section>
 
     <section class="card">
-        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin:0;">📋 Vendas Registradas</h3>
-            <div style="text-align: right;">
-                <small class="muted">Total {{ data_ref.strftime('%d/%m') }}</small><br>
-                <strong style="color: var(--green); font-size: 1.2rem;">
-                    R$ {{ '%.2f'|format(total_hoje or 0) }}
-                </strong>
-            </div>
-        </div>
-
-        <div class="table-wrap">
-            <table style="font-size: 0.85rem;">
-                <thead>
-                    <tr>
-                        <th>Tipo/Período</th>
-                        <th>Qtd.</th>
-                        <th>Total</th>
-                        <th style="text-align: right;">Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for v in vendas %}
-                    {% set total_venda = (v.unit_value or 0) * (v.quantity or 0) %}
-                    <tr>
-                        <td><strong>{{ v.meal_type }}</strong><br><small>{{ v.period }}</small></td>
-                        <td>{{ '%.3f'|format(v.quantity or 0) }}</td>
-                        <td>R$ {{ '%.2f'|format(total_venda) }}</td>
-                        <td style="text-align: right;">
-                            <a href="{{ url_for('vendas', editar=v.id, data=data_ref.strftime('%Y-%m-%d')) }}">✏️</a>
-                            <form method="post" action="{{ url_for('excluir_venda', sale_id=v.id) }}" style="display:inline;" class="form-delete-sale">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" style="background:none; border:none; color:red; cursor:pointer;">🗑️</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr><td colspan="4" style="text-align:center;">Nenhuma venda.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <h3>📋 Vendas de Hoje: R$ {{ '%.2f'|format(total_hoje) }}</h3>
+        <table style="width: 100%; font-size: 0.85rem;">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Qtd.</th>
+                    <th>Total</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vendas %}
+                <tr>
+                    <td>{{ v.meal_type }}</td>
+                    <td>{{ '%.3f'|format(v.quantity) }}</td>
+                    <td>R$ {{ '%.2f'|format(v.unit_value * v.quantity) }}</td>
+                    <td>
+                        <a href="{{ url_for('vendas', editar=v.id, data=data_ref.strftime('%Y-%m-%d')) }}">✏️</a>
+                        <form method="post" action="{{ url_for('excluir_venda', sale_id=v.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" style="border:none; background:none; color:red; cursor:pointer;">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </section>
 </div>
-
-<script>
-document.querySelectorAll('.form-delete-sale').forEach((form) => {
-    form.addEventListener('submit', function (e) {
-        if (!confirm('Excluir venda permanentemente?')) e.preventDefault();
-    });
-});
-</script>
 {% endblock %}
