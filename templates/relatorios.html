@@ -27,26 +27,29 @@
 <div class="grid metrics" style="margin-top:16px;">
     <div class="card metric" style="border-bottom: 4px solid var(--green);">
         <span>💰 Faturamento Total</span>
-        <strong>R$ {{ '%.2f'|format(faturamento) }}</strong>
-        <small class="muted">{{ refeicoes }} refeições servidas</small>
+        <strong>R$ {{ '%.2f'|format(faturamento or 0) }}</strong>
+        <small class="muted">{{ refeicoes or 0 }} refeições servidas</small>
     </div>
 
     <div class="card metric" style="border-bottom: 4px solid var(--red);">
         <span>📉 Custo Operacional</span>
-        <strong style="color: var(--red);">R$ {{ '%.2f'|format(custo) }}</strong>
+        <strong style="color: var(--red);">R$ {{ '%.2f'|format(custo or 0) }}</strong>
         <small class="muted">Inclui produção e insumos</small>
     </div>
 
-    <div class="card metric" style="border-bottom: 4px solid {{ '#27ae60' if lucro > 0 else '#e74c3c' }};">
+    <div class="card metric" style="border-bottom: 4px solid {{ '#27ae60' if (lucro or 0) > 0 else '#e74c3c' }};">
         <span>📈 Lucro Líquido</span>
-        <strong style="color: {{ '#27ae60' if lucro > 0 else '#e74c3c' }};">R$ {{ '%.2f'|format(lucro) }}</strong>
+        <strong style="color: {{ '#27ae60' if (lucro or 0) > 0 else '#e74c3c' }};">
+            R$ {{ '%.2f'|format(lucro or 0) }}
+        </strong>
         <small class="muted">Resultado do período</small>
     </div>
 
     <div class="card metric">
         <span>📊 CMV</span>
-        <!-- CORRIGIDO: classes 'error' e 'success' agora definidas no style.css -->
-        <strong class="{{ 'error' if cmv > 35 else 'success' }}">{{ cmv }}%</strong>
+        <strong class="{{ 'error' if (cmv or 0) > 35 else 'success' }}">
+            {{ cmv or 0 }}%
+        </strong>
         <small class="muted">Meta: abaixo de 35%</small>
     </div>
 </div>
@@ -54,12 +57,12 @@
 <div class="grid metrics" style="margin-top:12px;">
     <div class="card metric">
         <span>⚠️ Total de Perdas</span>
-        <strong class="error">R$ {{ '%.2f'|format(total_perdas) }}</strong>
+        <strong class="error">R$ {{ '%.2f'|format(total_perdas or 0) }}</strong>
     </div>
 
     <div class="card metric">
         <span>📅 Controle Diário</span>
-        <strong>R$ {{ '%.2f'|format(total_diario) }}</strong>
+        <strong>R$ {{ '%.2f'|format(total_diario or 0) }}</strong>
     </div>
 </div>
 
@@ -76,11 +79,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for k, v in por_periodo.items() %}
+                    {% for k, v in (por_periodo or {}).items() %}
                     <tr>
                         <td><strong>{{ k }}</strong></td>
-                        <td>{{ v.q }}</td>
-                        <td style="text-align: right;">R$ {{ '%.2f'|format(v.v) }}</td>
+                        <td>{{ v.q or 0 }}</td>
+                        <td style="text-align: right;">R$ {{ '%.2f'|format(v.v or 0) }}</td>
                     </tr>
                     {% else %}
                     <tr><td colspan="3" class="muted" style="text-align:center; padding:20px;">Sem dados no período.</td></tr>
@@ -102,11 +105,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for r in ranking_vendas %}
+                    {% for r in ranking_vendas or [] %}
                     <tr>
                         <td>{{ r.tipo }}</td>
-                        <td>{{ r.qtd }}</td>
-                        <td style="text-align: right;"><strong>R$ {{ '%.2f'|format(r.total) }}</strong></td>
+                        <td>{{ r.qtd or 0 }}</td>
+                        <td style="text-align: right;"><strong>R$ {{ '%.2f'|format(r.total or 0) }}</strong></td>
                     </tr>
                     {% else %}
                     <tr><td colspan="3" class="muted" style="text-align:center; padding:20px;">Sem vendas hoje.</td></tr>
@@ -131,15 +134,14 @@
                 </tr>
             </thead>
             <tbody>
-                {% for s in resumo_setores %}
+                {% for s in resumo_setores or [] %}
                 <tr>
                     <td><strong>{{ s.setor }}</strong></td>
-                    <td class="success">R$ {{ '%.2f'|format(s.venda) }}</td>
-                    <td class="muted">R$ {{ '%.2f'|format(s.producao) }}</td>
-                    <td class="error">R$ {{ '%.2f'|format(s.movimentacao) }}</td>
-                    <!-- CORRIGIDO: linha estava cortada, agora completa -->
-                    <td style="text-align: right; font-weight: bold; color: {{ '#27ae60' if s.lucro > 0 else '#e74c3c' }};">
-                        R$ {{ '%.2f'|format(s.lucro) }}
+                    <td class="success">R$ {{ '%.2f'|format(s.venda or 0) }}</td>
+                    <td class="muted">R$ {{ '%.2f'|format(s.producao or 0) }}</td>
+                    <td class="error">R$ {{ '%.2f'|format(s.movimentacao or 0) }}</td>
+                    <td style="text-align: right; font-weight: bold; color: {{ '#27ae60' if (s.lucro or 0) > 0 else '#e74c3c' }};">
+                        R$ {{ '%.2f'|format(s.lucro or 0) }}
                     </td>
                 </tr>
                 {% else %}
@@ -151,27 +153,26 @@
 </section>
 
 <style>
-    /* Dropdown de exportação */
-    .dropdown { position: relative; display: inline-block; flex: 1; }
-    .dropdown-content {
-        display: none;
-        position: absolute;
-        background-color: #fff;
-        min-width: 160px;
-        box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
-        z-index: 100;
-        right: 0;
-        border-radius: 8px;
-    }
-    .dropdown-content a {
-        color: var(--ink);
-        padding: 12px 16px;
-        text-decoration: none;
-        display: block;
-        font-size: 0.9rem;
-    }
-    .dropdown-content a:hover { background-color: #f1f1f1; }
-    .dropdown:hover .dropdown-content { display: block; }
+.dropdown { position: relative; display: inline-block; flex: 1; }
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    z-index: 100;
+    right: 0;
+    border-radius: 8px;
+}
+.dropdown-content a {
+    color: var(--ink);
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    font-size: 0.9rem;
+}
+.dropdown-content a:hover { background-color: #f1f1f1; }
+.dropdown:hover .dropdown-content { display: block; }
 </style>
 
 {% endblock %}
