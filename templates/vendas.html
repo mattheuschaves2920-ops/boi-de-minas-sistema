@@ -12,20 +12,16 @@
 
 <div class="grid two">
 
-    <!-- FORM -->
     <section class="card">
         <header style="margin-bottom: 20px;">
             <h3 style="margin:0;">
                 {{ '✏️ Editar Venda' if venda_edicao else '🛒 Registrar Venda' }}
             </h3>
-            <p class="muted" style="font-size: 0.85rem;">
-                Insira os dados do ticket ou peso da balança.
-            </p>
         </header>
 
-        <form method="post"
-              action="{% if venda_edicao %}{{ url_for('editar_venda', sale_id=venda_edicao.id) }}{% else %}{{ url_for('vendas') }}{% endif %}">
-
+        <form method="post" 
+              action="{{ url_for('vendas', editar=venda_edicao.id if venda_edicao else None) }}">
+            
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -69,34 +65,24 @@
                 </label>
             </div>
 
-            <label>Observação (Opcional)
-                <input type="text" name="notes"
-                       value="{{ venda_edicao.notes if venda_edicao else '' }}"
-                       placeholder="Ex: Mesa 10, Cortesia...">
+            <label>Observação
+                <input type="text" name="notes" value="{{ venda_edicao.notes if venda_edicao else '' }}">
             </label>
 
             <div style="margin-top: 20px; display: flex; gap: 10px;">
                 <button class="btn" type="submit" style="flex: 2;">
                     {{ 'Confirmar Edição' if venda_edicao else 'Salvar Venda' }}
                 </button>
-
                 {% if venda_edicao %}
-                <a href="{{ url_for('vendas') }}"
-                   class="btn"
-                   style="flex: 1; background: #eee; color: var(--ink); text-align: center;">
-                    Cancelar
-                </a>
+                <a href="{{ url_for('vendas') }}" class="btn" style="flex: 1; background: #eee; text-align: center;">Cancelar</a>
                 {% endif %}
             </div>
         </form>
     </section>
 
-    <!-- LISTA -->
     <section class="card">
-
         <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin:0;">📋 Vendas Registradas</h3>
-
             <div style="text-align: right;">
                 <small class="muted">Total {{ data_ref.strftime('%d/%m') }}</small><br>
                 <strong style="color: var(--green); font-size: 1.2rem;">
@@ -115,72 +101,35 @@
                         <th style="text-align: right;">Ação</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     {% for v in vendas %}
                     {% set total_venda = (v.unit_value or 0) * (v.quantity or 0) %}
-
                     <tr>
-                        <td>
-                            <strong>{{ v.meal_type }}</strong><br>
-                            <small class="muted">{{ v.period }}</small>
-                        </td>
-
+                        <td><strong>{{ v.meal_type }}</strong><br><small>{{ v.period }}</small></td>
                         <td>{{ '%.3f'|format(v.quantity or 0) }}</td>
-
-                        <td><strong>R$ {{ '%.2f'|format(total_venda) }}</strong></td>
-
-                        <td style="text-align: right; white-space: nowrap;">
-
-                            <a href="{{ url_for('vendas', editar=v.id, data=data_ref.strftime('%Y-%m-%d')) }}"
-                               class="btn-link">✏️</a>
-
-                            <form method="post"
-                                  action="{{ url_for('excluir_venda', sale_id=v.id) }}"
-                                  style="display:inline;"
-                                  class="form-delete-sale">
-
+                        <td>R$ {{ '%.2f'|format(total_venda) }}</td>
+                        <td style="text-align: right;">
+                            <a href="{{ url_for('vendas', editar=v.id, data=data_ref.strftime('%Y-%m-%d')) }}">✏️</a>
+                            <form method="post" action="{{ url_for('excluir_venda', sale_id=v.id) }}" style="display:inline;" class="form-delete-sale">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                                <button type="submit"
-                                        class="btn-link"
-                                        style="color: var(--red); border:none; background:none; cursor:pointer; padding: 0 5px;">
-                                    🗑️
-                                </button>
+                                <button type="submit" style="background:none; border:none; color:red; cursor:pointer;">🗑️</button>
                             </form>
-
                         </td>
                     </tr>
-
                     {% else %}
-                    <tr>
-                        <td colspan="4" class="muted" style="text-align: center; padding: 20px;">
-                            Nenhuma venda para esta data.
-                        </td>
-                    </tr>
+                    <tr><td colspan="4" style="text-align:center;">Nenhuma venda.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-
     </section>
 </div>
 
 <script>
 document.querySelectorAll('.form-delete-sale').forEach((form) => {
     form.addEventListener('submit', function (e) {
-        if (!confirm('Excluir venda permanentemente?')) {
-            e.preventDefault();
-            return;
-        }
-
-        const btn = this.querySelector('button');
-        if (btn) {
-            btn.disabled = true;
-            btn.innerText = 'Excluindo...';
-        }
+        if (!confirm('Excluir venda permanentemente?')) e.preventDefault();
     });
 });
 </script>
-
 {% endblock %}
