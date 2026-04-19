@@ -17,7 +17,6 @@
             <p class="muted" style="font-size: 0.85rem;">Entrada de itens processados ou fabricados internamente.</p>
         </header>
 
-        <!-- CORRIGIDO: adicionado csrf_token -->
         <form method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -46,7 +45,7 @@
             </label>
 
             <label>Quantidade Produzida (Kg/Un)
-                <input type="number" step="0.001" name="quantity" required placeholder="0.000">
+                <input type="number" step="0.001" min="0.001" name="quantity" required placeholder="0.000">
             </label>
 
             <button class="btn" type="submit" style="width: 100%; margin-top: 15px; background: var(--green); color: white;">
@@ -75,26 +74,32 @@
                             <small class="muted">{{ p.setor }}</small>
                         </td>
                         <td>{{ p.quantity }}</td>
-                        <td class="success">R$ {{ "%.2f"|format(p.cost) }}</td>
+                        <td style="color: var(--green); font-weight: 600;">
+                            R$ {{ "%.2f"|format(p.cost) }}
+                        </td>
                         <td style="text-align: right;">
-                            <!-- CORRIGIDO: csrf_token adicionado no form de exclusão -->
-                            <form action="/excluir-producao/{{ p.id }}" method="post" onsubmit="return confirm('⚠️ Excluir este registro removerá o item do estoque. Confirmar?');">
+                            <form method="post"
+                                  action="{{ url_for('excluir_producao', prod_id=p.id) }}"
+                                  onsubmit="return confirm('⚠️ Excluir esta produção removerá o item do estoque. Confirmar?');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
+                                <button type="submit" class="btn-link"
+                                        style="color: var(--red); border:none; background:none; cursor:pointer;">
+                                    🗑️
+                                </button>
                             </form>
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="4" class="muted" style="text-align: center; padding: 20px;">Nenhuma produção registrada hoje.</td></tr>
+                    <tr>
+                        <td colspan="4" class="muted" style="text-align: center; padding: 20px;">
+                            Nenhuma produção registrada hoje.
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </section>
 </div>
-
-<style>
-    .success { color: #15803d; font-weight: bold; }
-</style>
 
 {% endblock %}
