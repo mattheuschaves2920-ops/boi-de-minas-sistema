@@ -1,16 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
+
 <section class="card">
     <h3>📋 Relatório de Estoque</h3>
+
+    <!-- MÉTRICAS -->
     <div class="grid metrics">
         <div class="card metric">
             <span>Mix de Produtos</span>
             <strong>{{ total_itens }}</strong>
         </div>
+
         <div class="card metric">
             <span>Itens Críticos</span>
             <strong style="color:var(--red)">{{ itens_baixos }}</strong>
         </div>
+
         <div class="card metric">
             <span>Capital Total</span>
             <strong style="color:var(--green)">R$ {{ '%.2f'|format(valor_total) }}</strong>
@@ -18,21 +23,92 @@
     </div>
 </section>
 
-<div class="table-wrap" style="margin-top:20px">
-    <table>
+<!-- FILTRO + BUSCA -->
+<div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
+    <input type="text" id="busca" placeholder="🔍 Buscar item..."
+           style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--line);">
+
+    <select id="filtro-area" style="padding:10px; border-radius:8px; border:1px solid var(--line);">
+        <option value="">Todas áreas</option>
+        {% for a in itens | map(attribute='area') | unique %}
+        <option value="{{ a }}">{{ a }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<!-- TABELA -->
+<div class="table-wrap" style="margin-top:15px">
+    <table id="tabela-estoque">
         <thead>
-            <tr><th>Item</th><th>Área</th><th>Estoque</th><th>Valor Total</th></tr>
+            <tr>
+                <th onclick="sortTable(0)">Item ⬍</th>
+                <th onclick="sortTable(1)">Área ⬍</th>
+                <th onclick="sortTable(2)">Estoque ⬍</th>
+                <th>Valor Total</th>
+            </tr>
         </thead>
         <tbody>
             {% for i in itens %}
-            <tr>
-                <td>{{ i.name }}</td>
+            {% set valor = i.stock * i.cost %}
+            {% set critico = i.min_stock is defined and i.stock <= i.min_stock %}
+            <tr 
+                data-area="{{ i.area }}"
+                style="background: {{ '#fff5f5' if critico else '' }}">
+                
+                <td><strong>{{ i.name }}</strong></td>
                 <td>{{ i.area }}</td>
-                <td>{{ i.stock }}</td>
-                <td>R$ {{ '%.2f'|format(i.stock * i.cost) }}</td>
+
+                <td style="font-weight:600; color:{{ 'var(--red)' if critico else 'var(--ink)' }}">
+                    {{ i.stock }}
+                    {% if critico %} ⚠️{% endif %}
+                </td>
+
+                <td>R$ {{ '%.2f'|format(valor) }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<script>
+// 🔍 BUSCA
+document.getElementById('busca').addEventListener('input', filtrar);
+
+// 📂 FILTRO POR ÁREA
+document.getElementById('filtro-area').addEventListener('change', filtrar);
+
+function filtrar() {
+    const termo = document.getElementById('busca').value.toLowerCase();
+    const area = document.getElementById('filtro-area').value;
+    const linhas = document.querySelectorAll('#tabela-estoque tbody tr');
+
+    linhas.forEach(linha => {
+        const texto = linha.innerText.toLowerCase();
+        const areaLinha = linha.dataset.area;
+
+        const matchBusca = texto.includes(termo);
+        const matchArea = !area || areaLinha === area;
+
+        linha.style.display = (matchBusca && matchArea) ? '' : 'none';
+    });
+}
+
+// 🔽 ORDENAÇÃO DE COLUNA
+function sortTable(col) {
+    const table = document.getElementById("tabela-estoque");
+    const rows = Array.from(table.rows).slice(1);
+    const asc = table.getAttribute("data-sort") !== "asc";
+
+    rows.sort((a, b) => {
+        const A = a.cells[col].innerText.toLowerCase();
+        const B = b.cells[col].innerText.toLowerCase();
+        return asc ? A.localeCompare(B, 'pt-BR', {numeric: true}) 
+                   : B.localeCompare(A, 'pt-BR', {numeric: true});
+    });
+
+    rows.forEach(tr => table.appendChild(tr));
+    table.setAttribute("data-sort", asc ? "asc" : "desc");
+}
+</script>
+
 {% endblock %}
