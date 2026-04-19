@@ -3,6 +3,7 @@
 
 <div class="login-container">
     <div class="card login-card">
+
         <div class="login-header">
             <div class="brand-icon" style="margin: 0 auto 15px; width: 60px; height: 60px; font-size: 30px;">🍽️</div>
             <h2>Acesso ao Sistema</h2>
@@ -10,94 +11,113 @@
         </div>
 
         {% if error %}
-            <div class="alert error-box">
-                <strong>⚠️ Erro:</strong> {{ error }}
-            </div>
+        <div class="alert error-box">
+            ⚠️ {{ error }}
+        </div>
         {% endif %}
 
-        <!-- CORRIGIDO: adicionado csrf_token no formulário de login -->
-        <form method="post" class="login-form">
+        <form method="post" class="login-form" id="loginForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
             <label>Usuário
                 <input type="text" name="username" required autofocus placeholder="Digite seu login">
             </label>
-            
+
             <label>Senha
                 <input type="password" name="password" required placeholder="••••••••">
             </label>
-            
-            <button class="btn btn-login">Entrar no Sistema</button>
+
+            <!-- lembrar login -->
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; margin-top:10px;">
+                <input type="checkbox" name="remember">
+                Manter conectado
+            </label>
+
+            <button class="btn btn-login" id="btnLogin">
+                Entrar
+            </button>
         </form>
 
         <div class="login-footer">
-            <p class="small">
-                <span>💡</span> <strong>Dica:</strong> Primeiro acesso? Use <code>/setup</code> para criar o usuário mestre (admin / 123456).
+            <p class="small muted">
+                Sistema protegido • Acesso monitorado
             </p>
         </div>
     </div>
 </div>
 
 <style>
-    .login-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: calc(100vh - 100px);
-        padding: 20px;
-    }
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 100px);
+    padding: 20px;
+}
 
-    .login-card {
-        width: 100%;
-        max-width: 400px;
-        padding: 40px 30px;
-        text-align: center;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        border-top: 5px solid var(--red);
-    }
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 40px 30px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border-top: 5px solid var(--red);
+    animation: fadeIn 0.4s ease;
+}
 
-    .login-header h2 {
-        margin: 0;
-        color: var(--ink);
-        font-size: 1.5rem;
-    }
+@keyframes fadeIn {
+    from {opacity:0; transform: translateY(20px);}
+    to {opacity:1; transform: translateY(0);}
+}
 
-    .login-form {
-        margin-top: 30px;
-        text-align: left;
-    }
+.login-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
 
-    .error-box {
-        background: #fff5f5;
-        border: 1px solid #ffcdd2;
-        color: #b71c1c;
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 20px;
-        font-size: 0.9rem;
-    }
+.login-form {
+    margin-top: 25px;
+    text-align: left;
+}
 
-    .btn-login {
-        width: 100%;
-        margin-top: 20px;
-        height: 48px;
-        font-size: 1rem;
-        background: var(--red);
-        color: white;
-    }
+.error-box {
+    background: #fff5f5;
+    border: 1px solid #ffcdd2;
+    color: #b71c1c;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 20px;
+    font-size: 0.9rem;
+}
 
-    .login-footer {
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid var(--line);
-    }
+.btn-login {
+    width: 100%;
+    margin-top: 20px;
+    height: 48px;
+    font-size: 1rem;
+    background: var(--red);
+    color: white;
+    transition: 0.2s;
+}
 
-    code {
-        background: #eee;
-        padding: 2px 4px;
-        border-radius: 4px;
-        font-family: monospace;
-        color: var(--red);
-    }
+.btn-login:active {
+    transform: scale(0.98);
+}
+
+.login-footer {
+    margin-top: 25px;
+    border-top: 1px solid var(--line);
+    padding-top: 15px;
+}
 </style>
+
+<script>
+// loading botão
+document.getElementById('loginForm').addEventListener('submit', function() {
+    const btn = document.getElementById('btnLogin');
+    btn.textContent = 'Entrando...';
+    btn.disabled = true;
+});
+</script>
 
 {% endblock %}
