@@ -1,32 +1,43 @@
 {
-  "name": "Boi de Minas Churrascaria",
-  "short_name": "Boi de Minas",
-  "description": "O melhor churrasco gaúcho com o tempero mineiro.",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#8b0000",
-  "theme_color": "#8b0000",
-  "scope": "/",
-  "lang": "pt-BR",
-  "icons": [
-    {
-      "src": "/static/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/icon-192-maskable.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/static/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
-  ]
+"name": "Boi de Minas Churrascaria",
+"short_name": "Boi de Minas",
+"description": "Sistema de gestão completo para churrascaria - controle de estoque, vendas e produção.",
+
+"start_url": "/",
+"scope": "/",
+
+"display": "standalone",
+"orientation": "portrait",
+
+"background_color": "#8b0000",
+"theme_color": "#8b0000",
+
+"lang": "pt-BR",
+
+"categories": ["business", "food"],
+
+"icons": [
+{
+"src": "/static/icon-192.png",
+"sizes": "192x192",
+"type": "image/png"
+},
+{
+"src": "/static/icon-192-maskable.png",
+"sizes": "192x192",
+"type": "image/png",
+"purpose": "maskable"
+},
+{
+"src": "/static/icon-512.png",
+"sizes": "512x512",
+"type": "image/png"
+},
+{
+"src": "/static/icon-512-maskable.png",
+"sizes": "512x512",
+"type": "image/png",
+"purpose": "maskable"
+}
+]
 }
