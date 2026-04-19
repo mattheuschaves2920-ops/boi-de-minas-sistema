@@ -1,8 +1,6 @@
 import os
 import secrets
 from datetime import date, datetime
-from decimal import Decimal
-
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -116,6 +114,20 @@ class Waste(db.Model):
     value = db.Column(db.Float, default=0.0)
 
 # ─────────────────────────────────────────────
+# ROTAS PRINCIPAIS (CORREÇÃO DO ERRO 404)
+# ─────────────────────────────────────────────
+
+@app.route("/")
+def home():
+    return redirect(url_for("vendas"))
+
+@app.route("/setup")
+def setup():
+    with app.app_context():
+        db.create_all()
+    return "Banco de dados criado com sucesso!"
+
+# ─────────────────────────────────────────────
 # VENDAS
 # ─────────────────────────────────────────────
 
@@ -164,7 +176,7 @@ def vendas():
                            venda_edicao=venda_edicao)
 
 # ─────────────────────────────────────────────
-# MOVIMENTOS (CORRIGIDO)
+# MOVIMENTOS
 # ─────────────────────────────────────────────
 
 @app.route("/movimentos", methods=["GET", "POST"])
@@ -185,28 +197,26 @@ def movimentos():
         item_id = request.form.get("item_id", type=int)
         item = Item.query.get(item_id)
 
-        # ─── EDIÇÃO ─────────────────────────────
+        # EDITAR
         if mov_edicao:
 
-            # reverte estoque antigo
             old_item = Item.query.get(mov_edicao.item_id)
             if old_item:
                 _ajustar_estoque(old_item, mov_edicao.mov_type, -mov_edicao.quantity)
 
-            # atualiza movimento
             mov_edicao.mov_date = mov_date
             mov_edicao.mov_type = mov_type
             mov_edicao.quantity = qty
             mov_edicao.value = _parse_float(request.form.get("value"))
             mov_edicao.detail = request.form.get("detail")
+
             mov_edicao.item_id = item.id if item else None
             mov_edicao.item_name = item.name if item else "—"
 
-            # aplica novo estoque
             if item:
                 _ajustar_estoque(item, mov_type, qty)
 
-        # ─── NOVO REGISTRO ─────────────────────
+        # NOVO
         else:
 
             m = Movement(
@@ -239,25 +249,22 @@ def movimentos():
 @app.route("/producao", methods=["POST"])
 def producao():
 
-    item_id = request.form.get("item_id", type=int)
-    item = Item.query.get(item_id)
+    item = Item.query.get(request.form.get("item_id", type=int))
 
     if item:
-
         qty = _parse_float(request.form.get("quantity"))
 
-        p = Production(
+        db.session.add(Production(
             prod_date=datetime.strptime(request.form["prod_date"], "%Y-%m-%d").date(),
             setor=request.form.get("setor"),
             item_id=item.id,
             item_name=item.name,
             quantity=qty,
             cost=qty * (item.cost or 0),
-        )
+        ))
 
         _ajustar_estoque(item, "Entrada", qty)
 
-        db.session.add(p)
         db.session.commit()
 
     return redirect(url_for("producao"))
@@ -269,25 +276,22 @@ def producao():
 @app.route("/desperdicio", methods=["POST"])
 def desperdicio():
 
-    item_id = request.form.get("item_id", type=int)
-    item = Item.query.get(item_id)
+    item = Item.query.get(request.form.get("item_id", type=int))
 
     if item:
-
         qty = _parse_float(request.form.get("quantity"))
 
-        w = Waste(
+        db.session.add(Waste(
             waste_date=datetime.strptime(request.form["waste_date"], "%Y-%m-%d").date(),
             item_id=item.id,
             item_name=item.name,
             quantity=qty,
             reason=request.form.get("reason"),
             value=qty * (item.cost or 0),
-        )
+        ))
 
         _ajustar_estoque(item, "Saida", qty)
 
-        db.session.add(w)
         db.session.commit()
 
     return redirect(url_for("desperdicio"))
@@ -300,4 +304,4 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
 
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=10000)
