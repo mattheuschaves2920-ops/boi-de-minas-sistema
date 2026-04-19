@@ -1,24 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
+
 <div class="grid two">
+
+    <!-- FORMULÁRIO -->
     <section class="card" style="border-top: 4px solid var(--ink);">
         <header style="margin-bottom: 20px;">
             <h3 style="margin:0;">👤 Gerenciar Acessos</h3>
-            <p class="muted" style="font-size: 0.85rem;">Cadastre novos funcionários e defina níveis de permissão.</p>
+            <p class="muted" style="font-size: 0.85rem;">
+                Cadastre novos funcionários e defina níveis de permissão.
+            </p>
         </header>
 
-        <!-- CORRIGIDO: adicionado csrf_token -->
-        <form method="post">
+        <form method="post" autocomplete="off">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <label>Nome Completo
-                <input type="text" name="name" required placeholder="Ex: João Silva">
+
+            <label for="name">Nome Completo
+                <input id="name" type="text" name="name" required placeholder="Ex: João Silva">
             </label>
+
             <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
-                <label>Login (Usuário)
-                    <input type="text" name="username" required placeholder="joao.silva">
+                <label for="username">Login (Usuário)
+                    <input id="username" type="text" name="username" required placeholder="joao.silva" autocomplete="username">
                 </label>
-                <label>Nível de Perfil
-                    <select name="role" required>
+
+                <label for="role">Nível de Perfil
+                    <select id="role" name="role" required>
                         <option value="" disabled selected>Selecione...</option>
                         {% for role in roles %}
                         <option value="{{ role }}">{{ role }}</option>
@@ -26,18 +33,23 @@
                     </select>
                 </label>
             </div>
-            <label>Senha de Acesso
-                <input type="password" name="password" required placeholder="••••••••" minlength="6">
-                <small class="muted">Recomendado: Mínimo 6 caracteres.</small>
+
+            <label for="password">Senha de Acesso
+                <input id="password" type="password" name="password" required minlength="6" autocomplete="new-password">
+                <small class="muted">Recomendado: mínimo 6 caracteres.</small>
             </label>
-            <button class="btn" style="width: 100%; margin-top: 15px; background: var(--ink); color: white;">
+
+            <button class="btn" type="submit"
+                style="width: 100%; margin-top: 15px; background: var(--ink); color: white;">
                 ➕ Salvar Usuário
             </button>
         </form>
     </section>
 
+    <!-- LISTA -->
     <section class="card">
         <h3>👥 Equipe Cadastrada</h3>
+
         <div class="table-wrap">
             <table style="font-size: 0.9rem;">
                 <thead>
@@ -47,6 +59,7 @@
                         <th style="text-align: right;">Ação</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     {% for u in usuarios %}
                     <tr>
@@ -54,48 +67,78 @@
                             <strong>{{ u.name }}</strong><br>
                             <small class="muted">@{{ u.username }}</small>
                         </td>
+
                         <td>
                             <span class="badge-role">{{ u.role }}</span>
                         </td>
+
                         <td style="text-align: right;">
-                            <!-- CORRIGIDO: csrf_token + confirm seguro via data-attribute -->
-                            <form action="{{ url_for('excluir_usuario', user_id=u.id) }}" method="post"
-                                  style="display:inline;"
+
+                            <!-- Evita excluir usuário atual (recomendado backend também validar) -->
+                            {% if current_user.id != u.id %}
+                            <form action="{{ url_for('excluir_usuario', user_id=u.id) }}"
+                                  method="post"
                                   class="form-excluir-usuario"
-                                  data-nome="{{ u.name }}">
+                                  data-nome="{{ u.name }}"
+                                  style="display:inline;">
+
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
+
+                                <button type="submit"
+                                        class="btn-link"
+                                        style="color: var(--red); border:none; background:none; cursor:pointer;"
+                                        title="Excluir usuário">
+                                    🗑️
+                                </button>
                             </form>
+                            {% else %}
+                                <small class="muted">Você</small>
+                            {% endif %}
+
                         </td>
                     </tr>
+
                     {% else %}
-                    <tr><td colspan="3" class="muted" style="text-align: center; padding: 20px;">Nenhum usuário cadastrado.</td></tr>
+                    <tr>
+                        <td colspan="3" class="muted" style="text-align: center; padding: 20px;">
+                            Nenhum usuário cadastrado.
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </section>
+
 </div>
 
 <style>
-    .badge-role {
-        background: #f1f1f1;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: bold;
-        text-transform: uppercase;
-        color: var(--ink);
-    }
+.badge-role {
+    background: #f1f1f1;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--ink);
+}
 </style>
 
 <script>
-// CORRIGIDO: confirm seguro sem interpolação Jinja dentro de string JS
-document.querySelectorAll('.form-excluir-usuario').forEach(function(form) {
-    form.addEventListener('submit', function(e) {
-        const nome = form.getAttribute('data-nome');
-        if (!confirm('⚠️ Tem certeza que deseja remover o acesso de ' + nome + '?')) {
+document.querySelectorAll('.form-excluir-usuario').forEach((form) => {
+    form.addEventListener('submit', function (e) {
+        const nome = this.getAttribute('data-nome');
+
+        if (!confirm(`⚠️ Tem certeza que deseja remover o acesso de ${nome}?`)) {
             e.preventDefault();
+            return;
+        }
+
+        // evita double submit
+        const btn = this.querySelector('button');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerText = 'Excluindo...';
         }
     });
 });
