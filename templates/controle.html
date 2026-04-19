@@ -1,74 +1,140 @@
 {% extends "base.html" %}
 {% block content %}
+
 <div class="grid two">
+
+    <!-- FORMULÁRIO -->
     <section class="card">
-        <h3>📝 Registro de Salgados e Bolos</h3>
-        <!-- CORRIGIDO: adicionado csrf_token -->
-        <form method="post" id="daily-form">
+        <h3>📝 Registro de Produção / Vendas</h3>
+
+        <form method="post" id="daily-form" class="form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+
+            <div class="grid form-grid-2">
                 <label>Data
                     <input type="date" name="control_date" id="control_date" required>
                 </label>
+
                 <label>Grupo
-                    <select name="group_name">
-                        {% for g in daily_groups %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
+                    <select name="group_name" required>
+                        {% for g in daily_groups %}
+                            <option value="{{ g }}">{{ g }}</option>
+                        {% endfor %}
                     </select>
                 </label>
             </div>
+
             <label>Nome do Item
-                <input type="text" name="item_name" placeholder="Ex: Coxinha..." required>
+                <input type="text" name="item_name" placeholder="Ex: Coxinha, Bolo de Chocolate..." required>
             </label>
-            <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                <label>Entrada
+
+            <div class="grid form-grid-3">
+                <label>Produzido (Entrada)
                     <input type="number" name="input_qty" id="in" min="0" value="0" required>
                 </label>
+
                 <label>Sobra
                     <input type="number" name="output_qty" id="out" min="0" value="0" required>
                 </label>
+
                 <label>Vendido
-                    <input type="number" name="sold_qty" id="sold" readonly style="background:#e3f2fd">
+                    <input type="number" name="sold_qty" id="sold" readonly class="readonly">
                 </label>
             </div>
+
             <label>Valor Unitário (R$)
-                <input type="number" step="0.01" name="unit_value" placeholder="0,00">
+                <input type="number" step="0.01" name="unit_value" id="price" placeholder="0,00">
             </label>
-            <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Salvar Lançamento</button>
+
+            <!-- TOTAL -->
+            <div class="total-box">
+                💰 Total estimado: <strong id="total">R$ 0,00</strong>
+            </div>
+
+            <button type="submit" class="btn full">Salvar Lançamento</button>
         </form>
     </section>
 
+    <!-- RESUMO -->
     <section class="card">
         <h3>📊 Resumo do Dia</h3>
+
         <div class="table-wrap">
             <table>
                 <thead>
-                    <tr><th>Grupo</th><th>Vendido</th><th>Faturado</th></tr>
+                    <tr>
+                        <th>Grupo</th>
+                        <th>Vendido</th>
+                        <th>Faturado</th>
+                    </tr>
                 </thead>
                 <tbody>
                     {% for g, t in totais.items() %}
                     <tr>
                         <td><strong>{{ g }}</strong></td>
                         <td>{{ t.vendido }} un.</td>
-                        <td style="color:var(--green)">R$ {{ '%.2f'|format(t.faturado) }}</td>
+                        <td class="money">
+                            R$ {{ '%.2f'|format(t.faturado) }}
+                        </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="3" style="text-align:center;">Nenhum dado hoje.</td></tr>
+                    <tr>
+                        <td colspan="3" class="empty-state">
+                            Nenhum dado hoje.
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </section>
+
 </div>
 
+<!-- SCRIPT MELHORADO -->
 <script>
-    const inQty = document.getElementById('in');
-    const outQty = document.getElementById('out');
-    const soldQty = document.getElementById('sold');
-    function calcular() {
-        const total = (parseInt(inQty.value) || 0) - (parseInt(outQty.value) || 0);
-        soldQty.value = total > 0 ? total : 0;
+const inQty   = document.getElementById('in');
+const outQty  = document.getElementById('out');
+const soldQty = document.getElementById('sold');
+const price   = document.getElementById('price');
+const total   = document.getElementById('total');
+
+/* cálculo inteligente */
+function calcular() {
+    const entrada = parseFloat(inQty.value) || 0;
+    const sobra   = parseFloat(outQty.value) || 0;
+
+    let vendido = entrada - sobra;
+
+    /* impede erro humano */
+    if (vendido < 0) {
+        vendido = 0;
+        outQty.value = entrada;
     }
-    inQty.addEventListener('input', calcular);
-    outQty.addEventListener('input', calcular);
+
+    soldQty.value = vendido;
+
+    calcularTotal();
+}
+
+function calcularTotal() {
+    const vendido = parseFloat(soldQty.value) || 0;
+    const valor   = parseFloat(price.value) || 0;
+
+    const resultado = vendido * valor;
+
+    total.textContent = "R$ " + resultado.toFixed(2);
+}
+
+/* eventos */
+[inQty, outQty].forEach(el => el.addEventListener('input', calcular));
+price.addEventListener('input', calcularTotal);
+
+/* seta data automática */
+document.addEventListener('DOMContentLoaded', () => {
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('control_date').value = hoje;
+});
 </script>
+
 {% endblock %}
