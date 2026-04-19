@@ -4,60 +4,104 @@
 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:1.5rem;">
     <div>
         <h2 style="margin:0;">🛒 Lista de Compras</h2>
-        <p class="muted" style="margin:4px 0 0; font-size:0.9rem;">Gerada automaticamente pelos itens abaixo do estoque mínimo.</p>
+        <p class="muted" style="margin:4px 0 0; font-size:0.9rem;">
+            Itens abaixo do mínimo com sugestão automática de compra.
+        </p>
     </div>
-    <a class="btn" href="{{ url_for('exportar_lista_compras_xlsx') }}" style="background:var(--green); color:#fff;">
-        📊 Exportar Excel
-    </a>
+
+    <div style="display:flex; gap:8px;">
+        <a class="btn" href="{{ url_for('exportar_lista_compras_xlsx') }}" style="background:var(--green); color:#fff;">
+            📊 Excel
+        </a>
+    </div>
 </div>
 
 {% if lista %}
+
+<!-- MÉTRICAS -->
 <div class="grid metrics" style="margin-bottom:1.5rem;">
     <div class="card metric">
-        <span>Itens a comprar</span>
-        <strong style="color:var(--red);">{{ lista|length }}</strong>
+        <span>Itens críticos</span>
+        <strong style="color:var(--red);">
+            {{ lista | selectattr('falta', '>', 0) | list | length }}
+        </strong>
     </div>
+
+    <div class="card metric">
+        <span>Total itens</span>
+        <strong>{{ lista|length }}</strong>
+    </div>
+
     <div class="card metric">
         <span>Custo estimado</span>
-        <strong style="color:var(--green);">R$ {{ '%.2f'|format(total_custo) }}</strong>
+        <strong style="color:var(--green);">
+            R$ {{ '%.2f'|format(total_custo) }}
+        </strong>
     </div>
 </div>
 
+<!-- FILTRO -->
+<input type="text" id="filtro" placeholder="Filtrar item ou área..."
+       style="width:100%; padding:10px; margin-bottom:10px; border:1px solid var(--line); border-radius:8px;">
+
 <section class="card" style="padding:0;">
     <div class="table-wrap">
-        <table>
+        <table id="tabela-compras">
             <thead>
                 <tr>
                     <th>Item</th>
                     <th>Área</th>
                     <th>Atual</th>
-                    <th>Mínimo</th>
+                    <th>Mín</th>
                     <th>Falta</th>
-                    <th>Sugestão compra</th>
-                    <th style="text-align:right;">Custo est.</th>
+                    <th>Sugestão</th>
+                    <th style="text-align:right;">Custo</th>
                 </tr>
             </thead>
+
             <tbody>
                 {% for r in lista %}
-                <tr style="background: {% if r.falta > 0 %}#fff5f5{% else %}inherit{% endif %};">
+                {% set critico = r.item.stock <= (r.item.min_stock * 0.5) %}
+
+                <tr style="
+                    background:
+                    {% if critico %}#ffe5e5
+                    {% elif r.falta > 0 %}#fff5f5
+                    {% else %}inherit{% endif %}
+                ">
                     <td>
                         <strong>{{ r.item.name }}</strong><br>
                         <small class="muted">{{ r.item.category or '-' }}</small>
                     </td>
-                    <td><small>{{ r.item.area or '-' }}</small></td>
-                    <td style="color:var(--red); font-weight:600;">{{ r.item.stock }} <small>{{ r.item.unit }}</small></td>
-                    <td>{{ r.item.min_stock }} <small>{{ r.item.unit }}</small></td>
-                    <td style="color:var(--red);">{{ r.falta }} <small>{{ r.item.unit }}</small></td>
-                    <td style="font-weight:600;">{{ r.sugestao }} <small>{{ r.item.unit }}</small></td>
-                    <td style="text-align:right; font-weight:600; color:var(--green);">
+
+                    <td>{{ r.item.area or '-' }}</td>
+
+                    <td style="font-weight:600; color:var(--red);">
+                        {{ r.item.stock }} {{ r.item.unit }}
+                    </td>
+
+                    <td>{{ r.item.min_stock }}</td>
+
+                    <td style="color:var(--red); font-weight:700;">
+                        {{ r.falta }}
+                    </td>
+
+                    <td style="font-weight:700;">
+                        {{ r.sugestao }} {{ r.item.unit }}
+                    </td>
+
+                    <td style="text-align:right; color:var(--green); font-weight:700;">
                         R$ {{ '%.2f'|format(r.custo_est) }}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
+
             <tfoot>
                 <tr style="background:#f9f9f9; font-weight:700;">
-                    <td colspan="6" style="text-align:right; padding:12px;">Total estimado:</td>
+                    <td colspan="6" style="text-align:right; padding:12px;">
+                        Total estimado:
+                    </td>
                     <td style="text-align:right; padding:12px; color:var(--green);">
                         R$ {{ '%.2f'|format(total_custo) }}
                     </td>
@@ -68,11 +112,27 @@
 </section>
 
 {% else %}
+
 <div class="card" style="text-align:center; padding:3rem; border:2px dashed var(--line);">
-    <p style="font-size:2rem; margin-bottom:0.5rem;">✅</p>
-    <p style="font-size:1.1rem; font-weight:600;">Estoque em dia!</p>
-    <p class="muted">Nenhum item abaixo do estoque mínimo no momento.</p>
+    <p style="font-size:2rem;">✅</p>
+    <p style="font-size:1.2rem; font-weight:700;">Estoque controlado</p>
+    <p class="muted">Nenhum item precisa ser comprado agora.</p>
 </div>
+
 {% endif %}
+
+<!-- FILTRO JS -->
+<script>
+document.getElementById('filtro')?.addEventListener('keyup', function() {
+    let termo = this.value.toLowerCase();
+    let linhas = document.querySelectorAll('#tabela-compras tbody tr');
+
+    linhas.forEach(linha => {
+        linha.style.display = linha.innerText.toLowerCase().includes(termo)
+            ? ''
+            : 'none';
+    });
+});
+</script>
 
 {% endblock %}
