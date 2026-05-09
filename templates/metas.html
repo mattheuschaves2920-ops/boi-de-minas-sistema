@@ -1,99 +1,315 @@
 {% extends "base.html" %}
+
 {% block content %}
 
-<h2 style="margin-bottom:1.5rem;">🎯 Metas Mensais de Faturamento</h2>
+<!-- TÍTULO -->
+
+<h2
+    style="
+        margin-bottom:1.5rem;
+    "
+>
+
+    🎯 Metas Mensais de Faturamento
+
+</h2>
 
 <div class="grid two">
 
     <!-- FORM -->
-    <section class="card" style="border-top:4px solid var(--gold);">
-        <h3 style="margin:0 0 1.25rem;">Definir nova meta</h3>
 
-        <form method="post">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <section
+        class="card"
+        style="border-top:4px solid var(--gold);"
+    >
 
-            <div class="grid" style="grid-template-columns:1fr 1fr; gap:10px;">
-                <label>Ano
-                    <input type="number" name="year" value="{{ now().year }}" min="2024" max="2030" required>
+        <h3
+            style="
+                margin:0 0 1.25rem;
+            "
+        >
+
+            Definir nova meta
+
+        </h3>
+
+        <form method="POST">
+
+            <!-- CSRF -->
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            <!-- ANO / MÊS -->
+
+            <div
+                class="grid"
+                style="
+                    grid-template-columns:1fr 1fr;
+                    gap:10px;
+                "
+            >
+
+                <label>
+
+                    Ano
+
+                    <input
+                        type="number"
+                        name="year"
+
+                        value="{{ now().year }}"
+
+                        min="2024"
+                        max="2035"
+
+                        required
+                    >
+
                 </label>
 
-                <label>Mês
-                    <input type="number" name="month" value="{{ now().month }}" min="1" max="12" required>
+                <label>
+
+                    Mês
+
+                    <input
+                        type="number"
+                        name="month"
+
+                        value="{{ now().month }}"
+
+                        min="1"
+                        max="12"
+
+                        required
+                    >
+
                 </label>
+
             </div>
 
-            <label>Meta (R$)
-                <input type="number" step="0.01" name="goal" min="1" placeholder="Ex: 50000.00" required>
+            <!-- META -->
+
+            <label>
+
+                Meta (R$)
+
+                <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+
+                    name="goal"
+
+                    placeholder="Ex: 50000.00"
+
+                    required
+                >
+
             </label>
 
-            <button class="btn" type="submit" style="width:100%; margin-top:12px; background:var(--gold); color:#403000;">
+            <!-- BOTÃO -->
+
+            <button
+                class="btn"
+                type="submit"
+
+                style="
+                    width:100%;
+                    margin-top:12px;
+
+                    background:var(--gold);
+                    color:#403000;
+                "
+            >
+
                 💾 Salvar Meta
+
             </button>
+
         </form>
+
     </section>
 
-    <!-- LISTA COM INTELIGÊNCIA -->
+    <!-- LISTA -->
+
     <section class="card">
-        <h3 style="margin:0 0 1rem;">📊 Desempenho das Metas</h3>
+
+        <h3
+            style="
+                margin:0 0 1rem;
+            "
+        >
+
+            📊 Desempenho das Metas
+
+        </h3>
 
         <div class="table-wrap">
+
             <table>
+
                 <thead>
+
                     <tr>
+
                         <th>Período</th>
                         <th>Meta</th>
                         <th>Progresso</th>
+
                     </tr>
+
                 </thead>
 
                 <tbody>
-                    {% for m in metas %}
-                    <tr>
-                        <td>
-                            <strong>{{ '%02d'|format(m.month) }}/{{ m.year }}</strong>
-                        </td>
 
-                        <td>
-                            R$ {{ '%.2f'|format(m.goal) }}
-                            <br>
-                            <small class="muted">
-                                Meta diária: R$ {{ '%.2f'|format(m.meta_dia) }}
-                            </small>
-                        </td>
+                    {% if metas %}
 
-                        <td style="min-width:180px;">
-                            <strong>{{ m.percentual }}%</strong>
+                        {% for m in metas %}
 
-                            <div style="margin-top:6px; height:8px; background:#eee; border-radius:6px;">
-                                <div style="
-                                    width: {{ [m.percentual, 100]|min }}%;
-                                    height:100%;
-                                    background:
-                                        {% if m.percentual >= 100 %}var(--green)
-                                        {% elif m.percentual >= 70 %}var(--gold)
-                                        {% else %}var(--red){% endif %};
-                                    border-radius:6px;">
+                        {% set percentual =
+                            m.percentual or 0
+                        %}
+
+                        <tr>
+
+                            <!-- PERÍODO -->
+
+                            <td>
+
+                                <strong>
+
+                                    {{ '%02d'|format(m.month) }}/{{ m.year }}
+
+                                </strong>
+
+                            </td>
+
+                            <!-- META -->
+
+                            <td>
+
+                                R$
+                                {{ '%.2f'|format(m.goal or 0) }}
+
+                                <br>
+
+                                <small class="muted">
+
+                                    Meta diária:
+
+                                    R$
+                                    {{ '%.2f'|format(m.meta_dia or 0) }}
+
+                                </small>
+
+                            </td>
+
+                            <!-- PROGRESSO -->
+
+                            <td
+                                style="min-width:180px;"
+                            >
+
+                                <strong>
+
+                                    {{ percentual }}%
+
+                                </strong>
+
+                                <!-- BARRA -->
+
+                                <div
+                                    style="
+                                        margin-top:6px;
+
+                                        height:8px;
+
+                                        background:#eee;
+
+                                        border-radius:6px;
+
+                                        overflow:hidden;
+                                    "
+                                >
+
+                                    <div
+
+                                        style="
+                                            width:
+                                            {{ [percentual, 100]|min }}%;
+
+                                            height:100%;
+
+                                            background:
+                                            {% if percentual >= 100 %}
+                                                var(--green)
+                                            {% elif percentual >= 70 %}
+                                                var(--gold)
+                                            {% else %}
+                                                var(--red)
+                                            {% endif %};
+
+                                            border-radius:6px;
+
+                                            transition:0.3s ease;
+                                        "
+                                    ></div>
+
                                 </div>
-                            </div>
 
-                            {% if m.projecao %}
-                            <small class="muted">
-                                📈 Projeção: R$ {{ '%.2f'|format(m.projecao) }}
-                            </small>
-                            {% endif %}
-                        </td>
-                    </tr>
+                                <!-- PROJEÇÃO -->
+
+                                {% if m.projecao %}
+
+                                <small class="muted">
+
+                                    📈 Projeção:
+
+                                    R$
+                                    {{ '%.2f'|format(m.projecao) }}
+
+                                </small>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
 
                     {% else %}
+
+                    <!-- VAZIO -->
+
                     <tr>
-                        <td colspan="3" style="text-align:center; padding:20px;">
+
+                        <td
+                            colspan="3"
+
+                            class="center"
+
+                            style="padding:20px;"
+                        >
+
                             Nenhuma meta cadastrada.
+
                         </td>
+
                     </tr>
-                    {% endfor %}
+
+                    {% endif %}
+
                 </tbody>
+
             </table>
+
         </div>
+
     </section>
 
 </div>
