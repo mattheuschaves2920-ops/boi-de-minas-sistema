@@ -12,6 +12,8 @@ from flask import (
     url_for
 )
 
+from flask_sqlalchemy import SQLAlchemy
+
 from flask_wtf.csrf import CSRFProtect
 
 # ─────────────────────────────
@@ -25,9 +27,15 @@ app.config["SECRET_KEY"] = os.getenv(
     "boi-minas-2026"
 )
 
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///boi_de_minas.db"
+
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 # ─────────────────────────────
-# CSRF
+# EXTENSÕES
 # ─────────────────────────────
+
+db = SQLAlchemy(app)
 
 csrf = CSRFProtect(app)
 
@@ -51,27 +59,64 @@ AREAS = [
 ]
 
 # ─────────────────────────────
-# USUÁRIOS
-# ─────────────────────────────
-# AGORA O SISTEMA JÁ PERMITE:
-# - criar usuários pela tela
-# - login funcional
-# - exclusão de usuários
-# - níveis de acesso
+# MODEL USUÁRIO
 # ─────────────────────────────
 
-USERS = [
-    {
-        "id": 1,
-        "name": "Administrador",
-        "username": "admin",
-        "password": "123456",
-        "role": "admin"
-    }
-]
+class User(db.Model):
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    name = db.Column(
+        db.String(120),
+        nullable=False
+    )
+
+    username = db.Column(
+        db.String(80),
+        unique=True,
+        nullable=False
+    )
+
+    password = db.Column(
+        db.String(120),
+        nullable=False
+    )
+
+    role = db.Column(
+        db.String(30),
+        nullable=False
+    )
 
 # ─────────────────────────────
-# CONTEXTO GLOBAL
+# BANCO
+# ─────────────────────────────
+
+with app.app_context():
+
+    db.create_all()
+
+    admin = User.query.filter_by(
+        username="admin"
+    ).first()
+
+    if not admin:
+
+        admin = User(
+            name="Administrador",
+            username="admin",
+            password="123456",
+            role="admin"
+        )
+
+        db.session.add(admin)
+
+        db.session.commit()
+
+# ─────────────────────────────
+# CONTEXTO
 # ─────────────────────────────
 
 @app.context_processor
@@ -84,12 +129,12 @@ def inject_globals():
         current_user = {
             "id": session.get("user_id"),
             "name": session.get("user"),
-            "role": session.get("role", "admin")
+            "role": session.get("role")
         }
 
     return {
-        "n_criticos": 0,
         "current_user": current_user,
+        "n_criticos": 0,
         "now": datetime.now
     }
 
@@ -112,7 +157,9 @@ def verificar_login():
 def login():
 
     if session.get("user"):
-        return redirect(url_for("dashboard"))
+        return redirect(
+            url_for("dashboard")
+        )
 
     error = None
 
@@ -128,24 +175,20 @@ def login():
             ""
         ).strip()
 
-        user = next(
-            (
-                u for u in USERS
-                if u["username"] == username
-                and u["password"] == password
-            ),
-            None
-        )
+        user = User.query.filter_by(
+            username=username,
+            password=password
+        ).first()
 
         if user:
 
-            session["user_id"] = user["id"]
+            session["user_id"] = user.id
 
-            session["user"] = user["name"]
+            session["user"] = user.name
 
-            session["role"] = user["role"]
+            session["role"] = user.role
 
-            flash("Login realizado com sucesso.")
+            flash("Login realizado.")
 
             return redirect(
                 url_for("dashboard")
@@ -167,9 +210,9 @@ def logout():
 
     session.clear()
 
-    flash("Sessão encerrada.")
-
-    return redirect(url_for("login"))
+    return redirect(
+        url_for("login")
+    )
 
 # ─────────────────────────────
 # DASHBOARD
@@ -207,260 +250,6 @@ def dashboard():
     )
 
 # ─────────────────────────────
-# VENDAS
-# ─────────────────────────────
-
-@app.route("/vendas")
-def vendas():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "vendas.html",
-
-        vendas=[],
-
-        meal_types=MEAL_TYPES,
-
-        total_hoje=0,
-
-        data_ref=date.today(),
-
-        venda_edicao=None
-    )
-
-# ─────────────────────────────
-# ITENS
-# ─────────────────────────────
-
-@app.route("/itens")
-def itens():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "itens.html",
-
-        itens=[],
-
-        areas=AREAS
-    )
-
-# ─────────────────────────────
-# CONTROLE
-# ─────────────────────────────
-
-@app.route("/controle")
-def controle():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "controle.html",
-
-        daily_groups=[
-            "Cozinha",
-            "Churrasco",
-            "Bar"
-        ],
-
-        totais={}
-    )
-
-# ─────────────────────────────
-# DESPERDÍCIO
-# ─────────────────────────────
-
-@app.route("/desperdicio")
-def desperdicio():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "desperdicio.html",
-
-        lista=[],
-
-        items=[],
-
-        desperdicio_edicao=None,
-
-        error=None,
-
-        data_ref=date.today()
-    )
-
-# ─────────────────────────────
-# MOVIMENTOS
-# ─────────────────────────────
-
-@app.route("/movimentos")
-def movimentos():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "movimentos.html",
-
-        movimentos=[],
-
-        items=[],
-
-        mov_edicao=None,
-
-        data_ref=date.today(),
-
-        areas=AREAS,
-
-        setores=[
-            "Cozinha",
-            "Churrasqueira",
-            "Bar"
-        ]
-    )
-
-# ─────────────────────────────
-# PRODUÇÃO
-# ─────────────────────────────
-
-@app.route("/producao")
-def producao():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "producao.html",
-
-        lista=[],
-
-        items=[],
-
-        data_ref=date.today(),
-
-        setores=[
-            "Cozinha",
-            "Padaria",
-            "Churrasqueira"
-        ]
-    )
-
-# ─────────────────────────────
-# LISTA COMPRAS
-# ─────────────────────────────
-
-@app.route("/lista_compras")
-def lista_compras():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "lista_compras.html",
-
-        lista=[],
-
-        total_custo=0
-    )
-
-# ─────────────────────────────
-# EXPORTAÇÃO
-# ─────────────────────────────
-
-@app.route("/exportar_lista_compras_xlsx")
-def exportar_lista_compras_xlsx():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    flash(
-        "Exportação XLSX ainda não implementada."
-    )
-
-    return redirect(
-        url_for("lista_compras")
-    )
-
-# ─────────────────────────────
-# METAS
-# ─────────────────────────────
-
-@app.route("/metas")
-def metas():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "metas.html",
-
-        metas=[]
-    )
-
-# ─────────────────────────────
-# RELATÓRIO
-# ─────────────────────────────
-
-@app.route("/relatorio_gerencial")
-def relatorio_gerencial():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "relatorio_gerencial.html",
-
-        data_ref=date.today(),
-
-        mes_ref=date.today(),
-
-        faturamento=0,
-
-        custo=0,
-
-        lucro=0,
-
-        cmv=0,
-
-        refeicoes=0,
-
-        total_perdas=0,
-
-        total_diario=0,
-
-        por_periodo={},
-
-        ranking_vendas=[],
-
-        resumo_setores=[]
-    )
-
-# ─────────────────────────────
 # USUÁRIOS
 # ─────────────────────────────
 
@@ -474,22 +263,17 @@ def usuarios():
 
     if request.method == "POST":
 
-        name = request.form.get("name", "").strip()
+        name = request.form.get("name")
 
-        username = request.form.get("username", "").strip()
+        username = request.form.get("username")
 
-        password = request.form.get("password", "").strip()
+        password = request.form.get("password")
 
-        role = request.form.get("role", "").strip()
+        role = request.form.get("role")
 
-        # verifica login duplicado
-        existe = next(
-            (
-                u for u in USERS
-                if u["username"] == username
-            ),
-            None
-        )
+        existe = User.query.filter_by(
+            username=username
+        ).first()
 
         if existe:
 
@@ -497,29 +281,29 @@ def usuarios():
 
         else:
 
-            novo_id = (
-                max([u["id"] for u in USERS]) + 1
-                if USERS else 1
+            novo = User(
+                name=name,
+                username=username,
+                password=password,
+                role=role
             )
 
-            USERS.append({
-                "id": novo_id,
-                "name": name,
-                "username": username,
-                "password": password,
-                "role": role
-            })
+            db.session.add(novo)
 
-            flash("Usuário criado com sucesso.")
+            db.session.commit()
+
+            flash("Usuário criado.")
 
             return redirect(
                 url_for("usuarios")
             )
 
+    usuarios = User.query.all()
+
     return render_template(
         "usuarios.html",
 
-        usuarios=USERS,
+        usuarios=usuarios,
 
         roles=[
             "admin",
@@ -540,58 +324,71 @@ def excluir_usuario(user_id):
     if auth:
         return auth
 
-    global USERS
-
-    # impede excluir a si mesmo
     if session.get("user_id") == user_id:
 
-        flash("Você não pode excluir seu próprio usuário.")
+        flash(
+            "Você não pode excluir seu próprio usuário."
+        )
 
         return redirect(
             url_for("usuarios")
         )
 
-    USERS = [
-        u for u in USERS
-        if u["id"] != user_id
-    ]
+    user = User.query.get(user_id)
 
-    flash("Usuário removido.")
+    if user:
+
+        db.session.delete(user)
+
+        db.session.commit()
+
+        flash("Usuário removido.")
 
     return redirect(
         url_for("usuarios")
     )
 
 # ─────────────────────────────
-# AUDITORIA
+# ROTAS BÁSICAS
 # ─────────────────────────────
 
-@app.route("/auditoria")
-def auditoria():
+@app.route("/itens")
+def itens():
 
     auth = verificar_login()
 
     if auth:
         return auth
 
-    class Logs:
+    return render_template(
+        "itens.html",
+        itens=[],
+        areas=AREAS
+    )
 
-        items = []
+@app.route("/lista_compras")
+def lista_compras():
 
-        page = 1
+    auth = verificar_login()
 
-        pages = 1
-
-        has_prev = False
-
-        has_next = False
+    if auth:
+        return auth
 
     return render_template(
-        "auditoria.html",
+        "lista_compras.html",
+        lista=[],
+        total_custo=0
+    )
 
-        logs=Logs(),
+@app.route("/exportar_lista_compras_xlsx")
+def exportar_lista_compras_xlsx():
 
-        get_badge_class=lambda x: "success"
+    flash(
+        "Exportação ainda não implementada."
+    )
+
+    return redirect(
+        url_for("lista_compras")
     )
 
 # ─────────────────────────────
