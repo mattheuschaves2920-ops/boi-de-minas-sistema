@@ -13,7 +13,6 @@ from flask import (
 )
 
 from flask_sqlalchemy import SQLAlchemy
-
 from flask_wtf.csrf import CSRFProtect
 
 # ─────────────────────────────
@@ -40,7 +39,7 @@ db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
 
 # ─────────────────────────────
-# DADOS
+# DADOS FIXOS
 # ─────────────────────────────
 
 MEAL_TYPES = [
@@ -56,6 +55,13 @@ AREAS = [
     "Bar",
     "Estoque",
     "Limpeza"
+]
+
+SETORES = [
+    "Cozinha",
+    "Churrasqueira",
+    "Bar",
+    "Produção"
 ]
 
 # ─────────────────────────────
@@ -116,7 +122,20 @@ with app.app_context():
         db.session.commit()
 
 # ─────────────────────────────
-# CONTEXTO
+# LOGIN
+# ─────────────────────────────
+
+def verificar_login():
+
+    if not session.get("user"):
+        return redirect(
+            url_for("login")
+        )
+
+    return None
+
+# ─────────────────────────────
+# CONTEXTO GLOBAL
 # ─────────────────────────────
 
 @app.context_processor
@@ -142,21 +161,11 @@ def inject_globals():
 # LOGIN
 # ─────────────────────────────
 
-def verificar_login():
-
-    if not session.get("user"):
-        return redirect(url_for("login"))
-
-    return None
-
-# ─────────────────────────────
-# LOGIN
-# ─────────────────────────────
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
 
     if session.get("user"):
+
         return redirect(
             url_for("dashboard")
         )
@@ -183,12 +192,12 @@ def login():
         if user:
 
             session["user_id"] = user.id
-
             session["user"] = user.name
-
             session["role"] = user.role
 
-            flash("Login realizado.")
+            flash(
+                "Login realizado."
+            )
 
             return redirect(
                 url_for("dashboard")
@@ -250,6 +259,207 @@ def dashboard():
     )
 
 # ─────────────────────────────
+# VENDAS
+# ─────────────────────────────
+
+@app.route("/vendas")
+def vendas():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "vendas.html",
+
+        vendas=[],
+
+        meal_types=MEAL_TYPES,
+
+        total_hoje=0,
+
+        data_ref=date.today(),
+
+        venda_edicao=None
+    )
+
+# ─────────────────────────────
+# CONTROLE
+# ─────────────────────────────
+
+@app.route("/controle")
+def controle():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "controle.html",
+
+        daily_groups=[
+            "Buffet",
+            "Churrasco",
+            "Sobremesas"
+        ],
+
+        totais={}
+    )
+
+# ─────────────────────────────
+# DESPERDÍCIO
+# ─────────────────────────────
+
+@app.route("/desperdicio")
+def desperdicio():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "desperdicio.html",
+
+        items=[],
+
+        lista=[],
+
+        data_ref=date.today(),
+
+        desperdicio_edicao=None,
+
+        error=None
+    )
+
+# ─────────────────────────────
+# MOVIMENTOS
+# ─────────────────────────────
+
+@app.route("/movimentos")
+def movimentos():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "movimentos.html",
+
+        data_ref=date.today(),
+
+        movimentos=[],
+
+        mov_edicao=None,
+
+        areas=AREAS,
+
+        setores=SETORES,
+
+        items=[]
+    )
+
+# ─────────────────────────────
+# PRODUÇÃO
+# ─────────────────────────────
+
+@app.route("/producao")
+def producao():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "producao.html",
+
+        data_ref=date.today(),
+
+        lista=[],
+
+        setores=SETORES,
+
+        items=[]
+    )
+
+# ─────────────────────────────
+# ITENS
+# ─────────────────────────────
+
+@app.route("/itens")
+def itens():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "itens.html",
+
+        itens=[],
+
+        areas=AREAS
+    )
+
+# ─────────────────────────────
+# LISTA COMPRAS
+# ─────────────────────────────
+
+@app.route("/lista_compras")
+def lista_compras():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "lista_compras.html",
+
+        lista=[],
+
+        total_custo=0
+    )
+
+# ─────────────────────────────
+# EXPORTAR LISTA
+# ─────────────────────────────
+
+@app.route("/exportar_lista_compras_xlsx")
+def exportar_lista_compras_xlsx():
+
+    flash(
+        "Exportação ainda não implementada."
+    )
+
+    return redirect(
+        url_for("lista_compras")
+    )
+
+# ─────────────────────────────
+# METAS
+# ─────────────────────────────
+
+@app.route("/metas")
+def metas():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "metas.html",
+
+        metas=[]
+    )
+
+# ─────────────────────────────
 # USUÁRIOS
 # ─────────────────────────────
 
@@ -264,11 +474,8 @@ def usuarios():
     if request.method == "POST":
 
         name = request.form.get("name")
-
         username = request.form.get("username")
-
         password = request.form.get("password")
-
         role = request.form.get("role")
 
         existe = User.query.filter_by(
@@ -277,7 +484,9 @@ def usuarios():
 
         if existe:
 
-            flash("Usuário já existe.")
+            flash(
+                "Usuário já existe."
+            )
 
         else:
 
@@ -292,7 +501,9 @@ def usuarios():
 
             db.session.commit()
 
-            flash("Usuário criado.")
+            flash(
+                "Usuário criado."
+            )
 
             return redirect(
                 url_for("usuarios")
@@ -316,7 +527,10 @@ def usuarios():
 # EXCLUIR USUÁRIO
 # ─────────────────────────────
 
-@app.route("/excluir_usuario/<int:user_id>", methods=["POST"])
+@app.route(
+    "/excluir_usuario/<int:user_id>",
+    methods=["POST"]
+)
 def excluir_usuario(user_id):
 
     auth = verificar_login()
@@ -342,18 +556,47 @@ def excluir_usuario(user_id):
 
         db.session.commit()
 
-        flash("Usuário removido.")
+        flash(
+            "Usuário removido."
+        )
 
     return redirect(
         url_for("usuarios")
     )
 
 # ─────────────────────────────
-# ROTAS BÁSICAS
+# AUDITORIA
 # ─────────────────────────────
 
-@app.route("/itens")
-def itens():
+@app.route("/auditoria")
+def auditoria():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    class FakeLogs:
+        page = 1
+        pages = 1
+        has_prev = False
+        has_next = False
+        items = []
+
+    return render_template(
+        "auditoria.html",
+
+        logs=FakeLogs(),
+
+        get_badge_class=lambda x: "success"
+    )
+
+# ─────────────────────────────
+# RELATÓRIO
+# ─────────────────────────────
+
+@app.route("/relatorio_gerencial")
+def relatorio_gerencial():
 
     auth = verificar_login()
 
@@ -361,34 +604,27 @@ def itens():
         return auth
 
     return render_template(
-        "itens.html",
-        itens=[],
-        areas=AREAS
-    )
+        "relatorio_gerencial.html",
 
-@app.route("/lista_compras")
-def lista_compras():
+        data_ref=date.today(),
 
-    auth = verificar_login()
+        mes_ref=date.today(),
 
-    if auth:
-        return auth
+        faturamento=0,
+        custo=0,
+        lucro=0,
+        cmv=0,
 
-    return render_template(
-        "lista_compras.html",
-        lista=[],
-        total_custo=0
-    )
+        refeicoes=0,
 
-@app.route("/exportar_lista_compras_xlsx")
-def exportar_lista_compras_xlsx():
+        total_perdas=0,
+        total_diario=0,
 
-    flash(
-        "Exportação ainda não implementada."
-    )
+        por_periodo={},
 
-    return redirect(
-        url_for("lista_compras")
+        ranking_vendas=[],
+
+        resumo_setores=[]
     )
 
 # ─────────────────────────────
