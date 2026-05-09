@@ -1,22 +1,22 @@
 {% extends "base.html" %}
-
 {% block content %}
 
 <div class="grid two">
 
     <!-- FORMULÁRIO -->
-
     <section class="card">
 
-        <h3>
-            📝 Registro de Produção / Vendas
-        </h3>
+        <header style="margin-bottom:20px;">
+            <h3 style="margin:0;">
+                📝 Registro de Produção / Vendas
+            </h3>
 
-        <form
-            method="POST"
-            id="daily-form"
-            class="form"
-        >
+            <p class="muted" style="margin-top:6px;">
+                Controle diário de buffet, lanches, bebidas e produção.
+            </p>
+        </header>
+
+        <form method="post" id="daily-form">
 
             <input
                 type="hidden"
@@ -24,62 +24,86 @@
                 value="{{ csrf_token() }}"
             >
 
-            <div class="grid form-grid-2">
-
-                <label>
-
-                    Data
-
-                    <input
-                        type="date"
-                        name="control_date"
-                        id="control_date"
-                        required
-                    >
-
-                </label>
-
-                <label>
-
-                    Grupo
-
-                    <select
-                        name="group_name"
-                        required
-                    >
-
-                        {% for g in daily_groups %}
-
-                            <option value="{{ g }}">
-                                {{ g }}
-                            </option>
-
-                        {% endfor %}
-
-                    </select>
-
-                </label>
-
-            </div>
+            <!-- DATA -->
 
             <label>
-
-                Nome do Item
+                Data
 
                 <input
-                    type="text"
-                    name="item_name"
-                    placeholder="Ex: Coxinha, Bolo de Chocolate..."
-                    autocomplete="off"
+                    type="date"
+                    name="control_date"
+                    id="control_date"
+                    required
+                >
+            </label>
+
+            <!-- GRUPO -->
+
+            <label>
+                Grupo
+
+                <input
+                    list="grupos-lista"
+                    name="group_name"
+                    placeholder="Ex: Buffet, Lanches, Bebidas..."
                     required
                 >
 
+                <datalist id="grupos-lista">
+
+                    {% for g in daily_groups %}
+
+                    <option value="{{ g }}">
+
+                    {% endfor %}
+
+                    <option value="Buffet">
+                    <option value="Lanches">
+                    <option value="Bebidas">
+                    <option value="Sobremesas">
+                    <option value="Delivery">
+                    <option value="Self-Service">
+                    <option value="Marmitas">
+
+                </datalist>
+
             </label>
 
-            <div class="grid form-grid-3">
+            <!-- ITEM -->
+
+            <label>
+                Nome do Item
+
+                <input
+                    list="itens-lista"
+                    name="item_name"
+                    placeholder="Ex: Coxinha, Refrigerante, Bolo..."
+                    required
+                >
+
+                <datalist id="itens-lista">
+
+                    {% for i in itens_cadastrados or [] %}
+
+                    <option value="{{ i.name }}">
+
+                    {% endfor %}
+
+                </datalist>
+
+            </label>
+
+            <!-- QUANTIDADES -->
+
+            <div
+                class="grid"
+                style="
+                    grid-template-columns:1fr 1fr 1fr;
+                    gap:12px;
+                "
+            >
 
                 <label>
-
                     Produzido (Entrada)
 
                     <input
@@ -87,15 +111,12 @@
                         name="input_qty"
                         id="in"
                         min="0"
-                        step="1"
                         value="0"
                         required
                     >
-
                 </label>
 
                 <label>
-
                     Sobra
 
                     <input
@@ -103,15 +124,12 @@
                         name="output_qty"
                         id="out"
                         min="0"
-                        step="1"
                         value="0"
                         required
                     >
-
                 </label>
 
                 <label>
-
                     Vendido
 
                     <input
@@ -121,47 +139,62 @@
                         readonly
                         class="readonly"
                     >
-
                 </label>
 
             </div>
 
-            <label>
+            <!-- VALOR -->
 
+            <label>
                 Valor Unitário (R$)
 
                 <input
                     type="number"
                     step="0.01"
-                    min="0"
                     name="unit_value"
                     id="price"
                     placeholder="0,00"
                 >
-
             </label>
 
             <!-- TOTAL -->
 
-            <div class="total-box">
+            <div
+                class="card"
+                style="
+                    margin-top:20px;
+                    border-left:5px solid var(--green);
+                    background:#fafafa;
+                "
+            >
 
-                💰 Total estimado:
+                <span class="muted">
+                    💰 Total estimado
+                </span>
 
-                <strong id="total">
-
+                <h2
+                    id="total"
+                    style="
+                        margin:10px 0 0;
+                        color:var(--green);
+                    "
+                >
                     R$ 0,00
-
-                </strong>
+                </h2>
 
             </div>
 
+            <!-- BOTÃO -->
+
             <button
                 type="submit"
-                class="btn full"
+                class="btn"
+                style="
+                    width:100%;
+                    margin-top:20px;
+                "
             >
-
-                Salvar Lançamento
-
+                💾 Salvar Lançamento
             </button>
 
         </form>
@@ -172,73 +205,76 @@
 
     <section class="card">
 
-        <h3>
-            📊 Resumo do Dia
-        </h3>
+        <div
+            style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                margin-bottom:15px;
+            "
+        >
+
+            <h3 style="margin:0;">
+                📊 Resumo do Dia
+            </h3>
+
+        </div>
 
         <div class="table-wrap">
 
             <table>
 
                 <thead>
-
                     <tr>
                         <th>Grupo</th>
                         <th>Vendido</th>
                         <th>Faturado</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
 
-                    {% if totais %}
+                    {% for g, t in totais.items() %}
 
-                        {% for g, t in totais.items() %}
+                    <tr>
 
-                        <tr>
+                        <td>
+                            <strong>{{ g }}</strong>
+                        </td>
 
-                            <td>
+                        <td>
+                            {{ t.vendido }} un.
+                        </td>
 
-                                <strong>
-                                    {{ g }}
-                                </strong>
+                        <td
+                            style="
+                                color:var(--green);
+                                font-weight:700;
+                            "
+                        >
+                            R$ {{ '%.2f'|format(t.faturado) }}
+                        </td>
 
-                            </td>
-
-                            <td>
-
-                                {{ t.vendido or 0 }} un.
-
-                            </td>
-
-                            <td class="money">
-
-                                R$
-                                {{ '%.2f'|format(t.faturado or 0) }}
-
-                            </td>
-
-                        </tr>
-
-                        {% endfor %}
+                    </tr>
 
                     {% else %}
 
-                        <tr>
+                    <tr>
 
-                            <td
-                                colspan="3"
-                                class="empty-state center"
-                            >
+                        <td
+                            colspan="3"
+                            class="muted"
+                            style="
+                                text-align:center;
+                                padding:30px;
+                            "
+                        >
+                            Nenhum dado hoje.
+                        </td>
 
-                                Nenhum dado hoje.
+                    </tr>
 
-                            </td>
-
-                        </tr>
-
-                    {% endif %}
+                    {% endfor %}
 
                 </tbody>
 
@@ -250,11 +286,7 @@
 
 </div>
 
-<!-- SCRIPT -->
-
 <script>
-
-/* ELEMENTOS */
 
 const inQty =
     document.getElementById('in');
@@ -271,55 +303,24 @@ const price =
 const total =
     document.getElementById('total');
 
-/* ───────────────────────────── */
-/* FORMATA MOEDA */
-/* ───────────────────────────── */
-
-function formatMoney(value) {
-
-    return value.toLocaleString(
-        'pt-BR',
-        {
-            style: 'currency',
-            currency: 'BRL'
-        }
-    );
-
-}
-
-/* ───────────────────────────── */
-/* CALCULA VENDIDO */
-/* ───────────────────────────── */
+/* cálculo automático */
 
 function calcular() {
-
-    if (
-        !inQty ||
-        !outQty ||
-        !soldQty
-    ) return;
 
     const entrada =
         parseFloat(inQty.value) || 0;
 
-    let sobra =
+    const sobra =
         parseFloat(outQty.value) || 0;
 
-    /* impede sobra maior */
+    let vendido = entrada - sobra;
 
-    if (sobra > entrada) {
+    if (vendido < 0) {
 
-        sobra = entrada;
+        vendido = 0;
 
         outQty.value = entrada;
 
-    }
-
-    let vendido =
-        entrada - sobra;
-
-    if (vendido < 0) {
-        vendido = 0;
     }
 
     soldQty.value = vendido;
@@ -328,17 +329,9 @@ function calcular() {
 
 }
 
-/* ───────────────────────────── */
-/* CALCULA TOTAL */
-/* ───────────────────────────── */
+/* total */
 
 function calcularTotal() {
-
-    if (
-        !soldQty ||
-        !price ||
-        !total
-    ) return;
 
     const vendido =
         parseFloat(soldQty.value) || 0;
@@ -346,63 +339,43 @@ function calcularTotal() {
     const valor =
         parseFloat(price.value) || 0;
 
-    const resultado =
-        vendido * valor;
+    const resultado = vendido * valor;
 
-    total.textContent =
-        formatMoney(resultado);
-
-}
-
-/* ───────────────────────────── */
-/* EVENTOS */
-/* ───────────────────────────── */
-
-if (inQty && outQty) {
-
-    [inQty, outQty].forEach(el => {
-
-        el.addEventListener(
-            'input',
-            calcular
-        );
-
-    });
+    total.innerText =
+        'R$ ' + resultado.toFixed(2);
 
 }
 
-if (price) {
+/* eventos */
 
-    price.addEventListener(
+[inQty, outQty].forEach(el => {
+
+    el.addEventListener(
         'input',
-        calcularTotal
+        calcular
     );
 
-}
+});
 
-/* ───────────────────────────── */
-/* DATA AUTOMÁTICA */
-/* ───────────────────────────── */
+price.addEventListener(
+    'input',
+    calcularTotal
+);
+
+/* data automática */
 
 document.addEventListener(
     'DOMContentLoaded',
     () => {
 
-        const dateField =
-            document.getElementById('control_date');
+        const hoje =
+            new Date()
+            .toISOString()
+            .split('T')[0];
 
-        if (dateField && !dateField.value) {
-
-            const hoje =
-                new Date()
-                .toISOString()
-                .split('T')[0];
-
-            dateField.value = hoje;
-
-        }
-
-        calcular();
+        document.getElementById(
+            'control_date'
+        ).value = hoje;
 
     }
 );
