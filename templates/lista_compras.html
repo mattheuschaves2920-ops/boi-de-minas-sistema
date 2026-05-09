@@ -2,15 +2,16 @@
 
 {% block content %}
 
-<!-- TOPO -->
-
 <div
     style="
         display:flex;
         justify-content:space-between;
         align-items:center;
+
         flex-wrap:wrap;
+
         gap:12px;
+
         margin-bottom:1.5rem;
     "
 >
@@ -23,6 +24,7 @@
 
         <p
             class="muted"
+
             style="
                 margin:4px 0 0;
                 font-size:0.9rem;
@@ -30,37 +32,42 @@
         >
 
             Itens abaixo do mínimo
-            com sugestão automática de compra.
+            com sugestão automática
+            de compra.
 
         </p>
 
     </div>
 
-    <div
-        style="
-            display:flex;
-            gap:8px;
-        "
-    >
+    <!-- BOTÃO DESATIVADO -->
 
-        <a
+    <div style="display:flex; gap:8px;">
+
+        <button
+
             class="btn"
 
-            href="{{ url_for('exportar_lista_compras_xlsx') }}"
+            type="button"
 
             style="
                 background:var(--green);
                 color:#fff;
+
+                opacity:0.7;
+
+                cursor:not-allowed;
             "
         >
 
             📊 Excel
 
-        </a>
+        </button>
 
     </div>
 
 </div>
+
+<!-- EXISTE LISTA -->
 
 {% if lista %}
 
@@ -68,8 +75,11 @@
 
 <div
     class="grid metrics"
+
     style="margin-bottom:1.5rem;"
 >
+
+    <!-- CRÍTICOS -->
 
     <div class="card metric">
 
@@ -79,16 +89,16 @@
 
         <strong style="color:var(--red);">
 
-            {{
-                lista
+            {{ lista
                 | selectattr('falta', '>', 0)
                 | list
-                | length
-            }}
+                | length }}
 
         </strong>
 
     </div>
+
+    <!-- TOTAL -->
 
     <div class="card metric">
 
@@ -103,6 +113,8 @@
         </strong>
 
     </div>
+
+    <!-- CUSTO -->
 
     <div class="card metric">
 
@@ -124,17 +136,22 @@
 <!-- FILTRO -->
 
 <input
+
     type="text"
+
     id="filtro"
 
-    placeholder="Filtrar item ou área..."
+    placeholder="🔍 Filtrar item ou área..."
 
     style="
         width:100%;
+
         padding:10px;
+
         margin-bottom:10px;
 
         border:1px solid var(--line);
+
         border-radius:8px;
     "
 >
@@ -143,6 +160,7 @@
 
 <section
     class="card"
+
     style="padding:0;"
 >
 
@@ -174,22 +192,21 @@
                 {% for r in lista %}
 
                 {% set critico =
-                    (r.item.stock or 0)
-                    <=
-                    ((r.item.min_stock or 0) * 0.5)
+                    r.item.stock <=
+                    (r.item.min_stock * 0.5)
                 %}
 
                 <tr
 
                     style="
-                        background:
-                        {% if critico %}
-                            #ffe5e5
-                        {% elif r.falta > 0 %}
-                            #fff5f5
-                        {% else %}
-                            inherit
-                        {% endif %}
+                    background:
+                    {% if critico %}
+                        #ffe5e5
+                    {% elif r.falta > 0 %}
+                        #fff5f5
+                    {% else %}
+                        inherit
+                    {% endif %}
                     "
                 >
 
@@ -221,60 +238,61 @@
 
                     </td>
 
-                    <!-- ATUAL -->
+                    <!-- ESTOQUE -->
 
                     <td
+
                         style="
                             font-weight:600;
                             color:var(--red);
                         "
                     >
 
-                        {{ r.item.stock or 0 }}
-
-                        {{ r.item.unit or '' }}
+                        {{ r.item.stock }}
+                        {{ r.item.unit }}
 
                     </td>
 
-                    <!-- MÍNIMO -->
+                    <!-- MÍN -->
 
                     <td>
 
-                        {{ r.item.min_stock or 0 }}
+                        {{ r.item.min_stock }}
 
                     </td>
 
                     <!-- FALTA -->
 
                     <td
+
                         style="
                             color:var(--red);
                             font-weight:700;
                         "
                     >
 
-                        {{ r.falta or 0 }}
+                        {{ r.falta }}
 
                     </td>
 
                     <!-- SUGESTÃO -->
 
-                    <td
-                        style="font-weight:700;"
-                    >
+                    <td style="font-weight:700;">
 
-                        {{ r.sugestao or 0 }}
-
-                        {{ r.item.unit or '' }}
+                        {{ r.sugestao }}
+                        {{ r.item.unit }}
 
                     </td>
 
                     <!-- CUSTO -->
 
                     <td
+
                         style="
                             text-align:right;
+
                             color:var(--green);
+
                             font-weight:700;
                         "
                     >
@@ -295,6 +313,7 @@
             <tfoot>
 
                 <tr
+
                     style="
                         background:#f9f9f9;
                         font-weight:700;
@@ -302,6 +321,7 @@
                 >
 
                     <td
+
                         colspan="6"
 
                         style="
@@ -315,9 +335,12 @@
                     </td>
 
                     <td
+
                         style="
                             text-align:right;
+
                             padding:12px;
+
                             color:var(--green);
                         "
                     >
@@ -339,22 +362,23 @@
 
 {% else %}
 
-<!-- VAZIO -->
+<!-- SEM ITENS -->
 
 <div
+
     class="card"
 
     style="
         text-align:center;
+
         padding:3rem;
+
         border:2px dashed var(--line);
     "
 >
 
     <p style="font-size:2rem;">
-
         ✅
-
     </p>
 
     <p
@@ -370,7 +394,8 @@
 
     <p class="muted">
 
-        Nenhum item precisa ser comprado agora.
+        Nenhum item precisa ser
+        comprado agora.
 
     </p>
 
@@ -382,43 +407,34 @@
 
 <script>
 
-/* ───────────────────────────── */
-/* FILTRO */
-/* ───────────────────────────── */
+document
+.getElementById('filtro')
+?.addEventListener(
+    'keyup',
+    function() {
 
-const filtro =
-    document.getElementById('filtro');
+        let termo =
+            this.value.toLowerCase();
 
-if (filtro) {
+        let linhas =
+            document.querySelectorAll(
+                '#tabela-compras tbody tr'
+            );
 
-    filtro.addEventListener(
-        'keyup',
-        function() {
+        linhas.forEach(linha => {
 
-            const termo =
-                this.value.toLowerCase();
+            linha.style.display =
+                linha.innerText
+                .toLowerCase()
+                .includes(termo)
 
-            const linhas =
-                document.querySelectorAll(
-                    '#tabela-compras tbody tr'
-                );
+                ? ''
+                : 'none';
 
-            linhas.forEach(linha => {
+        });
 
-                const texto =
-                    linha.innerText.toLowerCase();
-
-                linha.style.display =
-                    texto.includes(termo)
-                    ? ''
-                    : 'none';
-
-            });
-
-        }
-    );
-
-}
+    }
+);
 
 </script>
 
