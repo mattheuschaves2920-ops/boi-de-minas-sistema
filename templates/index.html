@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boi de Minas</title>
+</head>
+<body>
+
+<h1>Lista de Vendas</h1>
+
+<a href="{{ url_for('nova_venda') }}">Nova Venda</a>
+
+<hr>
+
+{% for venda in vendas %}
+<div>
+    <h3>{{ venda.cliente }}</h3>
+    <p>Valor: R$ {{ venda.valor }}</p>
+    <p>Data: {{ venda.data }}</p>
+    <a href="{{ url_for('deletar', id=venda.id) }}">Excluir</a>
+</div>
+<hr>
+{% endfor %}
+
+<h2>Total: R$ {{ total }}</h2>
+
+</body>
+</html>
