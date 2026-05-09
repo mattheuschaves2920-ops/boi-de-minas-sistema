@@ -1,29 +1,280 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nova Venda</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-<h1>Nova Venda</h1>
+{% block content %}
 
-<form method="POST">
-    <input type="text" name="cliente" placeholder="Cliente" required>
-    <br><br>
+<div class="grid">
 
-    <input type="number" step="0.01" name="valor" placeholder="Valor" required>
-    <br><br>
+    <section
+        class="card"
 
-    <textarea name="observacao" placeholder="Observação"></textarea>
-    <br><br>
+        style="
+            max-width:700px;
+            margin:auto;
 
-    <button type="submit">Salvar</button>
-</form>
+            border-top:4px solid var(--green);
+        "
+    >
 
-<br>
-<a href="{{ url_for('index') }}">Voltar</a>
+        <!-- TOPO -->
 
-</body>
-</html>
+        <div style="margin-bottom:20px;">
+
+            <h2 style="margin:0;">
+
+                🛒 Nova Venda
+
+            </h2>
+
+            <p
+                class="muted"
+                style="margin-top:5px;"
+            >
+
+                Registre uma nova venda no sistema.
+
+            </p>
+
+        </div>
+
+        <!-- FORM -->
+
+        <form
+            method="POST"
+            id="formVenda"
+        >
+
+            <!-- CSRF -->
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            <!-- CLIENTE -->
+
+            <label>
+
+                Cliente
+
+                <input
+                    type="text"
+
+                    name="cliente"
+
+                    required
+
+                    autocomplete="off"
+
+                    placeholder="Nome do cliente"
+                >
+
+            </label>
+
+            <!-- VALOR -->
+
+            <label>
+
+                Valor da Venda (R$)
+
+                <input
+                    type="number"
+
+                    step="0.01"
+
+                    min="0.01"
+
+                    name="valor"
+
+                    id="valor"
+
+                    required
+
+                    placeholder="0,00"
+                >
+
+            </label>
+
+            <!-- OBS -->
+
+            <label>
+
+                Observação
+
+                <textarea
+                    name="observacao"
+
+                    rows="4"
+
+                    placeholder="
+                    Informações adicionais da venda...
+                    "
+                ></textarea>
+
+            </label>
+
+            <!-- TOTAL -->
+
+            <div
+                class="card metric"
+
+                style="
+                    margin-top:20px;
+
+                    border-left:4px solid var(--green);
+                "
+            >
+
+                <span>
+                    💰 Valor informado
+                </span>
+
+                <strong
+                    id="previewValor"
+
+                    style="
+                        color:var(--green);
+                    "
+                >
+
+                    R$ 0,00
+
+                </strong>
+
+            </div>
+
+            <!-- BOTÕES -->
+
+            <div
+                style="
+                    display:flex;
+                    gap:10px;
+
+                    margin-top:20px;
+                "
+            >
+
+                <button
+                    type="submit"
+
+                    class="btn"
+
+                    id="btnSalvar"
+
+                    style="
+                        flex:2;
+                        background:var(--green);
+                        color:#fff;
+                    "
+                >
+
+                    💾 Salvar Venda
+
+                </button>
+
+                <a
+
+                    href="{{ url_for('index') }}"
+
+                    class="btn"
+
+                    style="
+                        flex:1;
+
+                        background:#eee;
+                        color:var(--ink);
+
+                        text-align:center;
+                    "
+                >
+
+                    Voltar
+
+                </a>
+
+            </div>
+
+        </form>
+
+    </section>
+
+</div>
+
+<!-- SCRIPT -->
+
+<script>
+
+/* ───────────────────────────── */
+/* FORMATAÇÃO */
+/* ───────────────────────────── */
+
+function formatMoney(value) {
+
+    return value.toLocaleString(
+        'pt-BR',
+        {
+            style: 'currency',
+            currency: 'BRL'
+        }
+    );
+
+}
+
+/* ───────────────────────────── */
+/* PREVIEW VALOR */
+/* ───────────────────────────── */
+
+const valorInput =
+    document.getElementById('valor');
+
+const previewValor =
+    document.getElementById('previewValor');
+
+if (valorInput && previewValor) {
+
+    valorInput.addEventListener(
+        'input',
+        () => {
+
+            const valor =
+                parseFloat(valorInput.value) || 0;
+
+            previewValor.textContent =
+                formatMoney(valor);
+
+        }
+    );
+
+}
+
+/* ───────────────────────────── */
+/* LOADING BOTÃO */
+/* ───────────────────────────── */
+
+const formVenda =
+    document.getElementById('formVenda');
+
+if (formVenda) {
+
+    formVenda.addEventListener(
+        'submit',
+        () => {
+
+            const btn =
+                document.getElementById('btnSalvar');
+
+            if (!btn) return;
+
+            btn.disabled = true;
+
+            btn.textContent =
+                'Salvando...';
+
+        }
+    );
+
+}
+
+</script>
+
+{% endblock %}
