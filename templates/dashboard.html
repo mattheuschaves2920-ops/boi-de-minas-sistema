@@ -1,141 +1,501 @@
 {% extends "base.html" %}
+
 {% block content %}
 
-<!-- Filtro -->
-<form method="get" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:1.5rem;">
+<!-- FILTRO -->
+
+<form
+    method="GET"
+    class="filter-form"
+    style="
+        display:flex;
+        gap:10px;
+        align-items:flex-end;
+        flex-wrap:wrap;
+        margin-bottom:1.5rem;
+    "
+>
+
     <label>
+
         Data
-        <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+
+        <input
+            type="date"
+            name="data"
+            value="{{ data_ref.strftime('%Y-%m-%d') if data_ref else '' }}"
+        >
+
     </label>
+
     <label>
+
         Mês
-        <input type="month" name="mes" value="{{ mes_ref.strftime('%Y-%m') }}">
+
+        <input
+            type="month"
+            name="mes"
+            value="{{ mes_ref.strftime('%Y-%m') if mes_ref else '' }}"
+        >
+
     </label>
-    <button class="btn" type="submit">Filtrar</button>
+
+    <button
+        class="btn"
+        type="submit"
+    >
+        Filtrar
+    </button>
+
 </form>
 
 <!-- MÉTRICAS -->
+
 <div class="grid metrics">
+
     <div class="card metric">
-        <span>💰 Faturamento hoje</span>
-        <strong>R$ {{ '%.2f'|format(faturamento or 0) }}</strong>
-        <small class="muted">{{ (refeicoes or 0)|int }} refeições</small>
-    </div>
 
-    <div class="card metric" style="border-bottom:4px solid var(--red);">
-        <span>📦 Custo operacional</span>
-        <strong style="color:var(--red);">R$ {{ '%.2f'|format(custo or 0) }}</strong>
-        <small class="muted">CMV: {{ cmv or 0 }}%</small>
-    </div>
+        <span>
+            💰 Faturamento hoje
+        </span>
 
-    <div class="card metric" style="border-bottom:4px solid {{ '#0f8b4c' if (lucro or 0) >= 0 else '#c0392b' }};">
-        <span>📈 Lucro líquido</span>
-        <strong style="color:{{ '#0f8b4c' if (lucro or 0) >= 0 else '#c0392b' }};">
-            R$ {{ '%.2f'|format(lucro or 0) }}
+        <strong>
+            R$ {{ '%.2f'|format(faturamento or 0) }}
         </strong>
+
+        <small class="muted">
+
+            {{ (refeicoes or 0)|int }} refeições
+
+        </small>
+
     </div>
 
-    <div class="card metric" style="border-bottom:4px solid var(--red);">
-        <span>🗑️ Desperdício</span>
-        <strong style="color:var(--red);">R$ {{ '%.2f'|format(desperdicio or 0) }}</strong>
-        <small class="muted">Mês: R$ {{ '%.2f'|format(desperdicio_mes or 0) }}</small>
+    <div
+        class="card metric"
+        style="border-bottom:4px solid var(--red);"
+    >
+
+        <span>
+            📦 Custo operacional
+        </span>
+
+        <strong style="color:var(--red);">
+
+            R$ {{ '%.2f'|format(custo or 0) }}
+
+        </strong>
+
+        <small class="muted">
+
+            CMV: {{ cmv or 0 }}%
+
+        </small>
+
     </div>
+
+    <div
+        class="card metric"
+        style="
+            border-bottom:4px solid
+            {{ '#0f8b4c' if (lucro or 0) >= 0 else '#c0392b' }};
+        "
+    >
+
+        <span>
+            📈 Lucro líquido
+        </span>
+
+        <strong
+            style="
+                color:
+                {{ '#0f8b4c' if (lucro or 0) >= 0 else '#c0392b' }};
+            "
+        >
+
+            R$ {{ '%.2f'|format(lucro or 0) }}
+
+        </strong>
+
+    </div>
+
+    <div
+        class="card metric"
+        style="border-bottom:4px solid var(--red);"
+    >
+
+        <span>
+            🗑️ Desperdício
+        </span>
+
+        <strong style="color:var(--red);">
+
+            R$ {{ '%.2f'|format(desperdicio or 0) }}
+
+        </strong>
+
+        <small class="muted">
+
+            Mês:
+            R$ {{ '%.2f'|format(desperdicio_mes or 0) }}
+
+        </small>
+
+    </div>
+
 </div>
 
 <!-- META -->
+
 {% if meta_valor and meta_valor > 0 %}
-<div class="card" style="margin-top:1.25rem;">
-    <div style="display:flex; justify-content:space-between;">
-        <span>🎯 Meta do mês</span>
-        <strong>{{ meta_pct }}%</strong>
+
+<div
+    class="card"
+    style="margin-top:1.25rem;"
+>
+
+    <div
+        style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:10px;
+        "
+    >
+
+        <span>
+            🎯 Meta do mês
+        </span>
+
+        <strong>
+
+            {{ meta_pct or 0 }}%
+
+        </strong>
+
     </div>
 
-    <div style="height:10px; background:var(--line); margin-top:8px; border-radius:5px;">
-        <div style="
-            width:{{ [meta_pct, 100]|min }}%;
-            height:100%;
-            background:{{ 'var(--green)' if meta_pct >= 100 else ('var(--gold)' if meta_pct >= 70 else 'var(--red)') }};
-            border-radius:5px;">
-        </div>
+    <div
+        style="
+            height:10px;
+            background:var(--line);
+            margin-top:8px;
+            border-radius:5px;
+            overflow:hidden;
+        "
+    >
+
+        <div
+            style="
+                width:{{ [meta_pct or 0, 100]|min }}%;
+                height:100%;
+
+                background:
+                {{ 'var(--green)' if (meta_pct or 0) >= 100
+                   else ('var(--gold)' if (meta_pct or 0) >= 70
+                   else 'var(--red)') }};
+
+                border-radius:5px;
+
+                transition:0.3s ease;
+            "
+        ></div>
+
     </div>
+
 </div>
+
 {% endif %}
 
 <!-- GRÁFICOS -->
-<div class="grid two" style="margin-top:1.25rem;">
+
+<div
+    class="grid two"
+    style="margin-top:1.25rem;"
+>
+
     <div class="card">
-        <h3>📊 Faturamento — 7 dias</h3>
+
+        <h3>
+            📊 Faturamento — 7 dias
+        </h3>
+
         <canvas id="chartFaturamento"></canvas>
+
     </div>
 
     <div class="card">
-        <h3>🍽️ Período</h3>
+
+        <h3>
+            🍽️ Período
+        </h3>
+
         <canvas id="chartPeriodo"></canvas>
+
     </div>
+
 </div>
 
 <!-- ATALHOS -->
-<div class="grid metrics" style="margin-top:1.25rem;">
-    <a href="{{ url_for('vendas') }}" class="card">🛒 Vendas</a>
-    <a href="{{ url_for('controle') }}" class="card">📝 Controle</a>
-    <a href="{{ url_for('desperdicio') }}" class="card">🗑️ Desperdício</a>
-    <a href="{{ url_for('lista_compras') }}" class="card">
-        🛒 Compras
-        {% if n_criticos > 0 %}
-            <span style="color:var(--red)">{{ n_criticos }}</span>
-        {% endif %}
+
+<div
+    class="grid metrics"
+    style="margin-top:1.25rem;"
+>
+
+    <a
+        href="{{ url_for('vendas') }}"
+        class="card"
+    >
+        🛒 Vendas
     </a>
+
+    <a
+        href="{{ url_for('controle') }}"
+        class="card"
+    >
+        📝 Controle
+    </a>
+
+    <a
+        href="{{ url_for('desperdicio') }}"
+        class="card"
+    >
+        🗑️ Desperdício
+    </a>
+
+    <a
+        href="{{ url_for('lista_compras') }}"
+        class="card"
+    >
+
+        🛒 Compras
+
+        {% if n_criticos and n_criticos > 0 %}
+
+            <span style="color:var(--red);">
+
+                {{ n_criticos }}
+
+            </span>
+
+        {% endif %}
+
+    </a>
+
 </div>
+
+<!-- CHART JS -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 
 <script>
+
+/* ───────────────────────────── */
+/* TEMA */
+/* ───────────────────────────── */
+
 function getThemeColors() {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    const isDark =
+        document.documentElement
+        .getAttribute('data-theme') === 'dark';
+
     return {
-        grid: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-        text: isDark ? '#ccc' : '#666'
+
+        grid:
+            isDark
+            ? 'rgba(255,255,255,0.08)'
+            : 'rgba(0,0,0,0.06)',
+
+        text:
+            isDark
+            ? '#ccc'
+            : '#666'
+
     };
+
 }
 
 const theme = getThemeColors();
 
-/* ---------- DADOS SEGUROS ---------- */
-const labels = {{ labels_grafico | default([]) | tojson }};
-const valores = {{ valores_grafico | default([]) | tojson }};
-const periodoLabels = {{ vendas_por_periodo_labels | default([]) | tojson }};
-const periodoValores = {{ vendas_por_periodo_values | default([]) | tojson }};
+/* ───────────────────────────── */
+/* DADOS */
+/* ───────────────────────────── */
 
-/* ---------- GRÁFICO 1 ---------- */
-new Chart(document.getElementById('chartFaturamento'), {
-    type: 'bar',
-    data: {
-        labels: labels.length ? labels : ['Sem dados'],
-        datasets: [{
-            data: valores.length ? valores : [0],
-            backgroundColor: '#8b0000cc'
-        }]
-    },
-    options: {
-        plugins: { legend: { display: false } },
-        scales: {
-            x: { ticks: { color: theme.text }, grid: { color: theme.grid } },
-            y: { ticks: { color: theme.text }, grid: { color: theme.grid } }
+const labels =
+    {{ labels_grafico | default([]) | tojson }};
+
+const valores =
+    {{ valores_grafico | default([]) | tojson }};
+
+const periodoLabels =
+    {{ vendas_por_periodo_labels | default([]) | tojson }};
+
+const periodoValores =
+    {{ vendas_por_periodo_values | default([]) | tojson }};
+
+/* ───────────────────────────── */
+/* FATURAMENTO */
+/* ───────────────────────────── */
+
+const chartFaturamentoEl =
+    document.getElementById('chartFaturamento');
+
+if (chartFaturamentoEl) {
+
+    new Chart(chartFaturamentoEl, {
+
+        type: 'bar',
+
+        data: {
+
+            labels:
+                labels.length
+                ? labels
+                : ['Sem dados'],
+
+            datasets: [
+
+                {
+
+                    data:
+                        valores.length
+                        ? valores
+                        : [0],
+
+                    backgroundColor:
+                        '#8b0000cc',
+
+                    borderRadius: 6
+
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+                    display: false
+                }
+
+            },
+
+            scales: {
+
+                x: {
+
+                    ticks: {
+                        color: theme.text
+                    },
+
+                    grid: {
+                        color: theme.grid
+                    }
+
+                },
+
+                y: {
+
+                    beginAtZero: true,
+
+                    ticks: {
+                        color: theme.text
+                    },
+
+                    grid: {
+                        color: theme.grid
+                    }
+
+                }
+
+            }
+
         }
-    }
-});
 
-/* ---------- GRÁFICO 2 ---------- */
-new Chart(document.getElementById('chartPeriodo'), {
-    type: 'doughnut',
-    data: {
-        labels: periodoLabels.length ? periodoLabels : ['Sem dados'],
-        datasets: [{
-            data: periodoValores.length ? periodoValores : [1],
-            backgroundColor: ['#8b0000', '#d4af37', '#145da0']
-        }]
-    }
-});
+    });
+
+}
+
+/* ───────────────────────────── */
+/* PERÍODO */
+/* ───────────────────────────── */
+
+const chartPeriodoEl =
+    document.getElementById('chartPeriodo');
+
+if (chartPeriodoEl) {
+
+    new Chart(chartPeriodoEl, {
+
+        type: 'doughnut',
+
+        data: {
+
+            labels:
+                periodoLabels.length
+                ? periodoLabels
+                : ['Sem dados'],
+
+            datasets: [
+
+                {
+
+                    data:
+                        periodoValores.length
+                        ? periodoValores
+                        : [1],
+
+                    backgroundColor: [
+
+                        '#8b0000',
+                        '#d4af37',
+                        '#145da0'
+
+                    ],
+
+                    borderWidth: 0
+
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+
+                    labels: {
+
+                        color: theme.text
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    });
+
+}
+
 </script>
 
 {% endblock %}
