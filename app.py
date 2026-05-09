@@ -32,7 +32,7 @@ app.config["SECRET_KEY"] = os.getenv(
 csrf = CSRFProtect(app)
 
 # ─────────────────────────────
-# DADOS MOCK
+# DADOS
 # ─────────────────────────────
 
 MEAL_TYPES = [
@@ -52,6 +52,12 @@ AREAS = [
 
 # ─────────────────────────────
 # USUÁRIOS
+# ─────────────────────────────
+# AGORA O SISTEMA JÁ PERMITE:
+# - criar usuários pela tela
+# - login funcional
+# - exclusão de usuários
+# - níveis de acesso
 # ─────────────────────────────
 
 USERS = [
@@ -76,7 +82,7 @@ def inject_globals():
     if session.get("user"):
 
         current_user = {
-            "id": 1,
+            "id": session.get("user_id"),
             "name": session.get("user"),
             "role": session.get("role", "admin")
         }
@@ -88,7 +94,7 @@ def inject_globals():
     }
 
 # ─────────────────────────────
-# FUNÇÃO LOGIN
+# LOGIN
 # ─────────────────────────────
 
 def verificar_login():
@@ -132,6 +138,8 @@ def login():
         )
 
         if user:
+
+            session["user_id"] = user["id"]
 
             session["user"] = user["name"]
 
@@ -375,7 +383,7 @@ def lista_compras():
     )
 
 # ─────────────────────────────
-# EXPORTAÇÃO XLSX
+# EXPORTAÇÃO
 # ─────────────────────────────
 
 @app.route("/exportar_lista_compras_xlsx")
@@ -456,13 +464,57 @@ def relatorio_gerencial():
 # USUÁRIOS
 # ─────────────────────────────
 
-@app.route("/usuarios")
+@app.route("/usuarios", methods=["GET", "POST"])
 def usuarios():
 
     auth = verificar_login()
 
     if auth:
         return auth
+
+    if request.method == "POST":
+
+        name = request.form.get("name", "").strip()
+
+        username = request.form.get("username", "").strip()
+
+        password = request.form.get("password", "").strip()
+
+        role = request.form.get("role", "").strip()
+
+        # verifica login duplicado
+        existe = next(
+            (
+                u for u in USERS
+                if u["username"] == username
+            ),
+            None
+        )
+
+        if existe:
+
+            flash("Usuário já existe.")
+
+        else:
+
+            novo_id = (
+                max([u["id"] for u in USERS]) + 1
+                if USERS else 1
+            )
+
+            USERS.append({
+                "id": novo_id,
+                "name": name,
+                "username": username,
+                "password": password,
+                "role": role
+            })
+
+            flash("Usuário criado com sucesso.")
+
+            return redirect(
+                url_for("usuarios")
+            )
 
     return render_template(
         "usuarios.html",
@@ -474,6 +526,40 @@ def usuarios():
             "gerente",
             "funcionario"
         ]
+    )
+
+# ─────────────────────────────
+# EXCLUIR USUÁRIO
+# ─────────────────────────────
+
+@app.route("/excluir_usuario/<int:user_id>", methods=["POST"])
+def excluir_usuario(user_id):
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    global USERS
+
+    # impede excluir a si mesmo
+    if session.get("user_id") == user_id:
+
+        flash("Você não pode excluir seu próprio usuário.")
+
+        return redirect(
+            url_for("usuarios")
+        )
+
+    USERS = [
+        u for u in USERS
+        if u["id"] != user_id
+    ]
+
+    flash("Usuário removido.")
+
+    return redirect(
+        url_for("usuarios")
     )
 
 # ─────────────────────────────
