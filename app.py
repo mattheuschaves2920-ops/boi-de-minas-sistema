@@ -8,7 +8,10 @@ from flask import (
     session
 )
 
+from flask_wtf.csrf import CSRFProtect
+
 from datetime import datetime, date
+
 import os
 
 # =====================================================
@@ -21,6 +24,12 @@ app.config["SECRET_KEY"] = os.getenv(
     "SECRET_KEY",
     "boi-minas-2026"
 )
+
+# =====================================================
+# CSRF
+# =====================================================
+
+csrf = CSRFProtect(app)
 
 # =====================================================
 # DADOS
