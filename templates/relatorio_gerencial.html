@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:1.5rem;">
+
+    <div>
+        <h2 style="margin:0;">
+            📊 Relatório Gerencial
+        </h2>
+
+        <p class="muted" style="margin-top:4px;">
+            Indicadores financeiros e operacionais.
+        </p>
+    </div>
+
+</div>
+
+<!-- MÉTRICAS -->
+
+<div class="grid metrics">
+
+    <div class="card metric">
+        <span>💰 Faturamento</span>
+
+        <strong style="color:var(--green);">
+            R$ {{ '%.2f'|format(faturamento or 0) }}
+        </strong>
+    </div>
+
+    <div class="card metric">
+        <span>📉 Custos</span>
+
+        <strong style="color:var(--red);">
+            R$ {{ '%.2f'|format(custo or 0) }}
+        </strong>
+    </div>
+
+    <div class="card metric">
+        <span>📈 Lucro</span>
+
+        <strong style="color:{{ '#16a34a' if (lucro or 0) >= 0 else '#dc2626' }}">
+            R$ {{ '%.2f'|format(lucro or 0) }}
+        </strong>
+    </div>
+
+    <div class="card metric">
+        <span>📊 CMV</span>
+
+        <strong>
+            {{ cmv or 0 }}%
+        </strong>
+    </div>
+
+</div>
+
+<!-- PERÍODOS -->
+
+<div class="grid two" style="margin-top:20px;">
+
+    <section class="card">
+
+        <h3>
+            🍽️ Almoço vs Janta
+        </h3>
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Período</th>
+                        <th>Qtd</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for k, v in (por_periodo or {}).items() %}
+
+                    <tr>
+                        <td>{{ k }}</td>
+
+                        <td>{{ v.q }}</td>
+
+                        <td>
+                            R$ {{ '%.2f'|format(v.v) }}
+                        </td>
+                    </tr>
+
+                    {% else %}
+
+                    <tr>
+                        <td colspan="3"
+                            class="muted"
+                            style="text-align:center; padding:20px;">
+
+                            Sem dados.
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+    <!-- TOP VENDAS -->
+
+    <section class="card">
+
+        <h3>
+            🏆 Ranking de Vendas
+        </h3>
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Qtd</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for r in ranking_vendas or [] %}
+
+                    <tr>
+
+                        <td>
+                            {{ r.tipo }}
+                        </td>
+
+                        <td>
+                            {{ r.qtd }}
+                        </td>
+
+                        <td>
+                            R$ {{ '%.2f'|format(r.total) }}
+                        </td>
+
+                    </tr>
+
+                    {% else %}
+
+                    <tr>
+                        <td colspan="3"
+                            class="muted"
+                            style="text-align:center; padding:20px;">
+
+                            Sem vendas.
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</div>
+
+<!-- SETORES -->
+
+<section class="card" style="margin-top:20px;">
+
+    <h3>
+        🏢 Resultado por Setor
+    </h3>
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Setor</th>
+                    <th>Venda</th>
+                    <th>Produção</th>
+                    <th>Movimentação</th>
+                    <th>Resultado</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for s in resumo_setores or [] %}
+
+                <tr>
+
+                    <td>
+                        {{ s.setor }}
+                    </td>
+
+                    <td style="color:var(--green);">
+                        R$ {{ '%.2f'|format(s.venda or 0) }}
+                    </td>
+
+                    <td>
+                        R$ {{ '%.2f'|format(s.producao or 0) }}
+                    </td>
+
+                    <td style="color:var(--red);">
+                        R$ {{ '%.2f'|format(s.movimentacao or 0) }}
+                    </td>
+
+                    <td style="font-weight:bold; color:{{ '#16a34a' if (s.lucro or 0) >= 0 else '#dc2626' }}">
+                        R$ {{ '%.2f'|format(s.lucro or 0) }}
+                    </td>
+
+                </tr>
+
+                {% else %}
+
+                <tr>
+
+                    <td colspan="5"
+                        class="muted"
+                        style="text-align:center; padding:20px;">
+
+                        Nenhum dado disponível.
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}
