@@ -1,50 +1,29 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="light">
+<html lang="pt-br" data-theme="light">
 
 <head>
-
     <meta charset="UTF-8">
 
-    <!-- SEO -->
     <title>Boi de Minas Sistema</title>
 
-    <meta
-        name="description"
-        content="Sistema de gestão Boi de Minas"
-    >
+    <meta name="description" content="Sistema de gestão Boi de Minas">
 
-    <!-- Mobile -->
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <!-- Compatibilidade -->
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-
-    <!-- PWA -->
-    <link
-        rel="manifest"
-        href="{{ url_for('static', filename='manifest.json') }}"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <meta name="theme-color" content="#8b0000">
 
-    <!-- iOS -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- PWA -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
     <!-- CSS -->
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}"
-    >
-
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
-<!-- ───────────── HEADER ───────────── -->
+<!-- ───────────────── HEADER ───────────────── -->
 
 <header class="topbar">
 
@@ -55,34 +34,28 @@
         </div>
 
         <div class="brand-text">
-
             <h1>Boi de Minas</h1>
 
             <p>
-
-                {% if current_user and current_user.is_authenticated %}
-                    {{ current_user.name }}
-                {% else %}
-                    Sistema de Gestão
-                {% endif %}
-
+                {{ current_user.name if current_user else 'Sistema de Gestão' }}
             </p>
-
         </div>
 
     </div>
 
     <!-- MENU MOBILE -->
 
-    <button
-        class="hamburger"
-        onclick="toggleMenu()"
-        aria-label="Abrir menu"
-    >
+    <button class="hamburger"
+            onclick="toggleMenu()"
+            aria-label="Abrir menu">
+
         <span></span>
         <span></span>
         <span></span>
+
     </button>
+
+    <!-- MENU -->
 
     <nav id="main-nav">
 
@@ -114,59 +87,33 @@
             Estoque
         </a>
 
-        {% if n_criticos and n_criticos > 0 %}
+        <a href="{{ url_for('lista_compras') }}">
+            🛒 Compras
+        </a>
 
-            <a
-                href="{{ url_for('lista_compras') }}"
-                class="nav-alert"
-            >
-                🛒 Compras
+        <!-- AGORA SEM BLOQUEIO -->
 
-                <span class="badge-alert">
+        <a href="{{ url_for('relatorio_gerencial') }}">
+            Gerencial
+        </a>
 
-                    {{ n_criticos }}
+        <a href="{{ url_for('metas') }}">
+            Metas
+        </a>
 
-                </span>
+        <a href="{{ url_for('usuarios') }}">
+            Usuários
+        </a>
 
-            </a>
-
-        {% else %}
-
-            <a href="{{ url_for('lista_compras') }}">
-                🛒 Compras
-            </a>
-
-        {% endif %}
-
-        {% if current_user
-              and current_user.is_authenticated
-              and current_user.role in ('admin', 'gerente') %}
-
-            <a href="{{ url_for('relatorio_gerencial') }}">
-                Gerencial
-            </a>
-
-            <a href="{{ url_for('metas') }}">
-                Metas
-            </a>
-
-            <a href="{{ url_for('usuarios') }}">
-                Usuários
-            </a>
-
-            <a href="{{ url_for('auditoria') }}">
-                Auditoria
-            </a>
-
-        {% endif %}
+        <a href="{{ url_for('auditoria') }}">
+            Auditoria
+        </a>
 
         <!-- DARK MODE -->
 
-        <button
-            class="dark-toggle"
-            onclick="toggleDark()"
-            aria-label="Modo escuro"
-        >
+        <button class="dark-toggle"
+                onclick="toggleDark()"
+                aria-label="Modo escuro">
 
             <span id="dark-icon">
                 🌙
@@ -174,12 +121,11 @@
 
         </button>
 
-        <!-- LOGOUT -->
+        <!-- SAIR -->
 
-        <a
-            href="{{ url_for('logout') }}"
-            class="nav-logout"
-        >
+        <a href="{{ url_for('logout') }}"
+           class="nav-logout">
+
             Sair
         </a>
 
@@ -187,18 +133,14 @@
 
 </header>
 
-<!-- ───────────── ALERTA ESTOQUE ───────────── -->
+<!-- ───────────────── ALERTA ───────────────── -->
 
-{% if n_criticos and n_criticos > 0 %}
+{% if n_criticos > 0 %}
 
 <div class="stock-banner">
 
     ⚠️
-
-    <strong>
-        {{ n_criticos }}
-    </strong>
-
+    <strong>{{ n_criticos }}</strong>
     item(s) com estoque baixo.
 
     <a href="{{ url_for('lista_compras') }}">
@@ -209,36 +151,38 @@
 
 {% endif %}
 
-<!-- ───────────── TOAST ───────────── -->
+<!-- ───────────────── TOAST ───────────────── -->
 
 <div id="toast-container"></div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
+{% with messages = get_flashed_messages() %}
 
-    {% if messages %}
+{% if messages %}
 
-    <script>
+<script>
 
-        document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
 
-            {% for category, msg in messages %}
+        {% for msg in messages %}
 
-                showToast(
-                    {{ msg | tojson }},
-                    {{ category | tojson }}
-                );
+        showToast(
+            {{ msg | tojson }}
+        );
 
-            {% endfor %}
+        {% endfor %}
 
-        });
+    }
+);
 
-    </script>
+</script>
 
-    {% endif %}
+{% endif %}
 
 {% endwith %}
 
-<!-- ───────────── CONTEÚDO ───────────── -->
+<!-- ───────────────── CONTEÚDO ───────────────── -->
 
 <main class="container">
 
@@ -247,7 +191,7 @@
 
 </main>
 
-<!-- ───────────── FOOTER ───────────── -->
+<!-- ───────────────── FOOTER ───────────────── -->
 
 <footer class="footer">
 
@@ -255,149 +199,118 @@
 
 </footer>
 
-<!-- ───────────── JS ───────────── -->
+<!-- ───────────────── JAVASCRIPT ───────────────── -->
 
 <script>
 
-/* ───────────────────────────── */
-/* DARK MODE */
-/* ───────────────────────────── */
+/* ───────────────── DARK MODE ───────────────── */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
 
-    const savedTheme =
-        localStorage.getItem('theme') || 'light';
+        const saved =
+            localStorage.getItem('theme')
+            || 'light';
 
-    document.documentElement.setAttribute(
-        'data-theme',
-        savedTheme
-    );
+        document.documentElement.setAttribute(
+            'data-theme',
+            saved
+        );
 
-    updateIcon(savedTheme);
-
-});
-
-/* ───────────────────────────── */
+        updateIcon(saved);
+    }
+);
 
 function toggleDark() {
 
     const current =
-        document.documentElement.getAttribute('data-theme');
+        document.documentElement.getAttribute(
+            'data-theme'
+        );
 
     const next =
-        current === 'dark' ? 'light' : 'dark';
+        current === 'dark'
+        ? 'light'
+        : 'dark';
 
     document.documentElement.setAttribute(
         'data-theme',
         next
     );
 
-    localStorage.setItem('theme', next);
+    localStorage.setItem(
+        'theme',
+        next
+    );
 
     updateIcon(next);
-
 }
-
-/* ───────────────────────────── */
 
 function updateIcon(mode) {
 
     const icon =
-        document.getElementById('dark-icon');
+        document.getElementById(
+            'dark-icon'
+        );
 
-    if (!icon) return;
+    if (icon) {
 
-    icon.textContent =
-        mode === 'dark' ? '☀️' : '🌙';
-
+        icon.textContent =
+            mode === 'dark'
+            ? '☀️'
+            : '🌙';
+    }
 }
 
-/* ───────────────────────────── */
-/* MENU MOBILE */
-/* ───────────────────────────── */
+/* ───────────────── MENU MOBILE ───────────────── */
 
 function toggleMenu() {
 
-    const nav =
-        document.getElementById('main-nav');
-
-    if (nav) {
-        nav.classList.toggle('open');
-    }
-
+    document
+        .getElementById('main-nav')
+        .classList
+        .toggle('open');
 }
 
-/* ───────────────────────────── */
-/* TOAST */
-/* ───────────────────────────── */
+/* ───────────────── TOAST ───────────────── */
 
 function showToast(msg, type = 'success') {
 
     const container =
-        document.getElementById('toast-container');
-
-    if (!container) return;
+        document.getElementById(
+            'toast-container'
+        );
 
     const toast =
         document.createElement('div');
 
     toast.className = 'toast';
 
-    if (
-        type === 'error' ||
-        type === 'danger'
-    ) {
+    if (type === 'error') {
 
-        toast.classList.add('toast-error');
+        toast.classList.add(
+            'toast-error'
+        );
 
-        toast.textContent = '❌ ' + msg;
+        toast.textContent =
+            '❌ ' + msg;
 
     } else {
 
-        toast.textContent = '✅ ' + msg;
-
+        toast.textContent =
+            '✅ ' + msg;
     }
 
     container.appendChild(toast);
 
-    setTimeout(() => {
-
-        toast.remove();
-
-    }, 4000);
-
+    setTimeout(
+        () => toast.remove(),
+        4000
+    );
 }
-
-/* ───────────────────────────── */
-/* CSRF GLOBAL */
-/* ───────────────────────────── */
-
-const CSRF_TOKEN =
-    {{ csrf_token() | tojson }};
-
-const _fetch = window.fetch;
-
-window.fetch = function(url, options = {}) {
-
-    options.headers =
-        options.headers || {};
-
-    if (
-        options.method &&
-        options.method.toUpperCase() !== 'GET'
-    ) {
-
-        options.headers['X-CSRFToken'] =
-            CSRF_TOKEN;
-
-    }
-
-    return _fetch(url, options);
-
-};
 
 </script>
 
 </body>
-
 </html>
