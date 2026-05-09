@@ -1,14 +1,22 @@
 {% extends "base.html" %}
+
 {% block content %}
 
 <div class="page-header">
-    <h2>📋 Log de Auditoria</h2>
-    <span class="muted">Página {{ logs.page }} de {{ logs.pages }}</span>
+    <div>
+        <h2>📋 Log de Auditoria</h2>
+        <p class="muted">
+            Página {{ logs.page or 1 }} de {{ logs.pages or 1 }}
+        </p>
+    </div>
 </div>
 
 <section class="card no-padding">
+
     <div class="table-wrap">
+
         <table class="table-sm">
+
             <thead>
                 <tr>
                     <th>Data/Hora</th>
@@ -19,70 +27,144 @@
                     <th>IP</th>
                 </tr>
             </thead>
+
             <tbody>
-                {% for log in logs.items %}
-                <tr>
-                    <td class="nowrap">
-                        <small>{{ log.timestamp.strftime('%d/%m/%Y') }}</small><br>
-                        <strong>{{ log.timestamp.strftime('%H:%M:%S') }}</strong>
-                    </td>
 
-                    <td>
-                        <strong>{{ log.username or '—' }}</strong>
-                    </td>
+                {% if logs.items %}
 
-                    <td>
-                        <span class="badge {{ get_badge_class(log.action) }}">
-                            {{ log.action }}
-                        </span>
-                    </td>
+                    {% for log in logs.items %}
 
-                    <td>
-                        {{ log.resource or '—' }}
-                        {% if log.resource_id %}
-                            <small class="muted">#{{ log.resource_id }}</small>
-                        {% endif %}
-                    </td>
+                    <tr>
 
-                    <td class="truncate">
-                        <small class="muted">{{ log.detail or '—' }}</small>
-                    </td>
+                        <td class="nowrap">
 
-                    <td>
-                        <small class="muted">{{ log.ip_address or '—' }}</small>
-                    </td>
-                </tr>
+                            {% if log.timestamp %}
+                                <small>
+                                    {{ log.timestamp.strftime('%d/%m/%Y') }}
+                                </small>
+
+                                <br>
+
+                                <strong>
+                                    {{ log.timestamp.strftime('%H:%M:%S') }}
+                                </strong>
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+                            <strong>
+                                {{ log.username or '—' }}
+                            </strong>
+                        </td>
+
+                        <td>
+
+                            <span class="badge {{ get_badge_class(log.action) if get_badge_class else '' }}">
+
+                                {{ log.action or '—' }}
+
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            {{ log.resource or '—' }}
+
+                            {% if log.resource_id %}
+                                <br>
+                                <small class="muted">
+                                    #{{ log.resource_id }}
+                                </small>
+                            {% endif %}
+
+                        </td>
+
+                        <td class="truncate">
+
+                            <small class="muted">
+
+                                {{ log.detail or '—' }}
+
+                            </small>
+
+                        </td>
+
+                        <td>
+
+                            <small class="muted">
+
+                                {{ log.ip_address or '—' }}
+
+                            </small>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
                 {% else %}
-                <tr>
-                    <td colspan="6" class="empty-state">
-                        Nenhum registro encontrado.
-                    </td>
-                </tr>
-                {% endfor %}
+
+                    <tr>
+
+                        <td colspan="6" class="empty-state center">
+
+                            Nenhum registro encontrado.
+
+                        </td>
+
+                    </tr>
+
+                {% endif %}
+
             </tbody>
+
         </table>
+
     </div>
+
 </section>
 
-<!-- Paginação -->
-{% if logs.pages > 1 %}
+<!-- PAGINAÇÃO -->
+
+{% if logs.pages and logs.pages > 1 %}
+
 <div class="pagination">
+
     {% if logs.has_prev %}
-        <a href="{{ url_for('auditoria', page=logs.prev_num) }}" class="btn secondary">
+
+        <a
+            href="{{ url_for('auditoria', page=logs.prev_num) }}"
+            class="btn secondary"
+        >
             ← Anterior
         </a>
+
     {% endif %}
 
     <span class="page-info">
-        {{ logs.page }} / {{ logs.pages }}
+
+        Página {{ logs.page }} de {{ logs.pages }}
+
     </span>
 
     {% if logs.has_next %}
-        <a href="{{ url_for('auditoria', page=logs.next_num) }}" class="btn secondary">
+
+        <a
+            href="{{ url_for('auditoria', page=logs.next_num) }}"
+            class="btn secondary"
+        >
             Próxima →
         </a>
+
     {% endif %}
+
 </div>
+
 {% endif %}
 
 {% endblock %}
