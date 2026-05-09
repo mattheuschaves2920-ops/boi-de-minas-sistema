@@ -25,10 +25,6 @@ app.config["SECRET_KEY"] = os.getenv(
     "boi-minas-2026"
 )
 
-# =====================================================
-# CSRF
-# =====================================================
-
 csrf = CSRFProtect(app)
 
 # =====================================================
@@ -82,6 +78,7 @@ def inject_globals():
     if session.get("user"):
 
         current_user = {
+            "id": session.get("user_id"),
             "name": session.get("user"),
             "role": session.get("role")
         }
@@ -120,6 +117,7 @@ def login():
 
         if user:
 
+            session["user_id"] = user["id"]
             session["user"] = user["name"]
             session["role"] = user["role"]
 
@@ -363,7 +361,7 @@ def producao():
     )
 
 # =====================================================
-# RELATORIO GERENCIAL
+# RELATORIO
 # =====================================================
 
 @app.route("/relatorio_gerencial")
@@ -411,7 +409,6 @@ def metas():
 
     return render_template(
         "metas.html",
-
         metas=[]
     )
 
@@ -419,13 +416,29 @@ def metas():
 # USUARIOS
 # =====================================================
 
-@app.route("/usuarios")
+@app.route("/usuarios", methods=["GET", "POST"])
 def usuarios():
 
     auth = verificar_login()
 
     if auth:
         return auth
+
+    if request.method == "POST":
+
+        novo = {
+            "id": len(USERS) + 1,
+            "name": request.form.get("name"),
+            "username": request.form.get("username"),
+            "password": request.form.get("password"),
+            "role": request.form.get("role")
+        }
+
+        USERS.append(novo)
+
+        flash("Usuário cadastrado com sucesso.")
+
+        return redirect(url_for("usuarios"))
 
     return render_template(
         "usuarios.html",
@@ -438,6 +451,29 @@ def usuarios():
             "funcionario"
         ]
     )
+
+# =====================================================
+# EXCLUIR USUARIO
+# =====================================================
+
+@app.route("/excluir_usuario/<int:user_id>", methods=["POST"])
+def excluir_usuario(user_id):
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    global USERS
+
+    USERS = [
+        u for u in USERS
+        if u["id"] != user_id
+    ]
+
+    flash("Usuário removido.")
+
+    return redirect(url_for("usuarios"))
 
 # =====================================================
 # AUDITORIA
