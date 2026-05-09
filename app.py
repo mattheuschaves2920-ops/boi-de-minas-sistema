@@ -324,7 +324,7 @@ def producao():
 @app.route("/lista_compras")
 def lista_compras():
     return render_template(
-        "lista-compras.html",
+        "lista_compras.html",
         lista=[],
         total_custo=0
     )
