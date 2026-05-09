@@ -1,29 +1,171 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Boi de Minas</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-<h1>Lista de Vendas</h1>
+{% block content %}
 
-<a href="{{ url_for('nova_venda') }}">Nova Venda</a>
+<section class="card">
 
-<hr>
+    <div
+        style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+            margin-bottom:20px;
+        "
+    >
 
-{% for venda in vendas %}
-<div>
-    <h3>{{ venda.cliente }}</h3>
-    <p>Valor: R$ {{ venda.valor }}</p>
-    <p>Data: {{ venda.data }}</p>
-    <a href="{{ url_for('deletar', id=venda.id) }}">Excluir</a>
-</div>
-<hr>
-{% endfor %}
+        <div>
 
-<h2>Total: R$ {{ total }}</h2>
+            <h2 style="margin:0;">
+                🛒 Lista de Vendas
+            </h2>
 
-</body>
-</html>
+            <p class="muted">
+
+                Controle geral das vendas registradas.
+
+            </p>
+
+        </div>
+
+        <a
+            href="{{ url_for('nova_venda') }}"
+            class="btn"
+        >
+
+            ➕ Nova Venda
+
+        </a>
+
+    </div>
+
+    <!-- TOTAL -->
+
+    <div
+        class="card metric"
+        style="
+            margin-bottom:20px;
+            border-left:5px solid var(--green);
+        "
+    >
+
+        <span>
+            💰 Total em vendas
+        </span>
+
+        <strong style="color:var(--green);">
+
+            R$
+            {{ '%.2f'|format(total or 0) }}
+
+        </strong>
+
+    </div>
+
+    <!-- TABELA -->
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Cliente</th>
+                    <th>Valor</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% if vendas %}
+
+                    {% for venda in vendas %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+
+                                {{ venda.cliente }}
+
+                            </strong>
+
+                        </td>
+
+                        <td>
+
+                            <span style="color:var(--green);">
+
+                                R$
+                                {{ '%.2f'|format(venda.valor or 0) }}
+
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            {% if venda.data %}
+
+                                {{ venda.data.strftime('%d/%m/%Y') }}
+
+                            {% else %}
+
+                                —
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            <a
+                                href="{{ url_for('deletar', id=venda.id) }}"
+                                class="btn-link"
+                                onclick="return confirm('Deseja realmente excluir esta venda?')"
+                            >
+
+                                🗑️ Excluir
+
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                {% else %}
+
+                <tr>
+
+                    <td
+                        colspan="4"
+                        class="center muted"
+                    >
+
+                        Nenhuma venda registrada.
+
+                    </td>
+
+                </tr>
+
+                {% endif %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+{% endblock %}
