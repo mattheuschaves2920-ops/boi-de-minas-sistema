@@ -1,114 +1,385 @@
 {% extends "base.html" %}
+
 {% block content %}
 
 <section class="card">
-    <h3>📋 Relatório de Estoque</h3>
+
+    <h3>
+        📋 Relatório de Estoque
+    </h3>
 
     <!-- MÉTRICAS -->
+
     <div class="grid metrics">
+
         <div class="card metric">
-            <span>Mix de Produtos</span>
-            <strong>{{ total_itens }}</strong>
+
+            <span>
+                Mix de Produtos
+            </span>
+
+            <strong>
+                {{ total_itens or 0 }}
+            </strong>
+
         </div>
 
         <div class="card metric">
-            <span>Itens Críticos</span>
-            <strong style="color:var(--red)">{{ itens_baixos }}</strong>
+
+            <span>
+                Itens Críticos
+            </span>
+
+            <strong style="color:var(--red)">
+
+                {{ itens_baixos or 0 }}
+
+            </strong>
+
         </div>
 
         <div class="card metric">
-            <span>Capital Total</span>
-            <strong style="color:var(--green)">R$ {{ '%.2f'|format(valor_total) }}</strong>
+
+            <span>
+                Capital Total
+            </span>
+
+            <strong style="color:var(--green)">
+
+                R$
+                {{ '%.2f'|format(valor_total or 0) }}
+
+            </strong>
+
         </div>
+
     </div>
+
 </section>
 
-<!-- FILTRO + BUSCA -->
-<div style="margin-top:15px; display:flex; gap:10px; flex-wrap:wrap;">
-    <input type="text" id="busca" placeholder="🔍 Buscar item..."
-           style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--line);">
+<!-- FILTROS -->
 
-    <select id="filtro-area" style="padding:10px; border-radius:8px; border:1px solid var(--line);">
-        <option value="">Todas áreas</option>
+<div
+    style="
+        margin-top:15px;
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+    "
+>
+
+    <!-- BUSCA -->
+
+    <input
+        type="text"
+        id="busca"
+        placeholder="🔍 Buscar item..."
+
+        style="
+            flex:1;
+            padding:10px;
+            border-radius:8px;
+            border:1px solid var(--line);
+        "
+    >
+
+    <!-- ÁREA -->
+
+    <select
+        id="filtro-area"
+
+        style="
+            padding:10px;
+            border-radius:8px;
+            border:1px solid var(--line);
+        "
+    >
+
+        <option value="">
+
+            Todas áreas
+
+        </option>
+
         {% for a in itens | map(attribute='area') | unique %}
-        <option value="{{ a }}">{{ a }}</option>
+
+        <option value="{{ a }}">
+
+            {{ a }}
+
+        </option>
+
         {% endfor %}
+
     </select>
+
 </div>
 
 <!-- TABELA -->
-<div class="table-wrap" style="margin-top:15px">
-    <table id="tabela-estoque">
-        <thead>
-            <tr>
-                <th onclick="sortTable(0)">Item ⬍</th>
-                <th onclick="sortTable(1)">Área ⬍</th>
-                <th onclick="sortTable(2)">Estoque ⬍</th>
-                <th>Valor Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for i in itens %}
-            {% set valor = i.stock * i.cost %}
-            {% set critico = i.min_stock is defined and i.stock <= i.min_stock %}
-            <tr 
-                data-area="{{ i.area }}"
-                style="background: {{ '#fff5f5' if critico else '' }}">
-                
-                <td><strong>{{ i.name }}</strong></td>
-                <td>{{ i.area }}</td>
 
-                <td style="font-weight:600; color:{{ 'var(--red)' if critico else 'var(--ink)' }}">
-                    {{ i.stock }}
-                    {% if critico %} ⚠️{% endif %}
+<div
+    class="table-wrap"
+    style="margin-top:15px;"
+>
+
+    <table
+        id="tabela-estoque"
+        data-sort-direction="asc"
+    >
+
+        <thead>
+
+            <tr>
+
+                <th onclick="sortTable(0)">
+                    Item ⬍
+                </th>
+
+                <th onclick="sortTable(1)">
+                    Área ⬍
+                </th>
+
+                <th onclick="sortTable(2)">
+                    Estoque ⬍
+                </th>
+
+                <th>
+                    Valor Total
+                </th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            {% if itens %}
+
+                {% for i in itens %}
+
+                {% set valor = (i.stock or 0) * (i.cost or 0) %}
+
+                {% set critico =
+                    i.min_stock is defined
+                    and i.stock <= i.min_stock
+                %}
+
+                <tr
+
+                    data-area="{{ i.area or '' }}"
+
+                    style="
+                        background:
+                        {{ '#fff5f5' if critico else '' }};
+                    "
+                >
+
+                    <td>
+
+                        <strong>
+
+                            {{ i.name }}
+
+                        </strong>
+
+                    </td>
+
+                    <td>
+
+                        {{ i.area or '—' }}
+
+                    </td>
+
+                    <td
+
+                        style="
+                            font-weight:600;
+
+                            color:
+                            {{ 'var(--red)'
+                               if critico
+                               else 'var(--ink)' }};
+                        "
+                    >
+
+                        {{ i.stock or 0 }}
+
+                        {% if critico %}
+
+                            ⚠️
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        R$
+                        {{ '%.2f'|format(valor) }}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            {% else %}
+
+            <tr>
+
+                <td
+                    colspan="4"
+                    class="center muted"
+                >
+
+                    Nenhum item encontrado.
+
                 </td>
 
-                <td>R$ {{ '%.2f'|format(valor) }}</td>
             </tr>
-            {% endfor %}
+
+            {% endif %}
+
         </tbody>
+
     </table>
+
 </div>
 
-<script>
-// 🔍 BUSCA
-document.getElementById('busca').addEventListener('input', filtrar);
+<!-- SCRIPT -->
 
-// 📂 FILTRO POR ÁREA
-document.getElementById('filtro-area').addEventListener('change', filtrar);
+<script>
+
+/* ───────────────────────────── */
+/* ELEMENTOS */
+/* ───────────────────────────── */
+
+const busca =
+    document.getElementById('busca');
+
+const filtroArea =
+    document.getElementById('filtro-area');
+
+const tabela =
+    document.getElementById('tabela-estoque');
+
+/* ───────────────────────────── */
+/* EVENTOS */
+/* ───────────────────────────── */
+
+if (busca) {
+
+    busca.addEventListener(
+        'input',
+        filtrar
+    );
+
+}
+
+if (filtroArea) {
+
+    filtroArea.addEventListener(
+        'change',
+        filtrar
+    );
+
+}
+
+/* ───────────────────────────── */
+/* FILTRO */
+/* ───────────────────────────── */
 
 function filtrar() {
-    const termo = document.getElementById('busca').value.toLowerCase();
-    const area = document.getElementById('filtro-area').value;
-    const linhas = document.querySelectorAll('#tabela-estoque tbody tr');
+
+    const termo =
+        busca?.value.toLowerCase() || '';
+
+    const area =
+        filtroArea?.value || '';
+
+    const linhas =
+        document.querySelectorAll(
+            '#tabela-estoque tbody tr'
+        );
 
     linhas.forEach(linha => {
-        const texto = linha.innerText.toLowerCase();
-        const areaLinha = linha.dataset.area;
 
-        const matchBusca = texto.includes(termo);
-        const matchArea = !area || areaLinha === area;
+        const texto =
+            linha.innerText.toLowerCase();
 
-        linha.style.display = (matchBusca && matchArea) ? '' : 'none';
+        const areaLinha =
+            linha.dataset.area || '';
+
+        const matchBusca =
+            texto.includes(termo);
+
+        const matchArea =
+            !area || areaLinha === area;
+
+        linha.style.display =
+            (matchBusca && matchArea)
+            ? ''
+            : 'none';
+
     });
+
 }
 
-// 🔽 ORDENAÇÃO DE COLUNA
+/* ───────────────────────────── */
+/* ORDENAÇÃO */
+/* ───────────────────────────── */
+
 function sortTable(col) {
-    const table = document.getElementById("tabela-estoque");
-    const rows = Array.from(table.rows).slice(1);
-    const asc = table.getAttribute("data-sort") !== "asc";
+
+    if (!tabela) return;
+
+    const tbody =
+        tabela.querySelector('tbody');
+
+    const rows =
+        Array.from(tbody.querySelectorAll('tr'));
+
+    const asc =
+        tabela.dataset.sortDirection !== 'asc';
 
     rows.sort((a, b) => {
-        const A = a.cells[col].innerText.toLowerCase();
-        const B = b.cells[col].innerText.toLowerCase();
-        return asc ? A.localeCompare(B, 'pt-BR', {numeric: true}) 
-                   : B.localeCompare(A, 'pt-BR', {numeric: true});
+
+        const A =
+            a.cells[col].innerText
+            .trim()
+            .toLowerCase();
+
+        const B =
+            b.cells[col].innerText
+            .trim()
+            .toLowerCase();
+
+        return asc
+            ? A.localeCompare(
+                B,
+                'pt-BR',
+                { numeric: true }
+              )
+
+            : B.localeCompare(
+                A,
+                'pt-BR',
+                { numeric: true }
+              );
+
     });
 
-    rows.forEach(tr => table.appendChild(tr));
-    table.setAttribute("data-sort", asc ? "asc" : "desc");
+    rows.forEach(row => {
+
+        tbody.appendChild(row);
+
+    });
+
+    tabela.dataset.sortDirection =
+        asc ? 'asc' : 'desc';
+
 }
+
 </script>
 
 {% endblock %}
