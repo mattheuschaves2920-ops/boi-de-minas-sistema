@@ -1,187 +1,806 @@
 {% extends "base.html" %}
+
 {% block content %}
 
-<section class="card" style="border-left: 5px solid var(--blue); margin-bottom: 16px;">
-    <form method="get" class="grid" style="grid-template-columns: 1fr auto; align-items: end; gap: 10px;">
-        <label>Consultar movimentações do dia:
-            <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+<!-- FILTRO -->
+
+<section
+    class="card"
+    style="
+        border-left:5px solid var(--blue);
+        margin-bottom:16px;
+    "
+>
+
+    <form
+        method="GET"
+        class="grid"
+
+        style="
+            grid-template-columns:1fr auto;
+            align-items:end;
+            gap:10px;
+        "
+    >
+
+        <label>
+
+            Consultar movimentações do dia:
+
+            <input
+                type="date"
+                name="data"
+
+                value="
+                {{ data_ref.strftime('%Y-%m-%d')
+                   if data_ref else '' }}
+                "
+            >
+
         </label>
-        <button class="btn" type="submit">🔍 Filtrar</button>
+
+        <button
+            class="btn"
+            type="submit"
+        >
+
+            🔍 Filtrar
+
+        </button>
+
     </form>
+
 </section>
 
 <div class="grid two">
+
+    <!-- FORM -->
+
     <section class="card">
-        <header style="margin-bottom: 20px;">
+
+        <header style="margin-bottom:20px;">
+
             <h3 style="margin:0;">
-                {{ '✏️ Editar Movimentação' if mov_edicao else '📦 Lançar Movimentação' }}
+
+                {{ '✏️ Editar Movimentação'
+                   if mov_edicao
+                   else '📦 Lançar Movimentação' }}
+
             </h3>
-            <p class="muted" style="font-size: 0.85rem;">Gerencie o fluxo de insumos e suprimentos entre setores.</p>
+
+            <p
+                class="muted"
+                style="font-size:0.85rem;"
+            >
+
+                Gerencie o fluxo de insumos
+                e suprimentos entre setores.
+
+            </p>
+
         </header>
 
-        <form method="post" action="{% if mov_edicao %}{{ url_for('editar_movimento', mov_id=mov_edicao.id) }}{% else %}{{ url_for('movimentos') }}{% endif %}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <!-- FORM -->
 
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
-                <label>Data
-                    <input type="date" name="mov_date" required value="{{ mov_edicao.mov_date.strftime('%Y-%m-%d') if mov_edicao else data_ref.strftime('%Y-%m-%d') }}">
+        <form
+
+            method="POST"
+
+            action="
+            {% if mov_edicao %}
+                {{ url_for(
+                    'editar_movimento',
+                    mov_id=mov_edicao.id
+                ) }}
+            {% else %}
+                {{ url_for('movimentos') }}
+            {% endif %}
+            "
+
+        >
+
+            <!-- CSRF -->
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            <!-- DATA / TIPO -->
+
+            <div
+                class="grid"
+
+                style="
+                    grid-template-columns:1fr 1fr;
+                    gap:10px;
+                "
+            >
+
+                <label>
+
+                    Data
+
+                    <input
+                        type="date"
+                        name="mov_date"
+                        required
+
+                        value="
+                        {{ mov_edicao.mov_date.strftime('%Y-%m-%d')
+                           if mov_edicao and mov_edicao.mov_date
+                           else data_ref.strftime('%Y-%m-%d')
+                           if data_ref else '' }}
+                        "
+                    >
+
                 </label>
 
-                <label>Tipo de Fluxo
-                    <select name="mov_type" id="mov_type">
-                        {% for t in ['Entrada', 'Saida', 'Perda'] %}
-                        <option value="{{ t }}" {% if mov_edicao and mov_edicao.mov_type == t %}selected{% endif %}>{{ t }}</option>
+                <label>
+
+                    Tipo de Fluxo
+
+                    <select
+                        name="mov_type"
+                        id="mov_type"
+                    >
+
+                        {% for t in [
+                            'Entrada',
+                            'Saida',
+                            'Perda'
+                        ] %}
+
+                        <option
+
+                            value="{{ t }}"
+
+                            {% if mov_edicao
+                               and mov_edicao.mov_type == t %}
+                               selected
+                            {% endif %}
+                        >
+
+                            {{ t }}
+
+                        </option>
+
                         {% endfor %}
+
                     </select>
+
                 </label>
+
             </div>
 
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
-                <label>Área Origem/Destino
+            <!-- ÁREA / SETOR -->
+
+            <div
+                class="grid"
+
+                style="
+                    grid-template-columns:1fr 1fr;
+                    gap:10px;
+                "
+            >
+
+                <label>
+
+                    Área Origem/Destino
+
                     <select name="area">
+
                         {% for a in areas %}
-                        <option value="{{ a }}" {% if mov_edicao and mov_edicao.area == a %}selected{% endif %}>{{ a }}</option>
+
+                        <option
+
+                            value="{{ a }}"
+
+                            {% if mov_edicao
+                               and mov_edicao.area == a %}
+                               selected
+                            {% endif %}
+                        >
+
+                            {{ a }}
+
+                        </option>
+
                         {% endfor %}
+
                     </select>
+
                 </label>
 
-                <label>Setor Responsável
+                <label>
+
+                    Setor Responsável
+
                     <select name="setor">
+
                         {% for s in setores %}
-                        <option value="{{ s }}" {% if mov_edicao and mov_edicao.setor == s %}selected{% endif %}>{{ s }}</option>
+
+                        <option
+
+                            value="{{ s }}"
+
+                            {% if mov_edicao
+                               and mov_edicao.setor == s %}
+                               selected
+                            {% endif %}
+                        >
+
+                            {{ s }}
+
+                        </option>
+
                         {% endfor %}
+
                     </select>
+
                 </label>
+
             </div>
+
+            <!-- ITEM -->
 
             {% if not mov_edicao %}
-                <label>Item
-                    <select name="item_id" required>
-                        <option value="" disabled selected>Selecione o produto...</option>
+
+                <label>
+
+                    Item
+
+                    <select
+                        name="item_id"
+                        required
+                    >
+
+                        <option
+                            value=""
+                            disabled
+                            selected
+                        >
+
+                            Selecione o produto...
+
+                        </option>
+
                         {% for i in items %}
-                        <option value="{{ i.id }}">{{ i.name }} ({{ i.area }})</option>
+
+                        <option value="{{ i.id }}">
+
+                            {{ i.name }}
+                            ({{ i.area }})
+
+                        </option>
+
                         {% endfor %}
+
                     </select>
+
                 </label>
 
-                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <label>Quantidade
-                        <input type="number" step="0.001" name="quantity" min="0.001" required placeholder="0.000">
+                <!-- QTD / CUSTO -->
+
+                <div
+                    class="grid"
+
+                    style="
+                        grid-template-columns:1fr 1fr;
+                        gap:10px;
+                    "
+                >
+
+                    <label>
+
+                        Quantidade
+
+                        <input
+                            type="number"
+                            step="0.001"
+                            min="0.001"
+
+                            name="quantity"
+
+                            required
+
+                            placeholder="0.000"
+                        >
+
                     </label>
 
-                    <label id="label_custo">Custo Unitário (R$)
-                        <input type="number" step="0.01" name="unit_cost" placeholder="Opcional">
+                    <label id="label_custo">
+
+                        Custo Unitário (R$)
+
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+
+                            name="unit_cost"
+
+                            placeholder="Opcional"
+                        >
+
                     </label>
+
                 </div>
+
             {% else %}
-                <label>Item (Edição)
-                    <input type="text" name="item_name" value="{{ mov_edicao.item_name }}" readonly style="background: #f5f5f5;">
+
+                <!-- EDIÇÃO -->
+
+                <label>
+
+                    Item (Edição)
+
+                    <input
+                        type="text"
+
+                        name="item_name"
+
+                        value="{{ mov_edicao.item_name }}"
+
+                        readonly
+
+                        style="
+                            background:#f5f5f5;
+                        "
+                    >
+
                 </label>
 
-                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <label>Quantidade
-                        <input type="number" step="0.001" name="quantity" min="0.001" value="{{ mov_edicao.quantity }}" required>
+                <div
+                    class="grid"
+
+                    style="
+                        grid-template-columns:1fr 1fr;
+                        gap:10px;
+                    "
+                >
+
+                    <label>
+
+                        Quantidade
+
+                        <input
+                            type="number"
+                            step="0.001"
+                            min="0.001"
+
+                            name="quantity"
+
+                            value="{{ mov_edicao.quantity }}"
+
+                            required
+                        >
+
                     </label>
 
-                    <label>Valor Total (R$)
-                        <input type="number" step="0.01" name="value" value="{{ mov_edicao.value }}" required>
+                    <label>
+
+                        Valor Total (R$)
+
+                        <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+
+                            name="value"
+
+                            value="{{ mov_edicao.value }}"
+
+                            required
+                        >
+
                     </label>
+
                 </div>
+
             {% endif %}
 
-            <label>Observação / Detalhe
-                <input type="text" name="detail" value="{{ mov_edicao.detail or '' }}" placeholder="Ex: NF-123, Reposição de buffet, etc.">
+            <!-- OBS -->
+
+            <label>
+
+                Observação / Detalhe
+
+                <input
+                    type="text"
+
+                    name="detail"
+
+                    value="{{ mov_edicao.detail or '' }}"
+
+                    placeholder="
+                    Ex: NF-123, reposição de buffet...
+                    "
+                >
+
             </label>
 
-            <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <button class="btn" type="submit" style="flex: 2;">
-                    {{ 'Salvar Alterações' if mov_edicao else 'Registrar Movimento' }}
+            <!-- BOTÕES -->
+
+            <div
+                style="
+                    margin-top:20px;
+                    display:flex;
+                    gap:10px;
+                "
+            >
+
+                <button
+                    class="btn"
+                    type="submit"
+                    style="flex:2;"
+                >
+
+                    {{ 'Salvar Alterações'
+                       if mov_edicao
+                       else 'Registrar Movimento' }}
+
                 </button>
+
                 {% if mov_edicao %}
-                    <a href="{{ url_for('movimentos') }}" class="btn" style="flex: 1; background: #eee; color: var(--ink); text-align: center;">Cancelar</a>
+
+                <a
+                    href="{{ url_for('movimentos') }}"
+
+                    class="btn"
+
+                    style="
+                        flex:1;
+
+                        background:#eee;
+                        color:var(--ink);
+
+                        text-align:center;
+                    "
+                >
+
+                    Cancelar
+
+                </a>
+
                 {% endif %}
+
             </div>
+
         </form>
+
     </section>
 
+    <!-- HISTÓRICO -->
+
     <section class="card">
-        <h3>📋 Histórico de {{ data_ref.strftime('%d/%m/%Y') }}</h3>
+
+        <h3>
+
+            📋 Histórico de
+
+            {{ data_ref.strftime('%d/%m/%Y')
+               if data_ref else '' }}
+
+        </h3>
+
         <div class="table-wrap">
-            <table style="font-size: 0.85rem;">
+
+            <table style="font-size:0.85rem;">
+
                 <thead>
+
                     <tr>
+
                         <th>Tipo</th>
                         <th>Item / Setor</th>
                         <th>Qtd.</th>
                         <th>Valor</th>
-                        <th style="text-align: right;">Ação</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for m in movimentos %}
-                    <tr>
-                        <td>
-                            <span class="badge {{ 'success' if m.mov_type == 'Entrada' else ('error' if m.mov_type == 'Perda' else 'info') }}">
-                                {{ m.mov_type }}
-                            </span>
-                        </td>
-                        <td>
-                            <strong>{{ m.item_name }}</strong><br>
-                            <small class="muted">{{ m.setor }}</small>
-                        </td>
-                        <td>{{ m.quantity }}</td>
-                        <td style="color:
-                            {{ '#0f8b4c' if m.mov_type == 'Entrada' else '#c0392b' if m.mov_type == 'Perda' else '#145da0' }}">
-                            R$ {{ '%.2f'|format(m.value) }}
-                        </td>
-                        <td style="text-align: right; white-space: nowrap;">
-                            <a href="{{ url_for('movimentos', editar=m.id, data=data_ref.strftime('%Y-%m-%d')) }}" class="btn-link">✏️</a>
 
-                            <form method="post" action="{{ url_for('excluir_movimento', mov_id=m.id) }}" style="display:inline;"
-                                  onsubmit="return confirm('⚠️ Essa ação vai alterar o estoque do item. Deseja realmente excluir?');">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn-link" style="color: var(--red); border:none; background:none; cursor:pointer;">🗑️</button>
-                            </form>
-                        </td>
+                        <th style="text-align:right;">
+                            Ação
+                        </th>
+
                     </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% if movimentos %}
+
+                        {% for m in movimentos %}
+
+                        <tr>
+
+                            <!-- TIPO -->
+
+                            <td>
+
+                                <span
+
+                                    class="
+                                    badge
+
+                                    {{ 'success'
+                                       if m.mov_type == 'Entrada'
+                                       else ('error'
+                                       if m.mov_type == 'Perda'
+                                       else 'info') }}
+                                    "
+
+                                >
+
+                                    {{ m.mov_type }}
+
+                                </span>
+
+                            </td>
+
+                            <!-- ITEM -->
+
+                            <td>
+
+                                <strong>
+
+                                    {{ m.item_name }}
+
+                                </strong>
+
+                                <br>
+
+                                <small class="muted">
+
+                                    {{ m.setor }}
+
+                                </small>
+
+                            </td>
+
+                            <!-- QUANTIDADE -->
+
+                            <td>
+
+                                {{ m.quantity }}
+
+                            </td>
+
+                            <!-- VALOR -->
+
+                            <td
+
+                                style="
+                                    color:
+                                    {{ '#0f8b4c'
+                                       if m.mov_type == 'Entrada'
+                                       else '#c0392b'
+                                       if m.mov_type == 'Perda'
+                                       else '#145da0' }};
+                                "
+                            >
+
+                                R$
+                                {{ '%.2f'|format(m.value or 0) }}
+
+                            </td>
+
+                            <!-- AÇÕES -->
+
+                            <td
+
+                                style="
+                                    text-align:right;
+                                    white-space:nowrap;
+                                "
+                            >
+
+                                <a
+
+                                    href="{{ url_for(
+                                        'movimentos',
+                                        editar=m.id,
+                                        data=data_ref.strftime('%Y-%m-%d')
+                                    ) }}"
+
+                                    class="btn-link"
+
+                                >
+
+                                    ✏️
+
+                                </a>
+
+                                <form
+
+                                    method="POST"
+
+                                    action="{{ url_for(
+                                        'excluir_movimento',
+                                        mov_id=m.id
+                                    ) }}"
+
+                                    style="display:inline;"
+
+                                    onsubmit="
+                                    return confirm(
+                                        '⚠️ Essa ação irá alterar o estoque. Deseja continuar?'
+                                    );
+                                    "
+
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="{{ csrf_token() }}"
+                                    >
+
+                                    <button
+
+                                        type="submit"
+
+                                        class="btn-link"
+
+                                        style="
+                                            color:var(--red);
+                                            border:none;
+                                            background:none;
+                                            cursor:pointer;
+                                        "
+                                    >
+
+                                        🗑️
+
+                                    </button>
+
+                                </form>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
                     {% else %}
-                    <tr><td colspan="5" class="muted" style="text-align: center; padding: 20px;">Sem registros nesta data.</td></tr>
-                    {% endfor %}
+
+                    <tr>
+
+                        <td
+                            colspan="5"
+
+                            class="muted center"
+
+                            style="padding:20px;"
+                        >
+
+                            Sem registros nesta data.
+
+                        </td>
+
+                    </tr>
+
+                    {% endif %}
+
                 </tbody>
+
             </table>
+
         </div>
+
     </section>
+
 </div>
 
-<script>
-function toggleCusto() {
-    const type = document.getElementById('mov_type').value;
-    const inputCusto = document.querySelector('[name="unit_cost"]');
-    const labelCusto = document.getElementById('label_custo');
+<!-- SCRIPT -->
 
-    if (inputCusto && labelCusto) {
-        if (type === 'Entrada') {
-            inputCusto.disabled = false;
-            labelCusto.style.opacity = '1';
-        } else {
-            inputCusto.disabled = true;
-            inputCusto.value = '';
-            labelCusto.style.opacity = '0.5';
-        }
+<script>
+
+/* ───────────────────────────── */
+/* CONTROLE CUSTO */
+/* ───────────────────────────── */
+
+function toggleCusto() {
+
+    const type =
+        document.getElementById('mov_type');
+
+    const inputCusto =
+        document.querySelector(
+            '[name=\"unit_cost\"]'
+        );
+
+    const labelCusto =
+        document.getElementById(
+            'label_custo'
+        );
+
+    if (
+        !type ||
+        !inputCusto ||
+        !labelCusto
+    ) return;
+
+    if (type.value === 'Entrada') {
+
+        inputCusto.disabled = false;
+
+        labelCusto.style.opacity = '1';
+
+    } else {
+
+        inputCusto.disabled = true;
+
+        inputCusto.value = '';
+
+        labelCusto.style.opacity = '0.5';
+
     }
+
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    toggleCusto();
-    document.getElementById('mov_type')?.addEventListener('change', toggleCusto);
-});
+/* ───────────────────────────── */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    () => {
+
+        toggleCusto();
+
+        document
+        .getElementById('mov_type')
+        ?.addEventListener(
+            'change',
+            toggleCusto
+        );
+
+    }
+);
+
 </script>
 
+<!-- BADGES -->
+
 <style>
-.badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-.badge.success { background: #dcfce7; color: #15803d; }
-.badge.info    { background: #e0f2fe; color: #0369a1; }
-.badge.error   { background: #fee2e2; color: #b91c1c; }
+
+.badge {
+
+    padding:2px 6px;
+
+    border-radius:4px;
+
+    font-size:10px;
+
+    font-weight:bold;
+
+    text-transform:uppercase;
+
+}
+
+.badge.success {
+
+    background:#dcfce7;
+
+    color:#15803d;
+
+}
+
+.badge.info {
+
+    background:#e0f2fe;
+
+    color:#0369a1;
+
+}
+
+.badge.error {
+
+    background:#fee2e2;
+
+    color:#b91c1c;
+
+}
+
 </style>
 
 {% endblock %}
