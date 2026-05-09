@@ -1,123 +1,367 @@
 {% extends "base.html" %}
+
 {% block content %}
 
 <div class="login-container">
+
     <div class="card login-card">
 
+        <!-- TOPO -->
+
         <div class="login-header">
-            <div class="brand-icon" style="margin: 0 auto 15px; width: 60px; height: 60px; font-size: 30px;">🍽️</div>
-            <h2>Acesso ao Sistema</h2>
-            <p class="muted">Boi de Minas – Ravena</p>
+
+            <div
+                class="brand-icon"
+
+                style="
+                    margin:0 auto 15px;
+                    width:60px;
+                    height:60px;
+                    font-size:30px;
+                "
+            >
+
+                🍽️
+
+            </div>
+
+            <h2>
+                Acesso ao Sistema
+            </h2>
+
+            <p class="muted">
+
+                Boi de Minas — Ravena
+
+            </p>
+
         </div>
+
+        <!-- ERRO -->
 
         {% if error %}
+
         <div class="alert error-box">
+
             ⚠️ {{ error }}
+
         </div>
+
         {% endif %}
 
-        <form method="post" class="login-form" id="loginForm">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <!-- FORM -->
 
-            <label>Usuário
-                <input type="text" name="username" required autofocus placeholder="Digite seu login">
+        <form
+            method="POST"
+            class="login-form"
+            id="loginForm"
+            autocomplete="off"
+        >
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            <!-- LOGIN -->
+
+            <label>
+
+                Usuário
+
+                <input
+                    type="text"
+                    name="username"
+
+                    required
+                    autofocus
+
+                    autocomplete="username"
+
+                    placeholder="Digite seu login"
+                >
+
             </label>
 
-            <label>Senha
-                <input type="password" name="password" required placeholder="••••••••">
+            <!-- SENHA -->
+
+            <label>
+
+                Senha
+
+                <input
+                    type="password"
+                    name="password"
+
+                    required
+
+                    autocomplete="current-password"
+
+                    placeholder="••••••••"
+                >
+
             </label>
 
-            <!-- lembrar login -->
-            <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; margin-top:10px;">
-                <input type="checkbox" name="remember">
+            <!-- LEMBRAR -->
+
+            <label
+                style="
+                    display:flex;
+                    align-items:center;
+                    gap:6px;
+
+                    font-size:0.8rem;
+                    margin-top:10px;
+                "
+            >
+
+                <input
+                    type="checkbox"
+                    name="remember"
+                >
+
                 Manter conectado
+
             </label>
 
-            <button class="btn btn-login" id="btnLogin">
+            <!-- BOTÃO -->
+
+            <button
+                class="btn btn-login"
+                id="btnLogin"
+                type="submit"
+            >
+
                 Entrar
+
             </button>
+
         </form>
 
+        <!-- RODAPÉ -->
+
         <div class="login-footer">
+
             <p class="small muted">
-                Sistema protegido • Acesso monitorado
+
+                Sistema protegido •
+                Acesso monitorado
+
             </p>
+
         </div>
+
     </div>
+
 </div>
 
+<!-- CSS -->
+
 <style>
+
 .login-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: calc(100vh - 100px);
-    padding: 20px;
+
+    display:flex;
+
+    justify-content:center;
+    align-items:center;
+
+    min-height:calc(100vh - 100px);
+
+    padding:20px;
+
 }
 
 .login-card {
-    width: 100%;
-    max-width: 400px;
-    padding: 40px 30px;
-    text-align: center;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    border-top: 5px solid var(--red);
-    animation: fadeIn 0.4s ease;
+
+    width:100%;
+    max-width:400px;
+
+    padding:40px 30px;
+
+    text-align:center;
+
+    box-shadow:0 10px 25px rgba(0,0,0,0.1);
+
+    border-top:5px solid var(--red);
+
+    animation:fadeIn 0.4s ease;
+
 }
+
+/* ───────────────────────────── */
 
 @keyframes fadeIn {
-    from {opacity:0; transform: translateY(20px);}
-    to {opacity:1; transform: translateY(0);}
+
+    from {
+
+        opacity:0;
+        transform:translateY(20px);
+
+    }
+
+    to {
+
+        opacity:1;
+        transform:translateY(0);
+
+    }
+
 }
+
+/* ───────────────────────────── */
 
 .login-header h2 {
-    margin: 0;
-    font-size: 1.5rem;
+
+    margin:0;
+
+    font-size:1.5rem;
+
 }
+
+/* ───────────────────────────── */
 
 .login-form {
-    margin-top: 25px;
-    text-align: left;
+
+    margin-top:25px;
+
+    text-align:left;
+
 }
+
+/* ───────────────────────────── */
+
+.login-form input[type="text"],
+.login-form input[type="password"] {
+
+    margin-top:5px;
+
+}
+
+/* ───────────────────────────── */
 
 .error-box {
-    background: #fff5f5;
-    border: 1px solid #ffcdd2;
-    color: #b71c1c;
-    padding: 12px;
-    border-radius: 8px;
-    margin-top: 20px;
-    font-size: 0.9rem;
+
+    background:#fff5f5;
+
+    border:1px solid #ffcdd2;
+
+    color:#b71c1c;
+
+    padding:12px;
+
+    border-radius:8px;
+
+    margin-top:20px;
+
+    font-size:0.9rem;
+
 }
+
+/* ───────────────────────────── */
 
 .btn-login {
-    width: 100%;
-    margin-top: 20px;
-    height: 48px;
-    font-size: 1rem;
-    background: var(--red);
-    color: white;
-    transition: 0.2s;
+
+    width:100%;
+
+    margin-top:20px;
+
+    height:48px;
+
+    font-size:1rem;
+
+    background:var(--red);
+
+    color:white;
+
+    transition:0.2s ease;
+
 }
+
+/* ───────────────────────────── */
+
+.btn-login:hover {
+
+    opacity:0.95;
+
+}
+
+/* ───────────────────────────── */
 
 .btn-login:active {
-    transform: scale(0.98);
+
+    transform:scale(0.98);
+
 }
+
+/* ───────────────────────────── */
+
+.btn-login:disabled {
+
+    opacity:0.7;
+
+    cursor:not-allowed;
+
+}
+
+/* ───────────────────────────── */
 
 .login-footer {
-    margin-top: 25px;
-    border-top: 1px solid var(--line);
-    padding-top: 15px;
+
+    margin-top:25px;
+
+    border-top:1px solid var(--line);
+
+    padding-top:15px;
+
 }
+
+/* ───────────────────────────── */
+
+@media (max-width: 480px) {
+
+    .login-card {
+
+        padding:30px 20px;
+
+    }
+
+}
+
 </style>
 
+<!-- SCRIPT -->
+
 <script>
-// loading botão
-document.getElementById('loginForm').addEventListener('submit', function() {
-    const btn = document.getElementById('btnLogin');
-    btn.textContent = 'Entrando...';
-    btn.disabled = true;
-});
+
+/* ───────────────────────────── */
+/* BOTÃO LOADING */
+/* ───────────────────────────── */
+
+const loginForm =
+    document.getElementById('loginForm');
+
+if (loginForm) {
+
+    loginForm.addEventListener(
+        'submit',
+        function() {
+
+            const btn =
+                document.getElementById('btnLogin');
+
+            if (!btn) return;
+
+            btn.textContent = 'Entrando...';
+
+            btn.disabled = true;
+
+        }
+    );
+
+}
+
 </script>
 
 {% endblock %}
