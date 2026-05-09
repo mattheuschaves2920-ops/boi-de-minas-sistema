@@ -12,6 +12,8 @@ from flask import (
     url_for
 )
 
+from flask_wtf.csrf import CSRFProtect
+
 # ─────────────────────────────
 # APP
 # ─────────────────────────────
@@ -22,6 +24,12 @@ app.config["SECRET_KEY"] = os.getenv(
     "SECRET_KEY",
     "boi-minas-2026"
 )
+
+# ─────────────────────────────
+# CSRF
+# ─────────────────────────────
+
+csrf = CSRFProtect(app)
 
 # ─────────────────────────────
 # DADOS MOCK
@@ -481,10 +489,15 @@ def auditoria():
         return auth
 
     class Logs:
+
         items = []
+
         page = 1
+
         pages = 1
+
         has_prev = False
+
         has_next = False
 
     return render_template(
