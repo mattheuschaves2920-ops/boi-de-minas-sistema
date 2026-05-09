@@ -1,178 +1,707 @@
 {% extends "base.html" %}
+
 {% block content %}
 
-<section class="card" style="border-top: 4px solid var(--blue);">
-    <form method="get" class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: end; gap: 15px;">
-        <label>Visão por Dia
-            <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}">
+<!-- FILTRO -->
+
+<section
+    class="card"
+
+    style="
+        border-top:4px solid var(--blue);
+    "
+>
+
+    <form
+        method="GET"
+
+        class="grid"
+
+        style="
+            grid-template-columns:
+            repeat(auto-fit, minmax(200px, 1fr));
+
+            align-items:end;
+            gap:15px;
+        "
+    >
+
+        <!-- DIA -->
+
+        <label>
+
+            Visão por Dia
+
+            <input
+                type="date"
+                name="data"
+
+                value="
+                {{ data_ref.strftime('%Y-%m-%d')
+                   if data_ref else '' }}
+                "
+            >
+
         </label>
 
-        <label>Visão por Mês
-            <input type="month" name="mes" value="{{ mes_ref.strftime('%Y-%m') }}">
+        <!-- MÊS -->
+
+        <label>
+
+            Visão por Mês
+
+            <input
+                type="month"
+                name="mes"
+
+                value="
+                {{ mes_ref.strftime('%Y-%m')
+                   if mes_ref else '' }}
+                "
+            >
+
         </label>
 
-        <div style="display: flex; gap: 8px;">
-            <button class="btn" type="submit" style="flex: 1;">📊 Analisar</button>
+        <!-- BOTÕES -->
+
+        <div
+            style="
+                display:flex;
+                gap:8px;
+            "
+        >
+
+            <button
+                class="btn"
+                type="submit"
+
+                style="flex:1;"
+            >
+
+                📊 Analisar
+
+            </button>
+
+            <!-- EXPORTAÇÃO -->
+
             <div class="dropdown">
-                <button type="button" class="btn" style="background: var(--ink); color: white;">📥 Exportar</button>
+
+                <button
+
+                    type="button"
+
+                    class="btn"
+
+                    style="
+                        background:var(--ink);
+                        color:white;
+                    "
+                >
+
+                    📥 Exportar
+
+                </button>
+
                 <div class="dropdown-content">
-                    <a href="{{ url_for('exportar_relatorio_pdf', data=data_ref.strftime('%Y-%m-%d'), mes=mes_ref.strftime('%Y-%m')) }}">Arquivo PDF</a>
-                    <a href="{{ url_for('exportar_relatorio_xlsx', data=data_ref.strftime('%Y-%m-%d'), mes=mes_ref.strftime('%Y-%m')) }}">Planilha Excel</a>
+
+                    <a
+
+                        href="{{ url_for(
+                            'exportar_relatorio_pdf',
+                            data=data_ref.strftime('%Y-%m-%d'),
+                            mes=mes_ref.strftime('%Y-%m')
+                        ) }}"
+                    >
+
+                        Arquivo PDF
+
+                    </a>
+
+                    <a
+
+                        href="{{ url_for(
+                            'exportar_relatorio_xlsx',
+                            data=data_ref.strftime('%Y-%m-%d'),
+                            mes=mes_ref.strftime('%Y-%m')
+                        ) }}"
+                    >
+
+                        Planilha Excel
+
+                    </a>
+
                 </div>
+
             </div>
+
         </div>
+
     </form>
+
 </section>
 
-<div class="grid metrics" style="margin-top:16px;">
-    <div class="card metric" style="border-bottom: 4px solid var(--green);">
-        <span>💰 Faturamento Total</span>
-        <strong>R$ {{ '%.2f'|format(faturamento or 0) }}</strong>
-        <small class="muted">{{ refeicoes or 0 }} refeições servidas</small>
-    </div>
+<!-- MÉTRICAS -->
 
-    <div class="card metric" style="border-bottom: 4px solid var(--red);">
-        <span>📉 Custo Operacional</span>
-        <strong style="color: var(--red);">R$ {{ '%.2f'|format(custo or 0) }}</strong>
-        <small class="muted">Inclui produção e insumos</small>
-    </div>
+<div
+    class="grid metrics"
+    style="margin-top:16px;"
+>
 
-    <div class="card metric" style="border-bottom: 4px solid {{ '#27ae60' if (lucro or 0) > 0 else '#e74c3c' }};">
-        <span>📈 Lucro Líquido</span>
-        <strong style="color: {{ '#27ae60' if (lucro or 0) > 0 else '#e74c3c' }};">
-            R$ {{ '%.2f'|format(lucro or 0) }}
+    <!-- FATURAMENTO -->
+
+    <div
+        class="card metric"
+
+        style="
+            border-bottom:4px solid var(--green);
+        "
+    >
+
+        <span>
+            💰 Faturamento Total
+        </span>
+
+        <strong>
+
+            R$
+            {{ '%.2f'|format(faturamento or 0) }}
+
         </strong>
-        <small class="muted">Resultado do período</small>
+
+        <small class="muted">
+
+            {{ refeicoes or 0 }}
+            refeições servidas
+
+        </small>
+
     </div>
+
+    <!-- CUSTO -->
+
+    <div
+        class="card metric"
+
+        style="
+            border-bottom:4px solid var(--red);
+        "
+    >
+
+        <span>
+            📉 Custo Operacional
+        </span>
+
+        <strong style="color:var(--red);">
+
+            R$
+            {{ '%.2f'|format(custo or 0) }}
+
+        </strong>
+
+        <small class="muted">
+
+            Inclui produção e insumos
+
+        </small>
+
+    </div>
+
+    <!-- LUCRO -->
+
+    <div
+        class="card metric"
+
+        style="
+            border-bottom:4px solid
+            {{ '#27ae60'
+               if (lucro or 0) > 0
+               else '#e74c3c' }};
+        "
+    >
+
+        <span>
+            📈 Lucro Líquido
+        </span>
+
+        <strong
+
+            style="
+                color:
+                {{ '#27ae60'
+                   if (lucro or 0) > 0
+                   else '#e74c3c' }};
+            "
+        >
+
+            R$
+            {{ '%.2f'|format(lucro or 0) }}
+
+        </strong>
+
+        <small class="muted">
+
+            Resultado do período
+
+        </small>
+
+    </div>
+
+    <!-- CMV -->
 
     <div class="card metric">
-        <span>📊 CMV</span>
-        <strong class="{{ 'error' if (cmv or 0) > 35 else 'success' }}">
+
+        <span>
+            📊 CMV
+        </span>
+
+        <strong
+
+            class="
+            {{ 'error'
+               if (cmv or 0) > 35
+               else 'success' }}
+            "
+        >
+
             {{ cmv or 0 }}%
+
         </strong>
-        <small class="muted">Meta: abaixo de 35%</small>
+
+        <small class="muted">
+
+            Meta: abaixo de 35%
+
+        </small>
+
     </div>
+
 </div>
 
-<div class="grid metrics" style="margin-top:12px;">
+<!-- SECUNDÁRIAS -->
+
+<div
+    class="grid metrics"
+    style="margin-top:12px;"
+>
+
     <div class="card metric">
-        <span>⚠️ Total de Perdas</span>
-        <strong class="error">R$ {{ '%.2f'|format(total_perdas or 0) }}</strong>
+
+        <span>
+            ⚠️ Total de Perdas
+        </span>
+
+        <strong class="error">
+
+            R$
+            {{ '%.2f'|format(total_perdas or 0) }}
+
+        </strong>
+
     </div>
 
     <div class="card metric">
-        <span>📅 Controle Diário</span>
-        <strong>R$ {{ '%.2f'|format(total_diario or 0) }}</strong>
+
+        <span>
+            📅 Controle Diário
+        </span>
+
+        <strong>
+
+            R$
+            {{ '%.2f'|format(total_diario or 0) }}
+
+        </strong>
+
     </div>
+
 </div>
 
-<div class="grid two" style="margin-top:16px;">
+<!-- TABELAS -->
+
+<div
+    class="grid two"
+    style="margin-top:16px;"
+>
+
+    <!-- ALMOÇO / JANTA -->
+
     <section class="card">
-        <h3>🍽️ Almoço vs. Janta</h3>
+
+        <h3>
+            🍽️ Almoço vs. Janta
+        </h3>
+
         <div class="table-wrap">
+
             <table>
+
                 <thead>
+
                     <tr>
+
                         <th>Período</th>
                         <th>Qtd.</th>
-                        <th style="text-align: right;">Faturamento</th>
+
+                        <th style="text-align:right;">
+                            Faturamento
+                        </th>
+
                     </tr>
+
                 </thead>
+
                 <tbody>
-                    {% for k, v in (por_periodo or {}).items() %}
-                    <tr>
-                        <td><strong>{{ k }}</strong></td>
-                        <td>{{ v.q or 0 }}</td>
-                        <td style="text-align: right;">R$ {{ '%.2f'|format(v.v or 0) }}</td>
-                    </tr>
+
+                    {% if por_periodo %}
+
+                        {% for k, v in por_periodo.items() %}
+
+                        <tr>
+
+                            <td>
+
+                                <strong>
+
+                                    {{ k }}
+
+                                </strong>
+
+                            </td>
+
+                            <td>
+
+                                {{ v.q or 0 }}
+
+                            </td>
+
+                            <td style="text-align:right;">
+
+                                R$
+                                {{ '%.2f'|format(v.v or 0) }}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
                     {% else %}
-                    <tr><td colspan="3" class="muted" style="text-align:center; padding:20px;">Sem dados no período.</td></tr>
-                    {% endfor %}
+
+                    <tr>
+
+                        <td
+                            colspan="3"
+
+                            class="muted center"
+
+                            style="padding:20px;"
+                        >
+
+                            Sem dados no período.
+
+                        </td>
+
+                    </tr>
+
+                    {% endif %}
+
                 </tbody>
+
             </table>
+
         </div>
+
     </section>
+
+    <!-- TOP VENDAS -->
 
     <section class="card">
-        <h3>🏆 Top Vendas (Hoje)</h3>
+
+        <h3>
+            🏆 Top Vendas (Hoje)
+        </h3>
+
         <div class="table-wrap">
+
             <table>
+
                 <thead>
+
                     <tr>
-                        <th>Tipo de Produto</th>
+
+                        <th>Tipo</th>
                         <th>Qtd.</th>
-                        <th style="text-align: right;">Total</th>
+
+                        <th style="text-align:right;">
+                            Total
+                        </th>
+
                     </tr>
+
                 </thead>
+
                 <tbody>
-                    {% for r in ranking_vendas or [] %}
-                    <tr>
-                        <td>{{ r.tipo }}</td>
-                        <td>{{ r.qtd or 0 }}</td>
-                        <td style="text-align: right;"><strong>R$ {{ '%.2f'|format(r.total or 0) }}</strong></td>
-                    </tr>
+
+                    {% if ranking_vendas %}
+
+                        {% for r in ranking_vendas %}
+
+                        <tr>
+
+                            <td>
+
+                                {{ r.tipo }}
+
+                            </td>
+
+                            <td>
+
+                                {{ r.qtd or 0 }}
+
+                            </td>
+
+                            <td style="text-align:right;">
+
+                                <strong>
+
+                                    R$
+                                    {{ '%.2f'|format(r.total or 0) }}
+
+                                </strong>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
                     {% else %}
-                    <tr><td colspan="3" class="muted" style="text-align:center; padding:20px;">Sem vendas hoje.</td></tr>
-                    {% endfor %}
+
+                    <tr>
+
+                        <td
+                            colspan="3"
+
+                            class="muted center"
+
+                            style="padding:20px;"
+                        >
+
+                            Sem vendas hoje.
+
+                        </td>
+
+                    </tr>
+
+                    {% endif %}
+
                 </tbody>
+
             </table>
+
         </div>
+
     </section>
+
 </div>
 
-<section class="card" style="margin-top:16px;">
-    <h3>🏢 Desempenho por Setor</h3>
+<!-- SETORES -->
+
+<section
+    class="card"
+    style="margin-top:16px;"
+>
+
+    <h3>
+        🏢 Desempenho por Setor
+    </h3>
+
     <div class="table-wrap">
+
         <table>
+
             <thead>
+
                 <tr>
+
                     <th>Setor</th>
                     <th>Vendas (+)</th>
                     <th>Produção (-)</th>
                     <th>Movimentação / Perda (-)</th>
-                    <th style="text-align: right;">Resultado Setorial</th>
+
+                    <th style="text-align:right;">
+                        Resultado
+                    </th>
+
                 </tr>
+
             </thead>
+
             <tbody>
-                {% for s in resumo_setores or [] %}
-                <tr>
-                    <td><strong>{{ s.setor }}</strong></td>
-                    <td class="success">R$ {{ '%.2f'|format(s.venda or 0) }}</td>
-                    <td class="muted">R$ {{ '%.2f'|format(s.producao or 0) }}</td>
-                    <td class="error">R$ {{ '%.2f'|format(s.movimentacao or 0) }}</td>
-                    <td style="text-align: right; font-weight: bold; color: {{ '#27ae60' if (s.lucro or 0) > 0 else '#e74c3c' }};">
-                        R$ {{ '%.2f'|format(s.lucro or 0) }}
-                    </td>
-                </tr>
+
+                {% if resumo_setores %}
+
+                    {% for s in resumo_setores %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+
+                                {{ s.setor }}
+
+                            </strong>
+
+                        </td>
+
+                        <td class="success">
+
+                            R$
+                            {{ '%.2f'|format(s.venda or 0) }}
+
+                        </td>
+
+                        <td class="muted">
+
+                            R$
+                            {{ '%.2f'|format(s.producao or 0) }}
+
+                        </td>
+
+                        <td class="error">
+
+                            R$
+                            {{ '%.2f'|format(s.movimentacao or 0) }}
+
+                        </td>
+
+                        <td
+
+                            style="
+                                text-align:right;
+                                font-weight:bold;
+
+                                color:
+                                {{ '#27ae60'
+                                   if (s.lucro or 0) > 0
+                                   else '#e74c3c' }};
+                            "
+                        >
+
+                            R$
+                            {{ '%.2f'|format(s.lucro or 0) }}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
                 {% else %}
-                <tr><td colspan="5" class="muted" style="text-align:center; padding:20px;">Nenhum dado por setor.</td></tr>
-                {% endfor %}
+
+                <tr>
+
+                    <td
+                        colspan="5"
+
+                        class="muted center"
+
+                        style="padding:20px;"
+                    >
+
+                        Nenhum dado por setor.
+
+                    </td>
+
+                </tr>
+
+                {% endif %}
+
             </tbody>
+
         </table>
+
     </div>
+
 </section>
 
+<!-- CSS -->
+
 <style>
-.dropdown { position: relative; display: inline-block; flex: 1; }
+
+/* ───────────────────────────── */
+
+.dropdown {
+
+    position:relative;
+
+    display:inline-block;
+
+    flex:1;
+
+}
+
+/* ───────────────────────────── */
+
 .dropdown-content {
-    display: none;
-    position: absolute;
-    background-color: #fff;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
-    z-index: 100;
-    right: 0;
-    border-radius: 8px;
+
+    display:none;
+
+    position:absolute;
+
+    right:0;
+
+    min-width:180px;
+
+    z-index:100;
+
+    overflow:hidden;
+
+    border-radius:8px;
+
+    background:var(--card);
+
+    box-shadow:
+        0 8px 16px rgba(0,0,0,0.2);
+
+    border:
+        1px solid var(--line);
+
 }
+
+/* ───────────────────────────── */
+
 .dropdown-content a {
-    color: var(--ink);
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
-    font-size: 0.9rem;
+
+    color:var(--ink);
+
+    padding:12px 16px;
+
+    text-decoration:none;
+
+    display:block;
+
+    font-size:0.9rem;
+
 }
-.dropdown-content a:hover { background-color: #f1f1f1; }
-.dropdown:hover .dropdown-content { display: block; }
+
+/* ───────────────────────────── */
+
+.dropdown-content a:hover {
+
+    background:rgba(0,0,0,0.05);
+
+}
+
+/* ───────────────────────────── */
+
+.dropdown:hover .dropdown-content {
+
+    display:block;
+
+}
+
 </style>
 
 {% endblock %}
