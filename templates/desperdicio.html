@@ -1,40 +1,23 @@
 {% extends "base.html" %}
-
 {% block content %}
 
-<!-- FILTRO -->
+<section class="card" style="border-left: 5px solid var(--red); margin-bottom:16px;">
 
-<section
-    class="card"
-    style="border-left: 5px solid var(--red);"
->
-
-    <form
-        method="GET"
-        class="grid"
-        style="
-            grid-template-columns: 1fr auto;
-            align-items:end;
-            gap:10px;
-        "
-    >
+    <form method="get"
+          class="grid"
+          style="grid-template-columns:1fr auto; align-items:end; gap:10px;">
 
         <label>
-
             Visualizar desperdícios do dia:
 
             <input
                 type="date"
                 name="data"
-                value="{{ data_ref.strftime('%Y-%m-%d') if data_ref else '' }}"
+                value="{{ data_ref.strftime('%Y-%m-%d') }}"
             >
-
         </label>
 
-        <button
-            class="btn"
-            type="submit"
-        >
+        <button class="btn" type="submit">
             🔍 Filtrar
         </button>
 
@@ -42,83 +25,45 @@
 
 </section>
 
-<div
-    class="grid two"
-    style="margin-top:16px;"
->
+<div class="grid two">
 
     <!-- FORM -->
 
-    <section
-        class="card"
-        style="
-            border:
-            {{ '2px solid var(--gold)'
-               if desperdicio_edicao
-               else '1px solid var(--line)' }};
-        "
-    >
+    <section class="card">
 
         <header style="margin-bottom:20px;">
 
             <h3 style="margin:0;">
-
-                {{ '✏️ Editando Desperdício'
-                   if desperdicio_edicao
-                   else '🗑️ Registrar Desperdício' }}
-
+                🗑️ {{ 'Editar Desperdício' if desperdicio_edicao else 'Registrar Desperdício' }}
             </h3>
 
-            <p
-                class="muted"
-                style="font-size:0.85rem;"
-            >
-
-                {{ 'Você está alterando um registro existente.'
-                   if desperdicio_edicao
-                   else 'O registro de fotos ajuda na auditoria mensal.' }}
-
+            <p class="muted" style="margin-top:6px;">
+                O registro com foto ajuda na auditoria mensal.
             </p>
 
         </header>
 
-        <!-- ERRO -->
-
         {% if error %}
 
         <div
-            class="card error"
+            class="card"
             style="
                 background:#fff5f5;
-                border:1px solid #ffcdd2;
-                padding:10px;
+                border:1px solid #ffcaca;
+                color:#b91c1c;
                 margin-bottom:15px;
             "
         >
-
             ⚠️ {{ error }}
-
         </div>
 
         {% endif %}
 
-        <!-- FORM -->
-
         <form
-            method="POST"
+            method="post"
+            enctype="multipart/form-data"
             id="form-desperdicio"
-
-            {% if not desperdicio_edicao %}
-                enctype="multipart/form-data"
-            {% endif %}
-
-            action="
-            {{ url_for(
-                'editar_desperdicio',
-                waste_id=desperdicio_edicao.id
-            ) if desperdicio_edicao
-            else url_for('desperdicio') }}
-            "
+            action="{{ url_for('editar_desperdicio', waste_id=desperdicio_edicao.id) if desperdicio_edicao else url_for('desperdicio') }}"
         >
 
             <input
@@ -127,71 +72,49 @@
                 value="{{ csrf_token() }}"
             >
 
+            <!-- DATA + ITEM -->
+
             <div
                 class="grid"
                 style="
                     grid-template-columns:1fr 1fr;
-                    gap:10px;
+                    gap:12px;
                 "
             >
 
                 <label>
-
                     Data
 
                     <input
                         type="date"
                         name="waste_date"
                         required
-
-                        value="
-                        {{ desperdicio_edicao.waste_date.strftime('%Y-%m-%d')
-                           if desperdicio_edicao and desperdicio_edicao.waste_date
-                           else data_ref.strftime('%Y-%m-%d') if data_ref else '' }}
-                        "
+                        value="{{ desperdicio_edicao.waste_date.strftime('%Y-%m-%d') if desperdicio_edicao else data_ref.strftime('%Y-%m-%d') }}"
                     >
-
                 </label>
 
-                {% if not desperdicio_edicao %}
-
                 <label>
-
                     Item
 
-                    <select
-                        name="item_id"
-                        required
-                    >
+                    {% if not desperdicio_edicao %}
 
-                        <option
-                            value=""
-                            disabled
-                            selected
-                        >
+                    <select name="item_id" required>
+
+                        <option value="" disabled selected>
                             Selecione...
                         </option>
 
                         {% for i in items %}
 
                         <option value="{{ i.id }}">
-
-                            {{ i.name }}
-                            ({{ i.area }})
-
+                            {{ i.name }} ({{ i.area }})
                         </option>
 
                         {% endfor %}
 
                     </select>
 
-                </label>
-
-                {% else %}
-
-                <label>
-
-                    Item
+                    {% else %}
 
                     <input
                         type="text"
@@ -199,43 +122,37 @@
                         disabled
                     >
 
+                    {% endif %}
+
                 </label>
 
-                {% endif %}
-
             </div>
+
+            <!-- QUANTIDADE + MOTIVO -->
 
             <div
                 class="grid"
                 style="
                     grid-template-columns:1fr 1fr;
-                    gap:10px;
+                    gap:12px;
                 "
             >
 
                 <label>
-
                     Quantidade
 
                     <input
                         type="number"
                         step="0.001"
-                        min="0.001"
+                        min="0"
                         name="quantity"
                         id="qty"
                         required
-
-                        value="
-                        {{ desperdicio_edicao.quantity
-                           if desperdicio_edicao
-                           else '' }}
-                        "
+                        value="{{ desperdicio_edicao.quantity if desperdicio_edicao else '' }}"
                     >
-
                 </label>
 
                 <label>
-
                     Motivo
 
                     <select name="reason">
@@ -252,6 +169,14 @@
                             Erro de Preparo
                         </option>
 
+                        <option value="Quebra">
+                            Quebra
+                        </option>
+
+                        <option value="Sobras">
+                            Sobras
+                        </option>
+
                         <option value="Outros">
                             Outros
                         </option>
@@ -266,24 +191,48 @@
 
             {% if not desperdicio_edicao %}
 
-            <label>
+            <label style="margin-top:10px;">
 
-                Foto
+                📸 Foto do desperdício
 
                 <input
                     type="file"
                     name="photo"
                     id="photo"
                     accept="image/*"
+                    capture="environment"
                     required
+                    style="margin-top:8px;"
                 >
 
-                <small
-                    id="file-name"
-                    class="muted"
-                ></small>
+                <small class="muted">
+                    No celular, a câmera traseira será aberta automaticamente.
+                </small>
 
             </label>
+
+            <!-- PREVIEW -->
+
+            <div
+                id="preview-box"
+                style="
+                    display:none;
+                    margin-top:15px;
+                "
+            >
+
+                <img
+                    id="preview"
+                    style="
+                        width:100%;
+                        max-height:300px;
+                        object-fit:cover;
+                        border-radius:12px;
+                        border:1px solid var(--line);
+                    "
+                >
+
+            </div>
 
             {% endif %}
 
@@ -291,9 +240,9 @@
 
             <div
                 style="
-                    margin-top:20px;
                     display:flex;
                     gap:10px;
+                    margin-top:20px;
                 "
             >
 
@@ -306,11 +255,7 @@
                         color:#fff;
                     "
                 >
-
-                    {{ 'Salvar Alteração'
-                       if desperdicio_edicao
-                       else 'Registrar' }}
-
+                    {{ 'Salvar Alteração' if desperdicio_edicao else 'Registrar' }}
                 </button>
 
                 {% if desperdicio_edicao %}
@@ -318,11 +263,12 @@
                 <a
                     href="{{ url_for('desperdicio') }}"
                     class="btn"
-                    style="flex:1;"
+                    style="
+                        flex:1;
+                        text-align:center;
+                    "
                 >
-
                     Cancelar
-
                 </a>
 
                 {% endif %}
@@ -337,7 +283,7 @@
 
     <section class="card">
 
-        <h3>
+        <h3 style="margin-top:0;">
             📋 Ocorrências
         </h3>
 
@@ -358,90 +304,75 @@
 
                 <tbody>
 
-                    {% if lista %}
+                    {% for d in lista %}
 
-                        {% for d in lista %}
+                    <tr>
 
-                        <tr>
+                        <td>
+                            <strong>
+                                {{ d.item_name }}
+                            </strong>
 
-                            <td>
+                            <br>
 
-                                <strong>
-                                    {{ d.item_name }}
-                                </strong>
+                            <small class="muted">
+                                {{ d.reason }}
+                            </small>
+                        </td>
 
-                                <br>
+                        <td>
+                            {{ d.quantity }}
+                        </td>
 
-                                <small class="muted">
+                        <td
+                            style="
+                                color:var(--red);
+                                font-weight:700;
+                            "
+                        >
+                            R$ {{ '%.2f'|format(d.value) }}
+                        </td>
 
-                                    {{ d.reason }}
+                        <td style="white-space:nowrap;">
 
-                                </small>
+                            <a
+                                href="{{ url_for('desperdicio', editar=d.id, data=data_ref.strftime('%Y-%m-%d')) }}"
+                                class="btn-link"
+                            >
+                                ✏️
+                            </a>
 
-                            </td>
+                            <form
+                                method="post"
+                                action="{{ url_for('excluir_desperdicio', waste_id=d.id) }}"
+                                style="display:inline;"
+                                onsubmit="return confirm('Excluir este desperdício?');"
+                            >
 
-                            <td>
+                                <input
+                                    type="hidden"
+                                    name="csrf_token"
+                                    value="{{ csrf_token() }}"
+                                >
 
-                                {{ d.quantity }}
-
-                            </td>
-
-                            <td class="error">
-
-                                R$
-                                {{ '%.2f'|format(d.value or 0) }}
-
-                            </td>
-
-                            <td>
-
-                                <a
-                                    href="{{ url_for(
-                                        'desperdicio',
-                                        editar=d.id,
-                                        data=data_ref.strftime('%Y-%m-%d')
-                                    ) }}"
+                                <button
+                                    type="submit"
                                     class="btn-link"
+                                    style="
+                                        border:none;
+                                        background:none;
+                                        color:var(--red);
+                                        cursor:pointer;
+                                    "
                                 >
-                                    ✏️
-                                </a>
+                                    🗑️
+                                </button>
 
-                                <form
-                                    method="POST"
+                            </form>
 
-                                    action="{{ url_for(
-                                        'excluir_desperdicio',
-                                        waste_id=d.id
-                                    ) }}"
+                        </td>
 
-                                    class="delete-form"
-
-                                    data-item="{{ d.item_name }}"
-                                    data-qty="{{ d.quantity }}"
-
-                                    style="display:inline;"
-                                >
-
-                                    <input
-                                        type="hidden"
-                                        name="csrf_token"
-                                        value="{{ csrf_token() }}"
-                                    >
-
-                                    <button
-                                        class="btn-link"
-                                        type="submit"
-                                    >
-                                        🗑️
-                                    </button>
-
-                                </form>
-
-                            </td>
-
-                        </tr>
-
-                        {% endfor %}
+                    </tr>
 
                     {% else %}
 
@@ -449,16 +380,18 @@
 
                         <td
                             colspan="4"
-                            class="muted center"
+                            class="muted"
+                            style="
+                                text-align:center;
+                                padding:30px;
+                            "
                         >
-
                             Sem registros
-
                         </td>
 
                     </tr>
 
-                    {% endif %}
+                    {% endfor %}
 
                 </tbody>
 
@@ -470,106 +403,56 @@
 
 </div>
 
-<!-- SCRIPT -->
-
 <script>
 
-/* ───────────────────────────── */
-/* NOME DO ARQUIVO */
-/* ───────────────────────────── */
-
-const photoInput =
-    document.getElementById('photo');
-
-if (photoInput) {
-
-    photoInput.addEventListener(
-        'change',
-        function() {
-
-            const file =
-                this.files?.[0];
-
-            const fileName =
-                document.getElementById('file-name');
-
-            if (fileName) {
-
-                fileName.textContent =
-                    file ? file.name : '';
-
-            }
-
-        }
-    );
-
-}
-
-/* ───────────────────────────── */
-/* VALIDAÇÃO */
-/* ───────────────────────────── */
-
-const form =
-    document.getElementById('form-desperdicio');
-
-if (form) {
-
-    form.addEventListener(
-        'submit',
-        function(e) {
-
-            const qtyField =
-                document.getElementById('qty');
-
-            const qty =
-                parseFloat(qtyField?.value) || 0;
-
-            if (qty <= 0) {
-
-                e.preventDefault();
-
-                alert(
-                    'Quantidade deve ser maior que zero.'
-                );
-
-            }
-
-        }
-    );
-
-}
-
-/* ───────────────────────────── */
-/* CONFIRMAÇÃO FORTE */
-/* ───────────────────────────── */
+/* preview da imagem */
 
 document
-.querySelectorAll('.delete-form')
-.forEach(form => {
+.getElementById('photo')
+?.addEventListener('change', function(e) {
 
-    form.addEventListener(
-        'submit',
-        function(e) {
+    const file = e.target.files[0];
 
-            const item =
-                form.dataset.item || '';
+    if (!file) return;
 
-            const qty =
-                form.dataset.qty || '';
+    const reader = new FileReader();
 
-            const confirmacao =
-                prompt(
-                    `Digite CONFIRMAR para excluir:\n\n${item} (${qty})`
-                );
+    reader.onload = function(ev) {
 
-            if (confirmacao !== 'CONFIRMAR') {
+        document
+            .getElementById('preview')
+            .src = ev.target.result;
 
-                e.preventDefault();
+        document
+            .getElementById('preview-box')
+            .style.display = 'block';
 
-            }
+    };
 
-        }
-    );
+    reader.readAsDataURL(file);
+
+});
+
+/* validação */
+
+document
+.getElementById('form-desperdicio')
+.addEventListener('submit', function(e) {
+
+    const qty =
+        parseFloat(
+            document.getElementById('qty').value
+        );
+
+    if (qty <= 0) {
+
+        alert(
+            'Quantidade deve ser maior que zero.'
+        );
+
+        e.preventDefault();
+
+    }
 
 });
 
