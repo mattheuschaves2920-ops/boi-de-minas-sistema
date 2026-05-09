@@ -1,172 +1,403 @@
 <!DOCTYPE html>
-<html lang="pt-br" data-theme="light">
+<html lang="pt-BR" data-theme="light">
+
 <head>
+
     <meta charset="UTF-8">
 
-    <!-- SEO básico -->
+    <!-- SEO -->
     <title>Boi de Minas Sistema</title>
-    <meta name="description" content="Sistema de gestão Boi de Minas">
+
+    <meta
+        name="description"
+        content="Sistema de gestão Boi de Minas"
+    >
 
     <!-- Mobile -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <!-- PWA -->
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#8b0000">
-
-    <!-- Segurança -->
+    <!-- Compatibilidade -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
+    <!-- PWA -->
+    <link
+        rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}"
+    >
+
+    <meta name="theme-color" content="#8b0000">
+
+    <!-- iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
     <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
 </head>
 
 <body>
 
 <!-- ───────────── HEADER ───────────── -->
+
 <header class="topbar">
 
     <div class="brand">
-        <div class="brand-icon">🐂</div>
-        <div class="brand-text">
-            <h1>Boi de Minas</h1>
-            <p>{{ current_user.name if current_user else 'Sistema de Gestão' }}</p>
+
+        <div class="brand-icon">
+            🐂
         </div>
+
+        <div class="brand-text">
+
+            <h1>Boi de Minas</h1>
+
+            <p>
+
+                {% if current_user and current_user.is_authenticated %}
+                    {{ current_user.name }}
+                {% else %}
+                    Sistema de Gestão
+                {% endif %}
+
+            </p>
+
+        </div>
+
     </div>
 
     <!-- MENU MOBILE -->
-    <button class="hamburger" onclick="toggleMenu()" aria-label="Abrir menu">
-        <span></span><span></span><span></span>
+
+    <button
+        class="hamburger"
+        onclick="toggleMenu()"
+        aria-label="Abrir menu"
+    >
+        <span></span>
+        <span></span>
+        <span></span>
     </button>
 
     <nav id="main-nav">
 
-        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a href="{{ url_for('vendas') }}">Vendas</a>
-        <a href="{{ url_for('controle') }}">Controle</a>
-        <a href="{{ url_for('desperdicio') }}">Desperdício</a>
-        <a href="{{ url_for('movimentos') }}">Movimentos</a>
-        <a href="{{ url_for('producao') }}">Produção</a>
-        <a href="{{ url_for('itens') }}">Estoque</a>
-
-        {% if n_criticos > 0 %}
-        <a href="{{ url_for('lista_compras') }}" class="nav-alert">
-            🛒 Compras <span class="badge-alert">{{ n_criticos }}</span>
+        <a href="{{ url_for('dashboard') }}">
+            Dashboard
         </a>
+
+        <a href="{{ url_for('vendas') }}">
+            Vendas
+        </a>
+
+        <a href="{{ url_for('controle') }}">
+            Controle
+        </a>
+
+        <a href="{{ url_for('desperdicio') }}">
+            Desperdício
+        </a>
+
+        <a href="{{ url_for('movimentos') }}">
+            Movimentos
+        </a>
+
+        <a href="{{ url_for('producao') }}">
+            Produção
+        </a>
+
+        <a href="{{ url_for('itens') }}">
+            Estoque
+        </a>
+
+        {% if n_criticos and n_criticos > 0 %}
+
+            <a
+                href="{{ url_for('lista_compras') }}"
+                class="nav-alert"
+            >
+                🛒 Compras
+
+                <span class="badge-alert">
+
+                    {{ n_criticos }}
+
+                </span>
+
+            </a>
+
         {% else %}
-        <a href="{{ url_for('lista_compras') }}">🛒 Compras</a>
+
+            <a href="{{ url_for('lista_compras') }}">
+                🛒 Compras
+            </a>
+
         {% endif %}
 
-        {% if current_user and current_user.role in ('admin', 'gerente') %}
-        <a href="{{ url_for('relatorio_gerencial') }}">Gerencial</a>
-        <a href="{{ url_for('metas') }}">Metas</a>
-        <a href="{{ url_for('usuarios') }}">Usuários</a>
-        <a href="{{ url_for('auditoria') }}">Auditoria</a>
+        {% if current_user
+              and current_user.is_authenticated
+              and current_user.role in ('admin', 'gerente') %}
+
+            <a href="{{ url_for('relatorio_gerencial') }}">
+                Gerencial
+            </a>
+
+            <a href="{{ url_for('metas') }}">
+                Metas
+            </a>
+
+            <a href="{{ url_for('usuarios') }}">
+                Usuários
+            </a>
+
+            <a href="{{ url_for('auditoria') }}">
+                Auditoria
+            </a>
+
         {% endif %}
 
-        <!-- Dark Mode -->
-        <button class="dark-toggle" onclick="toggleDark()" aria-label="Modo escuro">
-            <span id="dark-icon">🌙</span>
+        <!-- DARK MODE -->
+
+        <button
+            class="dark-toggle"
+            onclick="toggleDark()"
+            aria-label="Modo escuro"
+        >
+
+            <span id="dark-icon">
+                🌙
+            </span>
+
         </button>
 
-        <a href="{{ url_for('logout') }}" class="nav-logout">Sair</a>
+        <!-- LOGOUT -->
+
+        <a
+            href="{{ url_for('logout') }}"
+            class="nav-logout"
+        >
+            Sair
+        </a>
 
     </nav>
+
 </header>
 
 <!-- ───────────── ALERTA ESTOQUE ───────────── -->
-{% if n_criticos > 0 %}
+
+{% if n_criticos and n_criticos > 0 %}
+
 <div class="stock-banner">
-    ⚠️ <strong>{{ n_criticos }}</strong> item(s) com estoque baixo.
-    <a href="{{ url_for('lista_compras') }}">Ver lista →</a>
+
+    ⚠️
+
+    <strong>
+        {{ n_criticos }}
+    </strong>
+
+    item(s) com estoque baixo.
+
+    <a href="{{ url_for('lista_compras') }}">
+        Ver lista →
+    </a>
+
 </div>
+
 {% endif %}
 
 <!-- ───────────── TOAST ───────────── -->
+
 <div id="toast-container"></div>
 
-{% with messages = get_flashed_messages() %}
-{% if messages %}
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    {% for msg in messages %}
-        showToast({{ msg | tojson }});
-    {% endfor %}
-});
-</script>
-{% endif %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+
+    {% if messages %}
+
+    <script>
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            {% for category, msg in messages %}
+
+                showToast(
+                    {{ msg | tojson }},
+                    {{ category | tojson }}
+                );
+
+            {% endfor %}
+
+        });
+
+    </script>
+
+    {% endif %}
+
 {% endwith %}
 
 <!-- ───────────── CONTEÚDO ───────────── -->
+
 <main class="container">
-    {% block content %}{% endblock %}
+
+    {% block content %}
+    {% endblock %}
+
 </main>
 
 <!-- ───────────── FOOTER ───────────── -->
+
 <footer class="footer">
+
     © 2026 Boi de Minas — Sistema de Gestão
+
 </footer>
 
 <!-- ───────────── JS ───────────── -->
+
 <script>
 
-/* ───── DARK MODE ───── */
+/* ───────────────────────────── */
+/* DARK MODE */
+/* ───────────────────────────── */
+
 document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', saved);
-    updateIcon(saved);
+
+    const savedTheme =
+        localStorage.getItem('theme') || 'light';
+
+    document.documentElement.setAttribute(
+        'data-theme',
+        savedTheme
+    );
+
+    updateIcon(savedTheme);
+
 });
 
+/* ───────────────────────────── */
+
 function toggleDark() {
-    const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
+
+    const current =
+        document.documentElement.getAttribute('data-theme');
+
+    const next =
+        current === 'dark' ? 'light' : 'dark';
+
+    document.documentElement.setAttribute(
+        'data-theme',
+        next
+    );
+
     localStorage.setItem('theme', next);
+
     updateIcon(next);
+
 }
+
+/* ───────────────────────────── */
 
 function updateIcon(mode) {
-    const icon = document.getElementById('dark-icon');
-    if (icon) icon.textContent = mode === 'dark' ? '☀️' : '🌙';
+
+    const icon =
+        document.getElementById('dark-icon');
+
+    if (!icon) return;
+
+    icon.textContent =
+        mode === 'dark' ? '☀️' : '🌙';
+
 }
 
-/* ───── MENU MOBILE ───── */
+/* ───────────────────────────── */
+/* MENU MOBILE */
+/* ───────────────────────────── */
+
 function toggleMenu() {
-    document.getElementById('main-nav').classList.toggle('open');
+
+    const nav =
+        document.getElementById('main-nav');
+
+    if (nav) {
+        nav.classList.toggle('open');
+    }
+
 }
 
-/* ───── TOAST ───── */
-function showToast(msg, type = 'success') {
-    const container = document.getElementById('toast-container');
+/* ───────────────────────────── */
+/* TOAST */
+/* ───────────────────────────── */
 
-    const toast = document.createElement('div');
+function showToast(msg, type = 'success') {
+
+    const container =
+        document.getElementById('toast-container');
+
+    if (!container) return;
+
+    const toast =
+        document.createElement('div');
+
     toast.className = 'toast';
 
-    if (type === 'error') {
+    if (
+        type === 'error' ||
+        type === 'danger'
+    ) {
+
         toast.classList.add('toast-error');
+
         toast.textContent = '❌ ' + msg;
+
     } else {
+
         toast.textContent = '✅ ' + msg;
+
     }
 
     container.appendChild(toast);
 
-    setTimeout(() => toast.remove(), 4000);
+    setTimeout(() => {
+
+        toast.remove();
+
+    }, 4000);
+
 }
 
-/* ───── CSRF GLOBAL ───── */
-const CSRF_TOKEN = {{ csrf_token() | tojson }};
+/* ───────────────────────────── */
+/* CSRF GLOBAL */
+/* ───────────────────────────── */
+
+const CSRF_TOKEN =
+    {{ csrf_token() | tojson }};
 
 const _fetch = window.fetch;
+
 window.fetch = function(url, options = {}) {
-    if (options.method && options.method.toUpperCase() === 'POST') {
-        options.headers = options.headers || {};
-        options.headers['X-CSRF-Token'] = CSRF_TOKEN;
+
+    options.headers =
+        options.headers || {};
+
+    if (
+        options.method &&
+        options.method.toUpperCase() !== 'GET'
+    ) {
+
+        options.headers['X-CSRFToken'] =
+            CSRF_TOKEN;
+
     }
+
     return _fetch(url, options);
+
 };
 
 </script>
 
 </body>
+
 </html>
