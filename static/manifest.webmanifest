@@ -1,43 +1,46 @@
 {
-"name": "Boi de Minas Churrascaria",
-"short_name": "Boi de Minas",
-"description": "O melhor tempero mineiro.",
+  "name": "Boi de Minas Churrascaria",
+  "short_name": "Boi de Minas",
+  "description": "O melhor tempero mineiro.",
 
-"start_url": "/",
-"scope": "/",
+  "start_url": "/",
+  "scope": "/",
 
-"display": "standalone",
-"orientation": "portrait",
+  "display": "standalone",
+  "orientation": "portrait-primary",
 
-"background_color": "#8b0000",
-"theme_color": "#8b0000",
+  "background_color": "#8b0000",
+  "theme_color": "#8b0000",
 
-"lang": "pt-BR",
+  "lang": "pt-BR",
 
-"categories": ["food", "business"],
+  "categories": [
+    "food",
+    "business"
+  ],
 
-"icons": [
-{
-"src": "/static/icon-192.png",
-"sizes": "192x192",
-"type": "image/png"
-},
-{
-"src": "/static/icon-192-maskable.png",
-"sizes": "192x192",
-"type": "image/png",
-"purpose": "maskable"
-},
-{
-"src": "/static/icon-512.png",
-"sizes": "512x512",
-"type": "image/png"
-},
-{
-"src": "/static/icon-512-maskable.png",
-"sizes": "512x512",
-"type": "image/png",
-"purpose": "maskable"
-}
-]
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }
