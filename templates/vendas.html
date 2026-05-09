@@ -1,79 +1,661 @@
 {% extends "base.html" %}
+
 {% block content %}
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-    <h2>🛒 Registro de Vendas</h2>
-    <form method="get" style="display: flex; gap: 10px;">
-        <input type="date" name="data" value="{{ data_ref.strftime('%Y-%m-%d') }}" class="input-data">
-        <button type="submit" class="btn">Filtrar</button>
+<!-- TOPO -->
+
+<div
+
+    style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+
+        flex-wrap:wrap;
+
+        gap:12px;
+
+        margin-bottom:20px;
+    "
+>
+
+    <h2 style="margin:0;">
+
+        🛒 Registro de Vendas
+
+    </h2>
+
+    <!-- FILTRO -->
+
+    <form
+        method="GET"
+
+        style="
+            display:flex;
+            gap:10px;
+
+            flex-wrap:wrap;
+        "
+    >
+
+        <input
+            type="date"
+            name="data"
+
+            class="input-data"
+
+            value="
+            {{ data_ref.strftime('%Y-%m-%d')
+               if data_ref else '' }}
+            "
+        >
+
+        <button
+            type="submit"
+            class="btn"
+        >
+
+            Filtrar
+
+        </button>
+
     </form>
+
 </div>
 
-<div class="grid-vendas" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
-    
-    <section class="card-glass">
-        <h3>{{ 'Editar Registro' if venda_edicao else 'Nova Venda' }}</h3>
-        <form method="post" action="{{ url_for('vendas', editar=venda_edicao.id if venda_edicao else None) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            
-            <label>Data</label>
-            <input type="date" name="sale_date" required value="{{ (venda_edicao.sale_date if venda_edicao else data_ref).strftime('%Y-%m-%d') }}">
+<!-- GRID -->
 
-            <label>Tipo</label>
-            <select name="meal_type">
-                {% for t in meal_types %}
-                <option value="{{ t }}" {% if venda_edicao and venda_edicao.meal_type == t %}selected{% endif %}>{{ t }}</option>
-                {% endfor %}
-            </select>
+<div
+    class="grid-vendas"
 
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <div style="flex: 1;">
-                    <label>Valor (R$)</label>
-                    <input type="number" step="0.01" name="unit_value" value="{{ venda_edicao.unit_value if venda_edicao else '' }}" required>
+    style="
+        display:grid;
+
+        grid-template-columns:
+            1fr 1.5fr;
+
+        gap:20px;
+    "
+>
+
+    <!-- FORM -->
+
+    <section
+        class="card"
+
+        style="
+            border-top:4px solid var(--ink);
+        "
+    >
+
+        <header style="margin-bottom:20px;">
+
+            <h3 style="margin:0;">
+
+                {{ '✏️ Editar Registro'
+                   if venda_edicao
+                   else '🛒 Nova Venda' }}
+
+            </h3>
+
+            <p
+                class="muted"
+                style="font-size:0.85rem;"
+            >
+
+                Registre vendas realizadas
+                no período selecionado.
+
+            </p>
+
+        </header>
+
+        <!-- FORM -->
+
+        <form
+
+            method="POST"
+
+            id="formVenda"
+
+            action="
+            {{ url_for(
+                'vendas',
+                editar=venda_edicao.id
+                if venda_edicao else None
+            ) }}
+            "
+        >
+
+            <!-- CSRF -->
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            <!-- DATA -->
+
+            <label>
+
+                Data
+
+                <input
+                    type="date"
+
+                    name="sale_date"
+
+                    required
+
+                    value="
+                    {{
+                        (
+                            venda_edicao.sale_date
+                            if venda_edicao
+                            else data_ref
+                        ).strftime('%Y-%m-%d')
+                    }}
+                    "
+                >
+
+            </label>
+
+            <!-- TIPO -->
+
+            <label>
+
+                Tipo
+
+                <select
+                    name="meal_type"
+                >
+
+                    {% for t in meal_types %}
+
+                    <option
+
+                        value="{{ t }}"
+
+                        {% if venda_edicao
+                           and venda_edicao.meal_type == t %}
+                           selected
+                        {% endif %}
+                    >
+
+                        {{ t }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </label>
+
+            <!-- VALOR / QTD -->
+
+            <div
+                class="grid"
+
+                style="
+                    grid-template-columns:1fr 1fr;
+                    gap:10px;
+                    margin-top:10px;
+                "
+            >
+
+                <!-- VALOR -->
+
+                <div>
+
+                    <label>
+
+                        Valor Unitário (R$)
+
+                        <input
+                            type="number"
+
+                            step="0.01"
+                            min="0.01"
+
+                            name="unit_value"
+
+                            id="unit_value"
+
+                            required
+
+                            value="
+                            {{ venda_edicao.unit_value
+                               if venda_edicao else '' }}
+                            "
+                        >
+
+                    </label>
+
                 </div>
-                <div style="flex: 1;">
-                    <label>Qtd/Peso</label>
-                    <input type="number" step="0.001" name="quantity" value="{{ venda_edicao.quantity if venda_edicao else '' }}" required>
+
+                <!-- QTD -->
+
+                <div>
+
+                    <label>
+
+                        Qtd / Peso
+
+                        <input
+                            type="number"
+
+                            step="0.001"
+                            min="0.001"
+
+                            name="quantity"
+
+                            id="quantity"
+
+                            required
+
+                            value="
+                            {{ venda_edicao.quantity
+                               if venda_edicao else '' }}
+                            "
+                        >
+
+                    </label>
+
                 </div>
+
             </div>
 
-            <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Salvar Venda</button>
+            <!-- TOTAL -->
+
+            <div
+
+                class="card metric"
+
+                style="
+                    margin-top:18px;
+
+                    border-left:
+                    4px solid var(--green);
+                "
+            >
+
+                <span>
+                    💰 Total da Venda
+                </span>
+
+                <strong
+                    id="previewTotal"
+
+                    style="
+                        color:var(--green);
+                    "
+                >
+
+                    R$ 0,00
+
+                </strong>
+
+            </div>
+
+            <!-- BOTÃO -->
+
+            <button
+
+                type="submit"
+
+                class="btn"
+
+                id="btnSalvarVenda"
+
+                style="
+                    width:100%;
+                    margin-top:20px;
+                "
+            >
+
+                💾 Salvar Venda
+
+            </button>
+
         </form>
+
     </section>
 
-    <section class="card-glass">
-        <div style="display: flex; justify-content: space-between;">
-            <h3>Vendas do Dia</h3>
-            <span style="color: var(--green); font-weight: bold;">R$ {{ '%.2f'|format(total_hoje) }}</span>
+    <!-- LISTA -->
+
+    <section class="card">
+
+        <!-- TOPO -->
+
+        <div
+            style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+
+                gap:10px;
+
+                flex-wrap:wrap;
+            "
+        >
+
+            <h3 style="margin:0;">
+
+                📋 Vendas do Dia
+
+            </h3>
+
+            <span
+
+                style="
+                    color:var(--green);
+                    font-weight:bold;
+                "
+            >
+
+                R$
+                {{ '%.2f'|format(total_hoje or 0) }}
+
+            </span>
+
         </div>
-        
-        <table style="width: 100%; margin-top: 10px;">
-            <thead>
-                <tr>
-                    <th>Item</th>
-                    <th>Qtd</th>
-                    <th>Total</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for v in vendas %}
-                <tr>
-                    <td>{{ v.meal_type }}</td>
-                    <td>{{ '%.3f'|format(v.quantity) }}</td>
-                    <td>R$ {{ '%.2f'|format(v.unit_value * v.quantity) }}</td>
-                    <td>
-                        <a href="{{ url_for('vendas', editar=v.id, data=data_ref.strftime('%Y-%m-%d')) }}">✏️</a>
-                        <form method="post" action="{{ url_for('excluir_venda', sale_id=v.id) }}" style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" style="background:none; border:none; color:red; cursor:pointer;">🗑️</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+        <!-- TABELA -->
+
+        <div class="table-wrap">
+
+            <table
+                style="
+                    width:100%;
+                    margin-top:10px;
+                "
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>Item</th>
+                        <th>Qtd</th>
+                        <th>Total</th>
+                        <th>Ações</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% if vendas %}
+
+                        {% for v in vendas %}
+
+                        <tr>
+
+                            <!-- ITEM -->
+
+                            <td>
+
+                                {{ v.meal_type }}
+
+                            </td>
+
+                            <!-- QTD -->
+
+                            <td>
+
+                                {{ '%.3f'|format(v.quantity or 0) }}
+
+                            </td>
+
+                            <!-- TOTAL -->
+
+                            <td>
+
+                                <strong>
+
+                                    R$
+                                    {{ '%.2f'|format(
+                                        (v.unit_value or 0)
+                                        *
+                                        (v.quantity or 0)
+                                    ) }}
+
+                                </strong>
+
+                            </td>
+
+                            <!-- AÇÕES -->
+
+                            <td
+                                style="
+                                    white-space:nowrap;
+                                "
+                            >
+
+                                <!-- EDITAR -->
+
+                                <a
+
+                                    href="{{ url_for(
+                                        'vendas',
+                                        editar=v.id,
+                                        data=data_ref.strftime('%Y-%m-%d')
+                                    ) }}"
+
+                                    class="btn-link"
+                                >
+
+                                    ✏️
+
+                                </a>
+
+                                <!-- EXCLUIR -->
+
+                                <form
+
+                                    method="POST"
+
+                                    action="{{ url_for(
+                                        'excluir_venda',
+                                        sale_id=v.id
+                                    ) }}"
+
+                                    style="display:inline;"
+
+                                    onsubmit="
+                                    return confirm(
+                                        '⚠️ Deseja realmente excluir esta venda?'
+                                    );
+                                    "
+                                >
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="{{ csrf_token() }}"
+                                    >
+
+                                    <button
+
+                                        type="submit"
+
+                                        class="btn-link"
+
+                                        style="
+                                            color:var(--red);
+
+                                            border:none;
+                                            background:none;
+
+                                            cursor:pointer;
+                                        "
+                                    >
+
+                                        🗑️
+
+                                    </button>
+
+                                </form>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                    <!-- VAZIO -->
+
+                    <tr>
+
+                        <td
+                            colspan="4"
+
+                            class="muted center"
+
+                            style="padding:20px;"
+                        >
+
+                            Nenhuma venda registrada.
+
+                        </td>
+
+                    </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
     </section>
+
 </div>
+
+<!-- RESPONSIVO -->
+
+<style>
+
+@media (max-width: 900px) {
+
+    .grid-vendas {
+
+        grid-template-columns:1fr !important;
+
+    }
+
+}
+
+</style>
+
+<!-- SCRIPT -->
+
+<script>
+
+/* ───────────────────────────── */
+/* TOTAL AUTOMÁTICO */
+/* ───────────────────────────── */
+
+const unitValue =
+    document.getElementById(
+        'unit_value'
+    );
+
+const quantity =
+    document.getElementById(
+        'quantity'
+    );
+
+const previewTotal =
+    document.getElementById(
+        'previewTotal'
+    );
+
+/* ───────────────────────────── */
+
+function atualizarTotal() {
+
+    const valor =
+        parseFloat(
+            unitValue?.value
+        ) || 0;
+
+    const qtd =
+        parseFloat(
+            quantity?.value
+        ) || 0;
+
+    const total =
+        valor * qtd;
+
+    previewTotal.textContent =
+        total.toLocaleString(
+            'pt-BR',
+            {
+                style:'currency',
+                currency:'BRL'
+            }
+        );
+
+}
+
+/* ───────────────────────────── */
+
+unitValue?.addEventListener(
+    'input',
+    atualizarTotal
+);
+
+quantity?.addEventListener(
+    'input',
+    atualizarTotal
+);
+
+/* ───────────────────────────── */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    atualizarTotal
+);
+
+/* ───────────────────────────── */
+/* LOADING BOTÃO */
+/* ───────────────────────────── */
+
+const formVenda =
+    document.getElementById(
+        'formVenda'
+    );
+
+if (formVenda) {
+
+    formVenda.addEventListener(
+        'submit',
+        () => {
+
+            const btn =
+                document.getElementById(
+                    'btnSalvarVenda'
+                );
+
+            if (!btn) return;
+
+            btn.disabled = true;
+
+            btn.textContent =
+                'Salvando...';
+
+        }
+    );
+
+}
+
+</script>
 
 {% endblock %}
