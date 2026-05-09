@@ -9,8 +9,11 @@ from flask import (
 )
 
 from datetime import datetime, date
-
 import os
+
+# =====================================================
+# APP
+# =====================================================
 
 app = Flask(__name__)
 
@@ -36,23 +39,16 @@ USERS = [
 AREAS = [
     "Cozinha",
     "Buffet",
+    "Bar",
     "Estoque"
-]
-
-SETORES = [
-    "Produção",
-    "Compras",
-    "Administrativo"
 ]
 
 MEAL_TYPES = [
     "Almoço",
-    "Janta"
+    "Janta",
+    "Marmita",
+    "Bebidas"
 ]
-
-ITENS = []
-
-MOVIMENTOS = []
 
 # =====================================================
 # LOGIN
@@ -83,6 +79,7 @@ def inject_globals():
 
     return {
         "current_user": current_user,
+        "n_criticos": 0,
         "now": datetime.now
     }
 
@@ -117,6 +114,8 @@ def login():
             session["user"] = user["name"]
             session["role"] = user["role"]
 
+            flash("Login realizado com sucesso.")
+
             return redirect(url_for("dashboard"))
 
         error = "Usuário ou senha inválidos."
@@ -134,6 +133,8 @@ def login():
 def logout():
 
     session.clear()
+
+    flash("Sessão encerrada.")
 
     return redirect(url_for("login"))
 
@@ -173,6 +174,39 @@ def dashboard():
     )
 
 # =====================================================
+# CONTROLE
+# =====================================================
+
+@app.route("/controle", methods=["GET", "POST"])
+def controle():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    grupos = [
+        "Buffet",
+        "Lanches",
+        "Bebidas",
+        "Marmitas"
+    ]
+
+    resumo = []
+
+    if request.method == "POST":
+
+        flash("Registro salvo com sucesso.")
+
+        return redirect(url_for("controle"))
+
+    return render_template(
+        "controle.html",
+        grupos=grupos,
+        resumo=resumo
+    )
+
+# =====================================================
 # VENDAS
 # =====================================================
 
@@ -196,33 +230,6 @@ def vendas():
         data_ref=date.today(),
 
         venda_edicao=None
-    )
-
-# =====================================================
-# CONTROLE
-# =====================================================
-
-@app.route("/controle")
-def controle():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "controle.html",
-
-        grupos=[
-            "Buffet",
-            "Lanches",
-            "Bebidas",
-            "Marmitas"
-        ],
-
-        resumo=[],
-
-        data_ref=date.today()
     )
 
 # =====================================================
@@ -258,11 +265,33 @@ def lista_compras():
         return auth
 
     return render_template(
-        "lista-compras.html",
+        "lista_compras.html",
 
         lista=[],
 
         total_custo=0
+    )
+
+# =====================================================
+# DESPERDICIO
+# =====================================================
+
+@app.route("/desperdicio")
+def desperdicio():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "desperdicio.html",
+
+        lista=[],
+        items=[],
+        desperdicio_edicao=None,
+        error=None,
+        data_ref=date.today()
     )
 
 # =====================================================
@@ -281,20 +310,23 @@ def movimentos():
         "movimentos.html",
 
         movimentos=[],
-
-        items=[],
+        mov_edicao=None,
 
         areas=AREAS,
 
-        setores=SETORES,
+        setores=[
+            "Cozinha",
+            "Buffet",
+            "Bar"
+        ],
 
-        mov_edicao=None,
+        items=[],
 
         data_ref=date.today()
     )
 
 # =====================================================
-# PRODUÇÃO
+# PRODUCAO
 # =====================================================
 
 @app.route("/producao")
@@ -310,19 +342,23 @@ def producao():
 
         lista=[],
 
-        items=[],
+        setores=[
+            "Cozinha",
+            "Padaria",
+            "Buffet"
+        ],
 
-        setores=SETORES,
+        items=[],
 
         data_ref=date.today()
     )
 
 # =====================================================
-# DESPERDÍCIO
+# RELATORIO GERENCIAL
 # =====================================================
 
-@app.route("/desperdicio")
-def desperdicio():
+@app.route("/relatorio_gerencial")
+def relatorio_gerencial():
 
     auth = verificar_login()
 
@@ -330,47 +366,57 @@ def desperdicio():
         return auth
 
     return render_template(
-        "desperdicio.html",
+        "relatorio-gerencial.html",
 
-        lista=[],
+        faturamento=0,
+        custo=0,
+        lucro=0,
+        cmv=0,
 
-        items=[],
+        total_perdas=0,
+        total_diario=0,
 
-        desperdicio_edicao=None,
+        refeicoes=0,
 
-        data_ref=date.today()
+        por_periodo={},
+
+        ranking_vendas=[],
+
+        resumo_setores=[],
+
+        data_ref=date.today(),
+        mes_ref=date.today()
     )
 
 # =====================================================
-# USUÁRIOS
+# METAS
 # =====================================================
 
-@app.route("/usuarios", methods=["GET", "POST"])
-def usuarios():
+@app.route("/metas")
+def metas():
 
     auth = verificar_login()
 
     if auth:
         return auth
 
-    if request.method == "POST":
+    return render_template(
+        "metas.html",
 
-        USERS.append({
+        metas=[]
+    )
 
-            "id": len(USERS) + 1,
+# =====================================================
+# USUARIOS
+# =====================================================
 
-            "name": request.form.get("name"),
+@app.route("/usuarios")
+def usuarios():
 
-            "username": request.form.get("username"),
+    auth = verificar_login()
 
-            "password": request.form.get("password"),
-
-            "role": request.form.get("role")
-        })
-
-        flash("Usuário criado com sucesso.")
-
-        return redirect(url_for("usuarios"))
+    if auth:
+        return auth
 
     return render_template(
         "usuarios.html",
@@ -380,30 +426,31 @@ def usuarios():
         roles=[
             "admin",
             "gerente",
-            "operador"
+            "funcionario"
         ]
     )
 
 # =====================================================
-# EXPORTAÇÃO
+# AUDITORIA
 # =====================================================
 
-@app.route("/exportar_lista_compras_xlsx")
-def exportar_lista_compras_xlsx():
+@app.route("/auditoria")
+def auditoria():
 
     auth = verificar_login()
 
     if auth:
         return auth
 
-    flash("Exportação em desenvolvimento.")
+    return render_template(
+        "auditoria.html",
 
-    return redirect(url_for("lista_compras"))
+        logs=[]
+    )
 
 # =====================================================
-# EXECUÇÃO
+# START
 # =====================================================
 
 if __name__ == "__main__":
-
     app.run(debug=True)
