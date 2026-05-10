@@ -11,19 +11,76 @@
         style="border-top:4px solid var(--gold);"
     >
 
-        <h3>
-            📦 Cadastrar Novo Item
-        </h3>
+        <div
+            style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                margin-bottom:20px;
+                gap:10px;
+                flex-wrap:wrap;
+            "
+        >
+
+            <div>
+
+                <h3 style="margin:0;">
+                    📦 Cadastrar Novo Item
+                </h3>
+
+                <p class="muted">
+
+                    Controle completo de estoque.
+
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- ALERTAS -->
+
+        {% if error %}
+
+        <div
+            class="alert alert-error"
+            style="margin-bottom:15px;"
+        >
+
+            ⚠️ {{ error }}
+
+        </div>
+
+        {% endif %}
+
+        {% if success %}
+
+        <div
+            class="alert alert-success"
+            style="margin-bottom:15px;"
+        >
+
+            ✅ {{ success }}
+
+        </div>
+
+        {% endif %}
+
+        <!-- FORM -->
 
         <form method="POST">
 
             <!-- CSRF -->
+
+            {% if csrf_token %}
 
             <input
                 type="hidden"
                 name="csrf_token"
                 value="{{ csrf_token() }}"
             >
+
+            {% endif %}
 
             <!-- ÁREA + CÓDIGO -->
 
@@ -44,15 +101,27 @@
                         required
                     >
 
-                        {% for a in areas %}
+                        {% if areas %}
 
-                        <option value="{{ a }}">
+                            {% for a in areas %}
 
-                            {{ a }}
+                            <option value="{{ a }}">
 
-                        </option>
+                                {{ a }}
 
-                        {% endfor %}
+                            </option>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <option value="">
+
+                                Nenhuma área cadastrada
+
+                            </option>
+
+                        {% endif %}
 
                     </select>
 
@@ -110,7 +179,7 @@
                         </option>
 
                         <option value="un">
-                            Un
+                            Unidade
                         </option>
 
                         <option value="l">
@@ -182,10 +251,9 @@
             <button
                 class="btn"
                 type="submit"
-
                 style="
                     width:100%;
-                    margin-top:15px;
+                    margin-top:18px;
                 "
             >
 
@@ -201,9 +269,44 @@
 
     <section class="card">
 
-        <h3>
-            🔍 Estoque Atual
-        </h3>
+        <div
+            style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                margin-bottom:15px;
+                gap:10px;
+                flex-wrap:wrap;
+            "
+        >
+
+            <div>
+
+                <h3 style="margin:0;">
+                    🔍 Estoque Atual
+                </h3>
+
+                <p class="muted">
+
+                    Produtos cadastrados no sistema.
+
+                </p>
+
+            </div>
+
+            <div>
+
+                <strong>
+
+                    {{ itens|length if itens else 0 }}
+
+                </strong>
+
+                itens
+
+            </div>
+
+        </div>
 
         <!-- BUSCA -->
 
@@ -211,15 +314,15 @@
             type="text"
             id="busca"
 
-            placeholder="Buscar item..."
+            placeholder="🔎 Buscar item..."
 
             style="
                 width:100%;
-                padding:8px;
-                margin-bottom:10px;
+                padding:10px;
+                margin-bottom:15px;
 
                 border:1px solid var(--line);
-                border-radius:6px;
+                border-radius:8px;
             "
         >
 
@@ -233,9 +336,17 @@
 
                     <tr>
 
-                        <th>Item</th>
-                        <th>Qtd</th>
-                        <th>Status</th>
+                        <th onclick="sortTable(0)">
+                            Item ⬍
+                        </th>
+
+                        <th onclick="sortTable(1)">
+                            Qtd ⬍
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
 
                     </tr>
 
@@ -265,7 +376,7 @@
 
                                 <strong>
 
-                                    {{ i.name }}
+                                    {{ i.name or '—' }}
 
                                 </strong>
 
@@ -273,7 +384,7 @@
 
                                 <small class="muted">
 
-                                    {{ i.area }}
+                                    {{ i.area or 'Sem área' }}
 
                                 </small>
 
@@ -281,7 +392,12 @@
 
                             <td>
 
-                                {{ i.stock or 0 }}
+                                <strong>
+
+                                    {{ i.stock or 0 }}
+
+                                </strong>
+
                                 {{ i.unit or '' }}
 
                             </td>
@@ -306,6 +422,7 @@
                                     <span
                                         style="
                                             color:var(--green);
+                                            font-weight:600;
                                         "
                                     >
 
@@ -330,7 +447,7 @@
 
                             class="muted center"
 
-                            style="padding:20px;"
+                            style="padding:25px;"
                         >
 
                             Nenhum item cadastrado.
@@ -351,13 +468,11 @@
 
 </div>
 
-<!-- BUSCA -->
+<!-- SCRIPT -->
 
 <script>
 
-/* ───────────────────────────── */
 /* BUSCA */
-/* ───────────────────────────── */
 
 const busca =
     document.getElementById('busca');
@@ -390,6 +505,67 @@ if (busca) {
 
         }
     );
+
+}
+
+/* ORDENAÇÃO */
+
+function sortTable(col) {
+
+    const tabela =
+        document.getElementById(
+            'tabela-estoque'
+        );
+
+    if (!tabela) return;
+
+    const tbody =
+        tabela.querySelector('tbody');
+
+    const rows =
+        Array.from(
+            tbody.querySelectorAll('tr')
+        );
+
+    const asc =
+        tabela.dataset.sort !== 'asc';
+
+    rows.sort((a, b) => {
+
+        const A =
+            a.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        const B =
+            b.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        return asc
+
+            ? A.localeCompare(
+                B,
+                'pt-BR',
+                { numeric:true }
+              )
+
+            : B.localeCompare(
+                A,
+                'pt-BR',
+                { numeric:true }
+              );
+
+    });
+
+    rows.forEach(row => {
+
+        tbody.appendChild(row);
+
+    });
+
+    tabela.dataset.sort =
+        asc ? 'asc' : 'desc';
 
 }
 
