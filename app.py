@@ -88,6 +88,39 @@ class User(db.Model):
     )
 
 # =====================================================
+# VENDA MODEL
+# =====================================================
+
+class Venda(db.Model):
+
+    __tablename__ = "vendas"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    cliente = db.Column(
+        db.String(120),
+        nullable=False
+    )
+
+    valor = db.Column(
+        db.Float,
+        nullable=False
+    )
+
+    data = db.Column(
+        db.Date,
+        default=date.today
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+# =====================================================
 # CREATE TABLES
 # =====================================================
 
@@ -232,12 +265,16 @@ def dashboard():
     if auth:
         return auth
 
+    faturamento = db.session.query(
+        db.func.sum(Venda.valor)
+    ).scalar() or 0
+
     return render_template(
         "dashboard.html",
 
-        faturamento=0,
+        faturamento=faturamento,
         custo=0,
-        lucro=0,
+        lucro=faturamento,
         cmv=0,
         meta_pct=0
     )
@@ -257,23 +294,189 @@ def vendas():
     if auth:
         return auth
 
-    data_ref = date.today()
+    error = None
+    success = None
+
+    # DATA FILTRO
+
+    data_param = request.args.get("data")
+
+    try:
+
+        data_ref = (
+
+            datetime.strptime(
+                data_param,
+                "%Y-%m-%d"
+            ).date()
+
+            if data_param
+
+            else date.today()
+        )
+
+    except:
+
+        data_ref = date.today()
+
+    # EDITAR
+
+    venda_edicao = None
+
+    editar_id = request.args.get(
+        "editar"
+    )
+
+    if editar_id:
+
+        venda_edicao = Venda.query.get(
+            editar_id
+        )
+
+    # SALVAR
+
+    if request.method == "POST":
+
+        try:
+
+            sale_date = datetime.strptime(
+
+                request.form.get(
+                    "sale_date"
+                ),
+
+                "%Y-%m-%d"
+
+            ).date()
+
+            meal_type = request.form.get(
+                "meal_type"
+            )
+
+            unit_value = float(
+
+                request.form.get(
+                    "unit_value",
+                    0
+                )
+            )
+
+            quantity = float(
+
+                request.form.get(
+                    "quantity",
+                    0
+                )
+            )
+
+            total = unit_value * quantity
+
+            # EDITAR
+
+            if venda_edicao:
+
+                venda_edicao.cliente = meal_type
+
+                venda_edicao.valor = total
+
+                venda_edicao.data = sale_date
+
+                success = "Venda atualizada."
+
+            # NOVA
+
+            else:
+
+                nova = Venda(
+
+                    cliente=meal_type,
+
+                    valor=total,
+
+                    data=sale_date
+                )
+
+                db.session.add(nova)
+
+                success = "Venda registrada."
+
+            db.session.commit()
+
+            return redirect(
+
+                url_for(
+                    "vendas",
+                    data=data_ref.strftime(
+                        "%Y-%m-%d"
+                    )
+                )
+            )
+
+        except Exception as e:
+
+            db.session.rollback()
+
+            error = str(e)
+
+    # LISTA
+
+    vendas = Venda.query.filter_by(
+        data=data_ref
+    ).order_by(
+        Venda.id.desc()
+    ).all()
+
+    total_hoje = sum(
+        v.valor for v in vendas
+    )
 
     return render_template(
 
         "vendas.html",
 
-        vendas=[],
+        vendas=vendas,
 
-        total_hoje=0,
+        total_hoje=total_hoje,
 
-        venda_edicao=None,
+        venda_edicao=venda_edicao,
 
         data_ref=data_ref,
 
-        error=None,
+        error=error,
 
-        success=None
+        success=success
+    )
+
+# =====================================================
+# EXCLUIR VENDA
+# =====================================================
+
+@app.route(
+    "/excluir_venda/<int:sale_id>",
+    methods=["POST"]
+)
+def excluir_venda(sale_id):
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    venda = Venda.query.get_or_404(
+        sale_id
+    )
+
+    db.session.delete(venda)
+
+    db.session.commit()
+
+    flash(
+        "Venda excluída.",
+        "success"
+    )
+
+    return redirect(
+        url_for("vendas")
     )
 
 # =====================================================
@@ -499,15 +702,19 @@ def relatorio_gerencial():
     if auth:
         return auth
 
+    faturamento = db.session.query(
+        db.func.sum(Venda.valor)
+    ).scalar() or 0
+
     return render_template(
 
         "relatorio-gerencial.html",
 
-        faturamento=0,
+        faturamento=faturamento,
 
         custo=0,
 
-        lucro=0,
+        lucro=faturamento,
 
         cmv=0,
 
@@ -515,7 +722,7 @@ def relatorio_gerencial():
 
         total_perdas=0,
 
-        total_diario=0,
+        total_diario=faturamento,
 
         por_periodo={},
 
