@@ -8,17 +8,15 @@ from flask import (
     session
 )
 
-from flask_wtf.csrf import CSRFProtect
-
 from flask_sqlalchemy import SQLAlchemy
 
 from datetime import datetime, date
 
 import os
 
-# =====================================================
+# =========================================================
 # APP
-# =====================================================
+# =========================================================
 
 app = Flask(__name__)
 
@@ -27,30 +25,30 @@ app.config["SECRET_KEY"] = os.getenv(
     "boi-minas-2026"
 )
 
-# =====================================================
-# DATABASE
-# =====================================================
-
-database_url = os.getenv("DATABASE_URL")
-
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace(
-        "postgres://",
-        "postgresql://",
-        1
-    )
-
-app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    "DATABASE_URL"
+)
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# =========================================================
+# DATABASE
+# =========================================================
+
 db = SQLAlchemy(app)
 
-csrf = CSRFProtect(app)
+# =========================================================
+# RESET TEMPORÁRIO DO BANCO
+# REMOVER DEPOIS DO PRIMEIRO DEPLOY
+# =========================================================
 
-# =====================================================
+with app.app_context():
+    db.drop_all()
+    db.create_all()
+
+# =========================================================
 # MODELS
-# =====================================================
+# =========================================================
 
 class User(db.Model):
 
@@ -67,7 +65,7 @@ class User(db.Model):
     )
 
     username = db.Column(
-        db.String(120),
+        db.String(80),
         unique=True,
         nullable=False
     )
@@ -78,18 +76,15 @@ class User(db.Model):
     )
 
     role = db.Column(
-        db.String(50),
-        nullable=False,
+        db.String(30),
         default="funcionario"
     )
 
-# =====================================================
-# CRIAR BANCO
-# =====================================================
+# =========================================================
+# CRIAR ADMIN
+# =========================================================
 
 with app.app_context():
-
-    db.create_all()
 
     admin = User.query.filter_by(
         username="admin"
@@ -105,44 +100,11 @@ with app.app_context():
         )
 
         db.session.add(admin)
-
         db.session.commit()
 
-# =====================================================
-# DADOS
-# =====================================================
-
-AREAS = [
-    "Cozinha",
-    "Buffet",
-    "Bar",
-    "Estoque"
-]
-
-MEAL_TYPES = [
-    "Almoço",
-    "Janta",
-    "Marmita",
-    "Bebidas",
-    "Lanches",
-    "Delivery",
-    "Sobremesas"
-]
-
-# =====================================================
-# LOGIN
-# =====================================================
-
-def verificar_login():
-
-    if not session.get("user"):
-        return redirect(url_for("login"))
-
-    return None
-
-# =====================================================
+# =========================================================
 # CONTEXTO GLOBAL
-# =====================================================
+# =========================================================
 
 @app.context_processor
 def inject_globals():
@@ -152,20 +114,29 @@ def inject_globals():
     if session.get("user"):
 
         current_user = {
-            "id": session.get("user_id"),
             "name": session.get("user"),
             "role": session.get("role")
         }
 
     return {
         "current_user": current_user,
-        "n_criticos": 0,
         "now": datetime.now
     }
 
-# =====================================================
+# =========================================================
+# VERIFICAR LOGIN
+# =========================================================
+
+def verificar_login():
+
+    if not session.get("user"):
+        return redirect(url_for("login"))
+
+    return None
+
+# =========================================================
 # LOGIN
-# =====================================================
+# =========================================================
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -177,8 +148,13 @@ def login():
 
     if request.method == "POST":
 
-        username = request.form.get("username")
-        password = request.form.get("password")
+        username = request.form.get(
+            "username"
+        )
+
+        password = request.form.get(
+            "password"
+        )
 
         user = User.query.filter_by(
             username=username
@@ -186,13 +162,14 @@ def login():
 
         if user and user.password == password:
 
-            session["user_id"] = user.id
             session["user"] = user.name
             session["role"] = user.role
 
-            flash("Login realizado com sucesso.")
+            flash("Login realizado.")
 
-            return redirect(url_for("dashboard"))
+            return redirect(
+                url_for("dashboard")
+            )
 
         error = "Usuário ou senha inválidos."
 
@@ -201,9 +178,9 @@ def login():
         error=error
     )
 
-# =====================================================
+# =========================================================
 # LOGOUT
-# =====================================================
+# =========================================================
 
 @app.route("/logout")
 def logout():
@@ -212,11 +189,13 @@ def logout():
 
     flash("Sessão encerrada.")
 
-    return redirect(url_for("login"))
+    return redirect(
+        url_for("login")
+    )
 
-# =====================================================
+# =========================================================
 # DASHBOARD
-# =====================================================
+# =========================================================
 
 @app.route("/")
 @app.route("/dashboard")
@@ -249,11 +228,27 @@ def dashboard():
         meta_pct=0
     )
 
-# =====================================================
-# CONTROLE
-# =====================================================
+# =========================================================
+# VENDAS
+# =========================================================
 
-@app.route("/controle", methods=["GET", "POST"])
+@app.route("/vendas")
+def vendas():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "vendas.html"
+    )
+
+# =========================================================
+# CONTROLE
+# =========================================================
+
+@app.route("/controle")
 def controle():
 
     auth = verificar_login()
@@ -265,18 +260,10 @@ def controle():
         "Buffet",
         "Lanches",
         "Bebidas",
-        "Marmitas",
-        "Delivery",
         "Sobremesas"
     ]
 
     resumo = []
-
-    if request.method == "POST":
-
-        flash("Registro salvo com sucesso.")
-
-        return redirect(url_for("controle"))
 
     return render_template(
         "controle.html",
@@ -284,75 +271,9 @@ def controle():
         resumo=resumo
     )
 
-# =====================================================
-# VENDAS
-# =====================================================
-
-@app.route("/vendas")
-def vendas():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "vendas.html",
-
-        vendas=[],
-
-        meal_types=MEAL_TYPES,
-
-        total_hoje=0,
-
-        data_ref=date.today(),
-
-        venda_edicao=None
-    )
-
-# =====================================================
-# ITENS
-# =====================================================
-
-@app.route("/itens")
-def itens():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "itens.html",
-
-        itens=[],
-
-        areas=AREAS
-    )
-
-# =====================================================
-# LISTA COMPRAS
-# =====================================================
-
-@app.route("/lista_compras")
-def lista_compras():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "lista_compras.html",
-
-        lista=[],
-
-        total_custo=0
-    )
-
-# =====================================================
-# DESPERDICIO
-# =====================================================
+# =========================================================
+# DESPERDÍCIO
+# =========================================================
 
 @app.route("/desperdicio")
 def desperdicio():
@@ -363,18 +284,12 @@ def desperdicio():
         return auth
 
     return render_template(
-        "desperdicio.html",
-
-        lista=[],
-        items=[],
-        desperdicio_edicao=None,
-        error=None,
-        data_ref=date.today()
+        "desperdicio.html"
     )
 
-# =====================================================
+# =========================================================
 # MOVIMENTOS
-# =====================================================
+# =========================================================
 
 @app.route("/movimentos")
 def movimentos():
@@ -385,29 +300,12 @@ def movimentos():
         return auth
 
     return render_template(
-        "movimentos.html",
-
-        movimentos=[],
-        mov_edicao=None,
-
-        areas=AREAS,
-
-        setores=[
-            "Cozinha",
-            "Buffet",
-            "Bar",
-            "Delivery",
-            "Estoque"
-        ],
-
-        items=[],
-
-        data_ref=date.today()
+        "movimentos.html"
     )
 
-# =====================================================
-# PRODUCAO
-# =====================================================
+# =========================================================
+# PRODUÇÃO
+# =========================================================
 
 @app.route("/producao")
 def producao():
@@ -418,25 +316,44 @@ def producao():
         return auth
 
     return render_template(
-        "producao.html",
-
-        lista=[],
-
-        setores=[
-            "Cozinha",
-            "Padaria",
-            "Buffet",
-            "Bar"
-        ],
-
-        items=[],
-
-        data_ref=date.today()
+        "producao.html"
     )
 
-# =====================================================
-# RELATORIO
-# =====================================================
+# =========================================================
+# ESTOQUE
+# =========================================================
+
+@app.route("/estoque")
+def estoque():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "estoque.html"
+    )
+
+# =========================================================
+# COMPRAS
+# =========================================================
+
+@app.route("/compras")
+def compras():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "compras.html"
+    )
+
+# =========================================================
+# GERENCIAL
+# =========================================================
 
 @app.route("/relatorio_gerencial")
 def relatorio_gerencial():
@@ -450,28 +367,18 @@ def relatorio_gerencial():
         "relatorio-gerencial.html",
 
         faturamento=0,
-        custo=0,
+        despesas=0,
         lucro=0,
-        cmv=0,
+        vendas=0,
+        ticket=0,
+        desperdicio=0,
 
-        total_perdas=0,
-        total_diario=0,
-
-        refeicoes=0,
-
-        por_periodo={},
-
-        ranking_vendas=[],
-
-        resumo_setores=[],
-
-        data_ref=date.today(),
         mes_ref=date.today()
     )
 
-# =====================================================
+# =========================================================
 # METAS
-# =====================================================
+# =========================================================
 
 @app.route("/metas")
 def metas():
@@ -482,13 +389,12 @@ def metas():
         return auth
 
     return render_template(
-        "metas.html",
-        metas=[]
+        "metas.html"
     )
 
-# =====================================================
-# USUARIOS
-# =====================================================
+# =========================================================
+# USUÁRIOS
+# =========================================================
 
 @app.route("/usuarios", methods=["GET", "POST"])
 def usuarios():
@@ -500,16 +406,6 @@ def usuarios():
 
     if request.method == "POST":
 
-        existe = User.query.filter_by(
-            username=request.form.get("username")
-        ).first()
-
-        if existe:
-
-            flash("Usuário já existe.")
-
-            return redirect(url_for("usuarios"))
-
         novo = User(
             name=request.form.get("name"),
             username=request.form.get("username"),
@@ -518,54 +414,24 @@ def usuarios():
         )
 
         db.session.add(novo)
-
         db.session.commit()
 
-        flash("Usuário cadastrado com sucesso.")
+        flash("Usuário criado.")
 
-        return redirect(url_for("usuarios"))
+        return redirect(
+            url_for("usuarios")
+        )
 
     usuarios_db = User.query.all()
 
     return render_template(
         "usuarios.html",
-
-        usuarios=usuarios_db,
-
-        roles=[
-            "admin",
-            "gerente",
-            "funcionario"
-        ]
+        usuarios=usuarios_db
     )
 
-# =====================================================
-# EXCLUIR USUARIO
-# =====================================================
-
-@app.route("/excluir_usuario/<int:user_id>", methods=["POST"])
-def excluir_usuario(user_id):
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    usuario = User.query.get(user_id)
-
-    if usuario:
-
-        db.session.delete(usuario)
-
-        db.session.commit()
-
-        flash("Usuário removido.")
-
-    return redirect(url_for("usuarios"))
-
-# =====================================================
+# =========================================================
 # AUDITORIA
-# =====================================================
+# =========================================================
 
 @app.route("/auditoria")
 def auditoria():
@@ -576,14 +442,17 @@ def auditoria():
         return auth
 
     return render_template(
-        "auditoria.html",
-
-        logs=[]
+        "auditoria.html"
     )
 
-# =====================================================
+# =========================================================
 # START
-# =====================================================
+# =========================================================
 
 if __name__ == "__main__":
-    app.run(debug=True)
+
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )
