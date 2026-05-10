@@ -2,6 +2,50 @@
 
 {% block content %}
 
+<!-- TOPO -->
+
+<div
+    style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:12px;
+        flex-wrap:wrap;
+        margin-bottom:1rem;
+    "
+>
+
+    <div>
+
+        <h2 style="margin:0;">
+            🍳 Controle de Produção
+        </h2>
+
+        <p
+            class="muted"
+            style="margin-top:5px;"
+        >
+
+            Registro completo da produção interna da churrascaria.
+
+        </p>
+
+    </div>
+
+    <div
+        class="badge success"
+        style="
+            padding:8px 12px;
+            font-size:12px;
+        "
+    >
+
+        📦 Produção Interna
+
+    </div>
+
+</div>
+
 <!-- FILTRO -->
 
 <section
@@ -27,7 +71,7 @@
 
         <label>
 
-            Consultar produção do dia:
+            📅 Consultar produção do dia
 
             <input
                 type="date"
@@ -54,11 +98,69 @@
 
 </section>
 
+<!-- MÉTRICAS -->
+
+<div
+    class="grid metrics"
+    style="margin-bottom:20px;"
+>
+
+    <div class="card metric">
+
+        <span>
+            📦 Produções do dia
+        </span>
+
+        <strong>
+
+            {{ lista|length if lista else 0 }}
+
+        </strong>
+
+    </div>
+
+    <div class="card metric">
+
+        <span>
+            ⚖️ Quantidade produzida
+        </span>
+
+        <strong style="color:var(--green);">
+
+            {{ total_qtd or 0 }}
+
+        </strong>
+
+    </div>
+
+    <div class="card metric">
+
+        <span>
+            💰 Custo estimado
+        </span>
+
+        <strong style="color:var(--gold);">
+
+            R$
+            {{ "%.2f"|format(total_custo or 0) }}
+
+        </strong>
+
+    </div>
+
+</div>
+
 <div class="grid two">
 
     <!-- FORM -->
 
-    <section class="card">
+    <section
+        class="card"
+
+        style="
+            border-top:4px solid var(--green);
+        "
+    >
 
         <header style="margin-bottom:20px;">
 
@@ -80,17 +182,52 @@
 
         </header>
 
+        <!-- ALERTAS -->
+
+        {% if error %}
+
+        <div
+            class="alert alert-error"
+            style="margin-bottom:15px;"
+        >
+
+            ⚠️ {{ error }}
+
+        </div>
+
+        {% endif %}
+
+        {% if success %}
+
+        <div
+            class="alert alert-success"
+            style="margin-bottom:15px;"
+        >
+
+            ✅ {{ success }}
+
+        </div>
+
+        {% endif %}
+
         <!-- FORM -->
 
-        <form method="POST">
+        <form
+            method="POST"
+            id="formProducao"
+        >
 
             <!-- CSRF -->
+
+            {% if csrf_token %}
 
             <input
                 type="hidden"
                 name="csrf_token"
                 value="{{ csrf_token() }}"
             >
+
+            {% endif %}
 
             <!-- DATA / SETOR -->
 
@@ -105,7 +242,7 @@
 
                 <label>
 
-                    Data de Produção
+                    📅 Data de Produção
 
                     <input
                         type="date"
@@ -123,7 +260,7 @@
 
                 <label>
 
-                    Setor Produtor
+                    🏭 Setor Produtor
 
                     <select
                         name="setor"
@@ -160,10 +297,11 @@
 
             <label>
 
-                Produto Finalizado
+                📦 Produto Finalizado
 
                 <select
                     name="item_id"
+                    id="produtoSelect"
                     required
                 >
 
@@ -179,7 +317,9 @@
 
                     {% for i in items %}
 
-                    <option value="{{ i.id }}">
+                    <option
+                        value="{{ i.id }}"
+                    >
 
                         {{ i.name }}
 
@@ -195,7 +335,7 @@
 
             <label>
 
-                Quantidade Produzida (Kg/Un)
+                ⚖️ Quantidade Produzida
 
                 <input
                     type="number"
@@ -205,12 +345,45 @@
 
                     name="quantity"
 
+                    id="quantidade"
+
                     required
 
                     placeholder="0.000"
                 >
 
             </label>
+
+            <!-- PREVIEW -->
+
+            <div
+                class="card metric"
+
+                style="
+                    margin-top:18px;
+                    border-left:4px solid var(--green);
+                    background:#f8fff9;
+                "
+            >
+
+                <span>
+                    📊 Quantidade informada
+                </span>
+
+                <strong
+                    id="previewQtd"
+
+                    style="
+                        color:var(--green);
+                        font-size:1.5rem;
+                    "
+                >
+
+                    0.000
+
+                </strong>
+
+            </div>
 
             <!-- BOTÃO -->
 
@@ -220,12 +393,16 @@
 
                 type="submit"
 
+                id="btnSalvar"
+
                 style="
                     width:100%;
-                    margin-top:15px;
+                    margin-top:18px;
 
                     background:var(--green);
                     color:white;
+
+                    font-weight:700;
                 "
             >
 
@@ -241,26 +418,71 @@
 
     <section class="card">
 
-        <h3>
+        <!-- TOPO HISTÓRICO -->
 
-            📋 Produção de
+        <div
+            style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+                flex-wrap:wrap;
+                margin-bottom:15px;
+            "
+        >
 
-            {{ data_ref.strftime('%d/%m/%Y')
-               if data_ref else '' }}
+            <div>
 
-        </h3>
+                <h3 style="margin:0;">
+
+                    📋 Produção de
+
+                    {{ data_ref.strftime('%d/%m/%Y')
+                       if data_ref else '' }}
+
+                </h3>
+
+            </div>
+
+            <input
+                type="text"
+                id="filtro"
+
+                placeholder="🔍 Buscar..."
+
+                style="
+                    padding:8px;
+                    border-radius:8px;
+                    border:1px solid var(--line);
+                "
+            >
+
+        </div>
+
+        <!-- TABELA -->
 
         <div class="table-wrap">
 
-            <table style="font-size:0.9rem;">
+            <table
+                id="tabelaProducao"
+                style="font-size:0.9rem;"
+            >
 
                 <thead>
 
                     <tr>
 
-                        <th>Produto / Setor</th>
-                        <th>Qtd.</th>
-                        <th>Custo Est.</th>
+                        <th onclick="sortTable(0)">
+                            Produto ⬍
+                        </th>
+
+                        <th onclick="sortTable(1)">
+                            Qtd ⬍
+                        </th>
+
+                        <th onclick="sortTable(2)">
+                            Custo ⬍
+                        </th>
 
                         <th style="text-align:right;">
                             Ação
@@ -292,7 +514,7 @@
 
                                 <small class="muted">
 
-                                    {{ p.setor }}
+                                    🏭 {{ p.setor }}
 
                                 </small>
 
@@ -302,7 +524,11 @@
 
                             <td>
 
-                                {{ p.quantity }}
+                                <strong>
+
+                                    {{ p.quantity }}
+
+                                </strong>
 
                             </td>
 
@@ -312,7 +538,7 @@
 
                                 style="
                                     color:var(--green);
-                                    font-weight:600;
+                                    font-weight:700;
                                 "
                             >
 
@@ -324,7 +550,10 @@
                             <!-- AÇÃO -->
 
                             <td
-                                style="text-align:right;"
+                                style="
+                                    text-align:right;
+                                    white-space:nowrap;
+                                "
                             >
 
                                 <form
@@ -343,11 +572,15 @@
                                     "
                                 >
 
+                                    {% if csrf_token %}
+
                                     <input
                                         type="hidden"
                                         name="csrf_token"
                                         value="{{ csrf_token() }}"
                                     >
+
+                                    {% endif %}
 
                                     <button
 
@@ -362,6 +595,8 @@
                                             background:none;
 
                                             cursor:pointer;
+
+                                            font-size:16px;
                                         "
                                     >
 
@@ -388,7 +623,7 @@
 
                             class="muted center"
 
-                            style="padding:20px;"
+                            style="padding:25px;"
                         >
 
                             Nenhuma produção registrada hoje.
@@ -408,5 +643,183 @@
     </section>
 
 </div>
+
+<!-- SCRIPT -->
+
+<script>
+
+/* PREVIEW */
+
+const quantidade =
+    document.getElementById(
+        'quantidade'
+    );
+
+const previewQtd =
+    document.getElementById(
+        'previewQtd'
+    );
+
+if (
+    quantidade &&
+    previewQtd
+) {
+
+    quantidade.addEventListener(
+        'input',
+        () => {
+
+            previewQtd.textContent =
+
+                parseFloat(
+                    quantidade.value
+                ).toFixed(3) || '0.000';
+
+        }
+    );
+
+}
+
+/* FILTRO */
+
+document
+.getElementById('filtro')
+?.addEventListener(
+    'keyup',
+    function() {
+
+        const termo =
+            this.value.toLowerCase();
+
+        const linhas =
+            document.querySelectorAll(
+                '#tabelaProducao tbody tr'
+            );
+
+        linhas.forEach(linha => {
+
+            linha.style.display =
+
+                linha.innerText
+                .toLowerCase()
+                .includes(termo)
+
+                ? ''
+                : 'none';
+
+        });
+
+    }
+);
+
+/* LOADING BOTÃO */
+
+document
+.getElementById('formProducao')
+?.addEventListener(
+    'submit',
+    () => {
+
+        const btn =
+            document.getElementById(
+                'btnSalvar'
+            );
+
+        if (!btn) return;
+
+        btn.disabled = true;
+
+        btn.innerHTML =
+            '⏳ Salvando...';
+
+    }
+);
+
+/* ORDENAÇÃO */
+
+function sortTable(col) {
+
+    const tabela =
+        document.getElementById(
+            'tabelaProducao'
+        );
+
+    if (!tabela) return;
+
+    const tbody =
+        tabela.querySelector('tbody');
+
+    const rows =
+        Array.from(
+            tbody.querySelectorAll('tr')
+        );
+
+    const asc =
+        tabela.dataset.sort !== 'asc';
+
+    rows.sort((a, b) => {
+
+        const A =
+            a.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        const B =
+            b.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        return asc
+
+            ? A.localeCompare(
+                B,
+                'pt-BR',
+                { numeric:true }
+              )
+
+            : B.localeCompare(
+                A,
+                'pt-BR',
+                { numeric:true }
+              );
+
+    });
+
+    rows.forEach(row => {
+
+        tbody.appendChild(row);
+
+    });
+
+    tabela.dataset.sort =
+        asc ? 'asc' : 'desc';
+
+}
+
+</script>
+
+<!-- BADGES -->
+
+<style>
+
+.badge {
+
+    border-radius:999px;
+
+    font-weight:700;
+
+    text-transform:uppercase;
+
+}
+
+.badge.success {
+
+    background:#dcfce7;
+
+    color:#166534;
+
+}
+
+</style>
 
 {% endblock %}
