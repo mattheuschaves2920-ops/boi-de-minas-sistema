@@ -1,7 +1,7 @@
 {
   "name": "Boi de Minas Churrascaria",
   "short_name": "Boi de Minas",
-  "description": "Sistema de gestão completo para churrascaria - controle de estoque, vendas e produção.",
+  "description": "Sistema de gestão completo para churrascaria - controle de estoque, vendas, compras, produção e relatórios.",
 
   "start_url": "/",
   "scope": "/",
@@ -16,7 +16,8 @@
 
   "categories": [
     "business",
-    "food"
+    "food",
+    "productivity"
   ],
 
   "icons": [
