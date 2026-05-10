@@ -7,11 +7,8 @@
         display:flex;
         justify-content:space-between;
         align-items:center;
-
         flex-wrap:wrap;
-
         gap:12px;
-
         margin-bottom:1.5rem;
     "
 >
@@ -24,7 +21,6 @@
 
         <p
             class="muted"
-
             style="
                 margin:4px 0 0;
                 font-size:0.9rem;
@@ -39,22 +35,33 @@
 
     </div>
 
-    <!-- BOTÃO DESATIVADO -->
+    <!-- AÇÕES -->
 
-    <div style="display:flex; gap:8px;">
+    <div
+        style="
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+        "
+    >
 
         <button
-
             class="btn"
-
             type="button"
+            onclick="window.print()"
+        >
 
+            🖨️ Imprimir
+
+        </button>
+
+        <button
+            class="btn"
+            type="button"
             style="
                 background:var(--green);
                 color:#fff;
-
                 opacity:0.7;
-
                 cursor:not-allowed;
             "
         >
@@ -75,7 +82,6 @@
 
 <div
     class="grid metrics"
-
     style="margin-bottom:1.5rem;"
 >
 
@@ -136,22 +142,14 @@
 <!-- FILTRO -->
 
 <input
-
     type="text"
-
     id="filtro"
-
     placeholder="🔍 Filtrar item ou área..."
-
     style="
         width:100%;
-
         padding:10px;
-
         margin-bottom:10px;
-
         border:1px solid var(--line);
-
         border-radius:8px;
     "
 >
@@ -160,7 +158,6 @@
 
 <section
     class="card"
-
     style="padding:0;"
 >
 
@@ -172,15 +169,37 @@
 
                 <tr>
 
-                    <th>Item</th>
-                    <th>Área</th>
-                    <th>Atual</th>
-                    <th>Mín</th>
-                    <th>Falta</th>
-                    <th>Sugestão</th>
+                    <th onclick="sortTable(0)">
+                        Item ⬍
+                    </th>
 
-                    <th style="text-align:right;">
-                        Custo
+                    <th onclick="sortTable(1)">
+                        Área ⬍
+                    </th>
+
+                    <th onclick="sortTable(2)">
+                        Atual ⬍
+                    </th>
+
+                    <th onclick="sortTable(3)">
+                        Mín ⬍
+                    </th>
+
+                    <th onclick="sortTable(4)">
+                        Falta ⬍
+                    </th>
+
+                    <th>
+                        Sugestão
+                    </th>
+
+                    <th
+                        onclick="sortTable(6)"
+                        style="text-align:right;"
+                    >
+
+                        Custo ⬍
+
                     </th>
 
                 </tr>
@@ -199,14 +218,14 @@
                 <tr
 
                     style="
-                    background:
-                    {% if critico %}
-                        #ffe5e5
-                    {% elif r.falta > 0 %}
-                        #fff5f5
-                    {% else %}
-                        inherit
-                    {% endif %}
+                        background:
+                        {% if critico %}
+                            #ffe5e5
+                        {% elif r.falta > 0 %}
+                            #fff5f5
+                        {% else %}
+                            inherit
+                        {% endif %}
                     "
                 >
 
@@ -241,7 +260,6 @@
                     <!-- ESTOQUE -->
 
                     <td
-
                         style="
                             font-weight:600;
                             color:var(--red);
@@ -264,7 +282,6 @@
                     <!-- FALTA -->
 
                     <td
-
                         style="
                             color:var(--red);
                             font-weight:700;
@@ -287,12 +304,9 @@
                     <!-- CUSTO -->
 
                     <td
-
                         style="
                             text-align:right;
-
                             color:var(--green);
-
                             font-weight:700;
                         "
                     >
@@ -313,7 +327,6 @@
             <tfoot>
 
                 <tr
-
                     style="
                         background:#f9f9f9;
                         font-weight:700;
@@ -321,9 +334,7 @@
                 >
 
                     <td
-
                         colspan="6"
-
                         style="
                             text-align:right;
                             padding:12px;
@@ -335,12 +346,9 @@
                     </td>
 
                     <td
-
                         style="
                             text-align:right;
-
                             padding:12px;
-
                             color:var(--green);
                         "
                     >
@@ -365,14 +373,10 @@
 <!-- SEM ITENS -->
 
 <div
-
     class="card"
-
     style="
         text-align:center;
-
         padding:3rem;
-
         border:2px dashed var(--line);
     "
 >
@@ -403,9 +407,11 @@
 
 {% endif %}
 
-<!-- FILTRO -->
+<!-- SCRIPT -->
 
 <script>
+
+/* FILTRO */
 
 document
 .getElementById('filtro')
@@ -435,6 +441,67 @@ document
 
     }
 );
+
+/* ORDENAÇÃO */
+
+function sortTable(col) {
+
+    const tabela =
+        document.getElementById(
+            'tabela-compras'
+        );
+
+    if (!tabela) return;
+
+    const tbody =
+        tabela.querySelector('tbody');
+
+    const rows =
+        Array.from(
+            tbody.querySelectorAll('tr')
+        );
+
+    const asc =
+        tabela.dataset.sort !== 'asc';
+
+    rows.sort((a, b) => {
+
+        const A =
+            a.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        const B =
+            b.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        return asc
+
+            ? A.localeCompare(
+                B,
+                'pt-BR',
+                { numeric:true }
+              )
+
+            : B.localeCompare(
+                A,
+                'pt-BR',
+                { numeric:true }
+              );
+
+    });
+
+    rows.forEach(row => {
+
+        tbody.appendChild(row);
+
+    });
+
+    tabela.dataset.sort =
+        asc ? 'asc' : 'desc';
+
+}
 
 </script>
 
