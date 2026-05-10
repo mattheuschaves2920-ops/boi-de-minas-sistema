@@ -3,34 +3,54 @@
 {% block content %}
 
 <div class="page-header">
+
     <div>
-        <h2>📋 Log de Auditoria</h2>
+
+        <h2>
+            📋 Log de Auditoria
+        </h2>
+
         <p class="muted">
-            Página {{ logs.page or 1 }} de {{ logs.pages or 1 }}
+
+            Página {{ logs.page or 1 }}
+            de
+            {{ logs.pages or 1 }}
+
         </p>
+
     </div>
+
 </div>
 
-<section class="card no-padding">
+<section class="card">
 
     <div class="table-wrap">
 
         <table class="table-sm">
 
             <thead>
+
                 <tr>
+
                     <th>Data/Hora</th>
+
                     <th>Usuário</th>
+
                     <th>Ação</th>
+
                     <th>Recurso</th>
+
                     <th>Detalhe</th>
+
                     <th>IP</th>
+
                 </tr>
+
             </thead>
 
             <tbody>
 
-                {% if logs.items %}
+                {% if logs and logs.items %}
 
                     {% for log in logs.items %}
 
@@ -39,30 +59,42 @@
                         <td class="nowrap">
 
                             {% if log.timestamp %}
+
                                 <small>
+
                                     {{ log.timestamp.strftime('%d/%m/%Y') }}
+
                                 </small>
 
                                 <br>
 
                                 <strong>
+
                                     {{ log.timestamp.strftime('%H:%M:%S') }}
+
                                 </strong>
+
                             {% else %}
+
                                 —
+
                             {% endif %}
 
                         </td>
 
                         <td>
+
                             <strong>
+
                                 {{ log.username or '—' }}
+
                             </strong>
+
                         </td>
 
                         <td>
 
-                            <span class="badge {{ get_badge_class(log.action) if get_badge_class else '' }}">
+                            <span class="badge">
 
                                 {{ log.action or '—' }}
 
@@ -75,10 +107,15 @@
                             {{ log.resource or '—' }}
 
                             {% if log.resource_id %}
+
                                 <br>
+
                                 <small class="muted">
+
                                     #{{ log.resource_id }}
+
                                 </small>
+
                             {% endif %}
 
                         </td>
@@ -111,7 +148,10 @@
 
                     <tr>
 
-                        <td colspan="6" class="empty-state center">
+                        <td
+                            colspan="6"
+                            class="center muted"
+                        >
 
                             Nenhum registro encontrado.
 
@@ -129,26 +169,37 @@
 
 </section>
 
-<!-- PAGINAÇÃO -->
+{% if logs and logs.pages and logs.pages > 1 %}
 
-{% if logs.pages and logs.pages > 1 %}
-
-<div class="pagination">
+<div
+    class="pagination"
+    style="
+        margin-top:20px;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        gap:15px;
+    "
+>
 
     {% if logs.has_prev %}
 
         <a
             href="{{ url_for('auditoria', page=logs.prev_num) }}"
-            class="btn secondary"
+            class="btn"
         >
+
             ← Anterior
+
         </a>
 
     {% endif %}
 
-    <span class="page-info">
+    <span class="muted">
 
-        Página {{ logs.page }} de {{ logs.pages }}
+        Página {{ logs.page }}
+        de
+        {{ logs.pages }}
 
     </span>
 
@@ -156,9 +207,11 @@
 
         <a
             href="{{ url_for('auditoria', page=logs.next_num) }}"
-            class="btn secondary"
+            class="btn"
         >
+
             Próxima →
+
         </a>
 
     {% endif %}
