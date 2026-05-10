@@ -2,17 +2,110 @@
 
 {% block content %}
 
-<!-- TÍTULO -->
+<!-- TOPO -->
 
-<h2
+<div
     style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:12px;
+        flex-wrap:wrap;
         margin-bottom:1.5rem;
     "
 >
 
-    🎯 Metas Mensais de Faturamento
+    <div>
 
-</h2>
+        <h2 style="margin:0;">
+
+            🎯 Metas Mensais de Faturamento
+
+        </h2>
+
+        <p
+            class="muted"
+            style="margin-top:6px;"
+        >
+
+            Controle de metas e desempenho mensal da churrascaria.
+
+        </p>
+
+    </div>
+
+</div>
+
+<!-- MÉTRICAS -->
+
+<div
+    class="grid metrics"
+    style="margin-bottom:1.5rem;"
+>
+
+    <div class="card metric">
+
+        <span>
+            📊 Total de metas
+        </span>
+
+        <strong>
+
+            {{ metas|length if metas else 0 }}
+
+        </strong>
+
+    </div>
+
+    <div class="card metric">
+
+        <span>
+            🥇 Melhor desempenho
+        </span>
+
+        <strong style="color:var(--green);">
+
+            {% if metas %}
+
+                {{ metas|map(attribute='percentual')|max }}%
+
+            {% else %}
+
+                0%
+
+            {% endif %}
+
+        </strong>
+
+    </div>
+
+    <div class="card metric">
+
+        <span>
+            💰 Maior meta
+        </span>
+
+        <strong style="color:var(--gold);">
+
+            R$
+
+            {% if metas %}
+
+                {{ '%.2f'|format(
+                    metas|map(attribute='goal')|max
+                ) }}
+
+            {% else %}
+
+                0,00
+
+            {% endif %}
+
+        </strong>
+
+    </div>
+
+</div>
 
 <div class="grid two">
 
@@ -23,25 +116,66 @@
         style="border-top:4px solid var(--gold);"
     >
 
-        <h3
+        <div
             style="
-                margin:0 0 1.25rem;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                margin-bottom:1.25rem;
             "
         >
 
-            Definir nova meta
+            <h3 style="margin:0;">
 
-        </h3>
+                ✍️ Definir nova meta
+
+            </h3>
+
+        </div>
+
+        <!-- ALERTAS -->
+
+        {% if error %}
+
+        <div
+            class="alert alert-error"
+            style="margin-bottom:15px;"
+        >
+
+            ⚠️ {{ error }}
+
+        </div>
+
+        {% endif %}
+
+        {% if success %}
+
+        <div
+            class="alert alert-success"
+            style="margin-bottom:15px;"
+        >
+
+            ✅ {{ success }}
+
+        </div>
+
+        {% endif %}
+
+        <!-- FORMULÁRIO -->
 
         <form method="POST">
 
             <!-- CSRF -->
+
+            {% if csrf_token %}
 
             <input
                 type="hidden"
                 name="csrf_token"
                 value="{{ csrf_token() }}"
             >
+
+            {% endif %}
 
             <!-- ANO / MÊS -->
 
@@ -60,12 +194,9 @@
                     <input
                         type="number"
                         name="year"
-
                         value="{{ now().year }}"
-
                         min="2024"
                         max="2035"
-
                         required
                     >
 
@@ -78,12 +209,9 @@
                     <input
                         type="number"
                         name="month"
-
                         value="{{ now().month }}"
-
                         min="1"
                         max="12"
-
                         required
                     >
 
@@ -95,17 +223,14 @@
 
             <label>
 
-                Meta (R$)
+                Meta de faturamento (R$)
 
                 <input
                     type="number"
                     step="0.01"
                     min="1"
-
                     name="goal"
-
                     placeholder="Ex: 50000.00"
-
                     required
                 >
 
@@ -116,13 +241,12 @@
             <button
                 class="btn"
                 type="submit"
-
                 style="
                     width:100%;
-                    margin-top:12px;
-
+                    margin-top:15px;
                     background:var(--gold);
                     color:#403000;
+                    font-weight:700;
                 "
             >
 
@@ -138,27 +262,57 @@
 
     <section class="card">
 
-        <h3
+        <div
             style="
-                margin:0 0 1rem;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                margin-bottom:1rem;
+                gap:10px;
+                flex-wrap:wrap;
             "
         >
 
-            📊 Desempenho das Metas
+            <h3 style="margin:0;">
 
-        </h3>
+                📊 Desempenho das Metas
+
+            </h3>
+
+            <input
+                type="text"
+                id="busca-meta"
+                placeholder="🔍 Buscar..."
+                style="
+                    padding:8px;
+                    border-radius:8px;
+                    border:1px solid var(--line);
+                "
+            >
+
+        </div>
+
+        <!-- TABELA -->
 
         <div class="table-wrap">
 
-            <table>
+            <table id="tabela-metas">
 
                 <thead>
 
                     <tr>
 
-                        <th>Período</th>
-                        <th>Meta</th>
-                        <th>Progresso</th>
+                        <th onclick="sortTable(0)">
+                            Período ⬍
+                        </th>
+
+                        <th onclick="sortTable(1)">
+                            Meta ⬍
+                        </th>
+
+                        <th>
+                            Progresso
+                        </th>
 
                     </tr>
 
@@ -192,8 +346,12 @@
 
                             <td>
 
-                                R$
-                                {{ '%.2f'|format(m.goal or 0) }}
+                                <strong>
+
+                                    R$
+                                    {{ '%.2f'|format(m.goal or 0) }}
+
+                                </strong>
 
                                 <br>
 
@@ -211,7 +369,7 @@
                             <!-- PROGRESSO -->
 
                             <td
-                                style="min-width:180px;"
+                                style="min-width:220px;"
                             >
 
                                 <strong>
@@ -225,19 +383,14 @@
                                 <div
                                     style="
                                         margin-top:6px;
-
-                                        height:8px;
-
+                                        height:10px;
                                         background:#eee;
-
                                         border-radius:6px;
-
                                         overflow:hidden;
                                     "
                                 >
 
                                     <div
-
                                         style="
                                             width:
                                             {{ [percentual, 100]|min }}%;
@@ -290,9 +443,7 @@
 
                         <td
                             colspan="3"
-
                             class="center"
-
                             style="padding:20px;"
                         >
 
@@ -313,5 +464,104 @@
     </section>
 
 </div>
+
+<!-- SCRIPT -->
+
+<script>
+
+/* BUSCA */
+
+document
+.getElementById('busca-meta')
+?.addEventListener(
+    'keyup',
+    function() {
+
+        const termo =
+            this.value.toLowerCase();
+
+        const linhas =
+            document.querySelectorAll(
+                '#tabela-metas tbody tr'
+            );
+
+        linhas.forEach(linha => {
+
+            linha.style.display =
+
+                linha.innerText
+                .toLowerCase()
+                .includes(termo)
+
+                ? ''
+                : 'none';
+
+        });
+
+    }
+);
+
+/* ORDENAÇÃO */
+
+function sortTable(col) {
+
+    const tabela =
+        document.getElementById(
+            'tabela-metas'
+        );
+
+    if (!tabela) return;
+
+    const tbody =
+        tabela.querySelector('tbody');
+
+    const rows =
+        Array.from(
+            tbody.querySelectorAll('tr')
+        );
+
+    const asc =
+        tabela.dataset.sort !== 'asc';
+
+    rows.sort((a, b) => {
+
+        const A =
+            a.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        const B =
+            b.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        return asc
+
+            ? A.localeCompare(
+                B,
+                'pt-BR',
+                { numeric:true }
+              )
+
+            : B.localeCompare(
+                A,
+                'pt-BR',
+                { numeric:true }
+              );
+
+    });
+
+    rows.forEach(row => {
+
+        tbody.appendChild(row);
+
+    });
+
+    tabela.dataset.sort =
+        asc ? 'asc' : 'desc';
+
+}
+
+</script>
 
 {% endblock %}
