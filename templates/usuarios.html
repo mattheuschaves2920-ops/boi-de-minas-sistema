@@ -1,147 +1,575 @@
 {% extends "base.html" %}
+
 {% block content %}
 
 <div class="grid two">
 
     <!-- FORMULÁRIO -->
-    <section class="card" style="border-top: 4px solid var(--ink);">
-        <header style="margin-bottom: 20px;">
-            <h3 style="margin:0;">👤 Gerenciar Acessos</h3>
-            <p class="muted" style="font-size: 0.85rem;">
-                Cadastre novos funcionários e defina níveis de permissão.
+
+    <section
+        class="card"
+
+        style="
+            border-top:4px solid var(--ink);
+        "
+    >
+
+        <header style="margin-bottom:20px;">
+
+            <h3 style="margin:0;">
+
+                👤 Gerenciar Acessos
+
+            </h3>
+
+            <p
+                class="muted"
+                style="font-size:0.85rem;"
+            >
+
+                Cadastre funcionários
+                e defina permissões.
+
             </p>
+
         </header>
 
-        <form method="post" autocomplete="off">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <!-- ALERTAS -->
 
-            <label for="name">Nome Completo
-                <input id="name" type="text" name="name" required placeholder="Ex: João Silva">
+        {% if error %}
+
+        <div
+            class="alert alert-error"
+            style="margin-bottom:15px;"
+        >
+
+            ⚠️ {{ error }}
+
+        </div>
+
+        {% endif %}
+
+        {% if success %}
+
+        <div
+            class="alert alert-success"
+            style="margin-bottom:15px;"
+        >
+
+            ✅ {{ success }}
+
+        </div>
+
+        {% endif %}
+
+        <!-- FORM -->
+
+        <form
+            method="POST"
+            autocomplete="off"
+            id="formUsuario"
+        >
+
+            {% if csrf_token %}
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            {% endif %}
+
+            <!-- NOME -->
+
+            <label for="name">
+
+                Nome Completo
+
+                <input
+
+                    id="name"
+
+                    type="text"
+
+                    name="name"
+
+                    required
+
+                    placeholder="
+                    Ex: João Silva
+                    "
+                >
+
             </label>
 
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
-                <label for="username">Login (Usuário)
-                    <input id="username" type="text" name="username" required placeholder="joao.silva" autocomplete="username">
+            <!-- LOGIN / PERFIL -->
+
+            <div
+                class="grid"
+
+                style="
+                    grid-template-columns:1fr 1fr;
+                    gap:10px;
+                "
+            >
+
+                <label for="username">
+
+                    Login (Usuário)
+
+                    <input
+
+                        id="username"
+
+                        type="text"
+
+                        name="username"
+
+                        required
+
+                        autocomplete="username"
+
+                        placeholder="
+                        joao.silva
+                        "
+                    >
+
                 </label>
 
-                <label for="role">Nível de Perfil
-                    <select id="role" name="role" required>
-                        <option value="" disabled selected>Selecione...</option>
+                <label for="role">
+
+                    Perfil
+
+                    <select
+                        id="role"
+                        name="role"
+                        required
+                    >
+
+                        <option
+                            value=""
+                            disabled
+                            selected
+                        >
+
+                            Selecione...
+
+                        </option>
+
                         {% for role in roles %}
-                        <option value="{{ role }}">{{ role }}</option>
+
+                        <option value="{{ role }}">
+
+                            {{ role }}
+
+                        </option>
+
                         {% endfor %}
+
                     </select>
+
                 </label>
+
             </div>
 
-            <label for="password">Senha de Acesso
-                <input id="password" type="password" name="password" required minlength="6" autocomplete="new-password">
-                <small class="muted">Recomendado: mínimo 6 caracteres.</small>
+            <!-- SENHA -->
+
+            <label for="password">
+
+                Senha de Acesso
+
+                <input
+
+                    id="password"
+
+                    type="password"
+
+                    name="password"
+
+                    minlength="6"
+
+                    required
+
+                    autocomplete="new-password"
+                >
+
+                <small class="muted">
+
+                    Recomendado:
+                    mínimo 6 caracteres.
+
+                </small>
+
             </label>
 
-            <button class="btn" type="submit"
-                style="width: 100%; margin-top: 15px; background: var(--ink); color: white;">
+            <!-- BOTÃO -->
+
+            <button
+
+                class="btn"
+
+                type="submit"
+
+                id="btnSalvar"
+
+                style="
+                    width:100%;
+                    margin-top:18px;
+
+                    background:var(--ink);
+                    color:white;
+                "
+            >
+
                 ➕ Salvar Usuário
+
             </button>
+
         </form>
+
     </section>
 
     <!-- LISTA -->
+
     <section class="card">
-        <h3>👥 Equipe Cadastrada</h3>
+
+        <div
+            style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+                flex-wrap:wrap;
+                margin-bottom:15px;
+            "
+        >
+
+            <h3 style="margin:0;">
+
+                👥 Equipe Cadastrada
+
+            </h3>
+
+            <input
+                type="text"
+                id="filtroUsuarios"
+
+                placeholder="🔍 Buscar usuário..."
+
+                style="
+                    padding:8px;
+                    border-radius:8px;
+                    border:1px solid var(--line);
+                "
+            >
+
+        </div>
+
+        <!-- TABELA -->
 
         <div class="table-wrap">
-            <table style="font-size: 0.9rem;">
+
+            <table
+                id="tabelaUsuarios"
+
+                style="font-size:0.9rem;"
+            >
+
                 <thead>
+
                     <tr>
+
                         <th>Colaborador</th>
                         <th>Perfil</th>
-                        <th style="text-align: right;">Ação</th>
+
+                        <th style="text-align:right;">
+                            Ação
+                        </th>
+
                     </tr>
+
                 </thead>
 
                 <tbody>
-                    {% for u in usuarios %}
-                    <tr>
-                        <td>
-                            <strong>{{ u.name }}</strong><br>
-                            <small class="muted">@{{ u.username }}</small>
-                        </td>
 
-                        <td>
-                            <span class="badge-role">{{ u.role }}</span>
-                        </td>
+                    {% if usuarios %}
 
-                        <td style="text-align: right;">
+                        {% for u in usuarios %}
 
-                            <!-- Evita excluir usuário atual (recomendado backend também validar) -->
-                            {% if current_user.id != u.id %}
-                            <form action="{{ url_for('excluir_usuario', user_id=u.id) }}"
-                                  method="post"
-                                  class="form-excluir-usuario"
-                                  data-nome="{{ u.name }}"
-                                  style="display:inline;">
+                        <tr>
 
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <!-- NOME -->
 
-                                <button type="submit"
+                            <td>
+
+                                <strong>
+
+                                    {{ u.name }}
+
+                                </strong>
+
+                                <br>
+
+                                <small class="muted">
+
+                                    @{{ u.username }}
+
+                                </small>
+
+                            </td>
+
+                            <!-- PERFIL -->
+
+                            <td>
+
+                                <span class="badge-role">
+
+                                    {{ u.role }}
+
+                                </span>
+
+                            </td>
+
+                            <!-- AÇÃO -->
+
+                            <td
+                                style="
+                                    text-align:right;
+                                    white-space:nowrap;
+                                "
+                            >
+
+                                {% if current_user.id != u.id %}
+
+                                <form
+
+                                    action="{{ url_for(
+                                        'excluir_usuario',
+                                        user_id=u.id
+                                    ) }}"
+
+                                    method="POST"
+
+                                    class="form-excluir-usuario"
+
+                                    data-nome="{{ u.name }}"
+
+                                    style="display:inline;"
+                                >
+
+                                    {% if csrf_token %}
+
+                                    <input
+                                        type="hidden"
+                                        name="csrf_token"
+                                        value="{{ csrf_token() }}"
+                                    >
+
+                                    {% endif %}
+
+                                    <button
+
+                                        type="submit"
+
                                         class="btn-link"
-                                        style="color: var(--red); border:none; background:none; cursor:pointer;"
-                                        title="Excluir usuário">
-                                    🗑️
-                                </button>
-                            </form>
-                            {% else %}
-                                <small class="muted">Você</small>
-                            {% endif %}
 
-                        </td>
-                    </tr>
+                                        style="
+                                            color:var(--red);
+                                            border:none;
+                                            background:none;
+                                            cursor:pointer;
+                                        "
+
+                                        title="Excluir usuário"
+                                    >
+
+                                        🗑️
+
+                                    </button>
+
+                                </form>
+
+                                {% else %}
+
+                                <small class="muted">
+
+                                    Você
+
+                                </small>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
 
                     {% else %}
+
+                    <!-- VAZIO -->
+
                     <tr>
-                        <td colspan="3" class="muted" style="text-align: center; padding: 20px;">
+
+                        <td
+                            colspan="3"
+
+                            class="muted"
+
+                            style="
+                                text-align:center;
+                                padding:20px;
+                            "
+                        >
+
                             Nenhum usuário cadastrado.
+
                         </td>
+
                     </tr>
-                    {% endfor %}
+
+                    {% endif %}
+
                 </tbody>
+
             </table>
+
         </div>
+
     </section>
 
 </div>
 
+<!-- ESTILO -->
+
 <style>
+
 .badge-role {
-    background: #f1f1f1;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: bold;
-    text-transform: uppercase;
-    color: var(--ink);
+
+    background:#f1f1f1;
+
+    padding:4px 8px;
+
+    border-radius:6px;
+
+    font-size:11px;
+
+    font-weight:bold;
+
+    text-transform:uppercase;
+
+    color:var(--ink);
+
 }
+
 </style>
 
+<!-- SCRIPT -->
+
 <script>
-document.querySelectorAll('.form-excluir-usuario').forEach((form) => {
-    form.addEventListener('submit', function (e) {
-        const nome = this.getAttribute('data-nome');
 
-        if (!confirm(`⚠️ Tem certeza que deseja remover o acesso de ${nome}?`)) {
-            e.preventDefault();
-            return;
-        }
+/* FILTRO */
 
-        // evita double submit
-        const btn = this.querySelector('button');
-        if (btn) {
-            btn.disabled = true;
-            btn.innerText = 'Excluindo...';
+document
+.getElementById('filtroUsuarios')
+?.addEventListener(
+    'keyup',
+    function() {
+
+        const termo =
+            this.value.toLowerCase();
+
+        const linhas =
+            document.querySelectorAll(
+                '#tabelaUsuarios tbody tr'
+            );
+
+        linhas.forEach(linha => {
+
+            linha.style.display =
+
+                linha.innerText
+                .toLowerCase()
+                .includes(termo)
+
+                ? ''
+                : 'none';
+
+        });
+
+    }
+);
+
+/* EXCLUSÃO */
+
+document
+.querySelectorAll('.form-excluir-usuario')
+.forEach((form) => {
+
+    form.addEventListener(
+        'submit',
+        function(e) {
+
+            const nome =
+                this.getAttribute(
+                    'data-nome'
+                );
+
+            if (
+                !confirm(
+                    `⚠️ Deseja remover ${nome}?`
+                )
+            ) {
+
+                e.preventDefault();
+
+                return;
+
+            }
+
+            const btn =
+                this.querySelector(
+                    'button'
+                );
+
+            if (btn) {
+
+                btn.disabled = true;
+
+                btn.innerText =
+                    'Excluindo...';
+
+            }
+
         }
-    });
+    );
+
 });
+
+/* LOADING */
+
+document
+.getElementById('formUsuario')
+?.addEventListener(
+    'submit',
+    () => {
+
+        const btn =
+            document.getElementById(
+                'btnSalvar'
+            );
+
+        if (!btn) return;
+
+        btn.disabled = true;
+
+        btn.innerHTML =
+            '⏳ Salvando...';
+
+    }
+);
+
 </script>
 
 {% endblock %}
