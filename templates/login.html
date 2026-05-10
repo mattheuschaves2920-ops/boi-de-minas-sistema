@@ -4,47 +4,148 @@
 
 <style>
 
-.login-container{
+/* FUNDO */
+
+.login-page{
+
+    min-height:100vh;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+
+    padding:30px;
+
+    background:
+    linear-gradient(
+        135deg,
+        #7f0000 0%,
+        #a30000 45%,
+        #d4af37 100%
+    );
+}
+
+/* CARD */
+
+.login-card{
 
     width:100%;
-    min-height:80vh;
+    max-width:430px;
+
+    background:#ffffff;
+
+    border-radius:24px;
+
+    padding:40px;
+
+    box-shadow:
+        0 20px 60px rgba(0,0,0,0.18);
+
+    position:relative;
+
+    overflow:hidden;
+}
+
+/* TOPO */
+
+.login-card::before{
+
+    content:"";
+
+    position:absolute;
+
+    top:0;
+    left:0;
+
+    width:100%;
+    height:6px;
+
+    background:
+    linear-gradient(
+        90deg,
+        #7f0000,
+        #d4af37
+    );
+}
+
+/* LOGO */
+
+.logo-area{
+
+    text-align:center;
+
+    margin-bottom:25px;
+}
+
+.logo-circle{
+
+    width:90px;
+    height:90px;
+
+    margin:0 auto 15px;
+
+    border-radius:50%;
 
     display:flex;
     align-items:center;
     justify-content:center;
 
-    padding:40px;
-}
+    background:
+    linear-gradient(
+        135deg,
+        #8b0000,
+        #d4af37
+    );
 
-.login-card{
+    color:#fff;
 
-    width:100%;
-    max-width:420px;
+    font-size:38px;
 
-    background:#ffffff;
-
-    border-radius:16px;
-
-    padding:40px;
-
-    box-shadow:0 10px 30px rgba(0,0,0,0.08);
+    box-shadow:
+        0 10px 30px rgba(139,0,0,0.25);
 }
 
 .login-card h1{
 
-    margin:0 0 10px 0;
+    margin:0;
 
-    font-size:32px;
+    font-size:30px;
+
+    font-weight:800;
 
     color:#222;
 }
 
 .login-card p{
 
-    margin-bottom:30px;
+    margin-top:8px;
 
-    color:#666;
+    color:#777;
+
+    font-size:15px;
 }
+
+/* ALERTA */
+
+.alert{
+
+    background:#ffebee;
+
+    color:#c62828;
+
+    padding:14px;
+
+    border-radius:12px;
+
+    margin-bottom:20px;
+
+    font-size:14px;
+
+    border-left:5px solid #c62828;
+}
+
+/* FORM */
 
 .form-group{
 
@@ -57,130 +158,231 @@
 
     margin-bottom:8px;
 
-    font-weight:600;
+    font-weight:700;
 
     color:#333;
+
+    font-size:14px;
 }
 
 .form-group input{
 
     width:100%;
 
-    padding:14px;
+    padding:15px;
 
-    border:1px solid #dcdcdc;
+    border:1px solid #ddd;
 
-    border-radius:10px;
+    border-radius:12px;
 
-    font-size:16px;
+    font-size:15px;
+
+    transition:0.2s ease;
+
+    background:#fafafa;
 }
 
 .form-group input:focus{
 
     outline:none;
 
-    border-color:#c62828;
+    border-color:#8b0000;
+
+    background:#fff;
+
+    box-shadow:
+        0 0 0 4px rgba(139,0,0,0.08);
 }
 
-.btn{
+/* BOTÃO */
+
+.btn-login{
 
     width:100%;
 
     border:none;
 
-    padding:14px;
+    padding:15px;
 
-    border-radius:10px;
+    border-radius:14px;
 
-    background:#c62828;
+    background:
+    linear-gradient(
+        135deg,
+        #8b0000,
+        #c62828
+    );
 
     color:white;
 
     font-size:16px;
 
-    font-weight:bold;
+    font-weight:700;
 
     cursor:pointer;
+
+    transition:0.2s ease;
+
+    margin-top:5px;
 }
 
-.btn:hover{
+.btn-login:hover{
 
-    opacity:0.9;
+    transform:translateY(-1px);
+
+    opacity:0.95;
+
+    box-shadow:
+        0 10px 25px rgba(139,0,0,0.22);
 }
 
-.alert{
+/* RODAPÉ */
 
-    background:#ffebee;
+.login-footer{
 
-    color:#c62828;
+    margin-top:25px;
 
-    padding:12px;
+    text-align:center;
 
-    border-radius:10px;
+    color:#999;
 
-    margin-bottom:20px;
+    font-size:13px;
+}
+
+/* RESPONSIVO */
+
+@media (max-width:600px){
+
+    .login-page{
+
+        padding:18px;
+    }
+
+    .login-card{
+
+        padding:28px;
+        border-radius:18px;
+    }
+
+    .login-card h1{
+
+        font-size:25px;
+    }
+
 }
 
 </style>
 
-<div class="login-container">
+<div class="login-page">
 
     <div class="login-card">
 
-        <h1>
-            Sistema Boi de Minas
-        </h1>
+        <!-- TOPO -->
 
-        <p>
-            Faça login para acessar o sistema
-        </p>
+        <div class="logo-area">
+
+            <div class="logo-circle">
+
+                🥩
+
+            </div>
+
+            <h1>
+                Boi de Minas
+            </h1>
+
+            <p>
+                Sistema de Gestão da Churrascaria
+            </p>
+
+        </div>
+
+        <!-- ERRO -->
 
         {% if error %}
 
         <div class="alert">
-            {{ error }}
+
+            ⚠️ {{ error }}
+
         </div>
 
         {% endif %}
 
+        <!-- FORM -->
+
         <form method="POST">
+
+            <!-- CSRF -->
+
+            {% if csrf_token %}
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            {% endif %}
+
+            <!-- USUÁRIO -->
 
             <div class="form-group">
 
                 <label>
-                    Usuário
+                    👤 Usuário
                 </label>
 
                 <input
                     type="text"
                     name="username"
+                    placeholder="Digite seu usuário"
+                    autocomplete="username"
                     required
                 >
 
             </div>
 
+            <!-- SENHA -->
+
             <div class="form-group">
 
                 <label>
-                    Senha
+                    🔒 Senha
                 </label>
 
                 <input
                     type="password"
                     name="password"
+                    placeholder="Digite sua senha"
+                    autocomplete="current-password"
                     required
                 >
 
             </div>
 
+            <!-- BOTÃO -->
+
             <button
                 type="submit"
-                class="btn"
+                class="btn-login"
             >
-                Entrar
+
+                Entrar no Sistema
+
             </button>
 
         </form>
+
+        <!-- RODAPÉ -->
+
+        <div class="login-footer">
+
+            © {{ current_year if current_year else '2026' }}
+
+            Boi de Minas Churrascaria
+
+        </div>
 
     </div>
 
