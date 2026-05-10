@@ -114,7 +114,8 @@ def inject_globals():
 
     return {
         "current_user": current_user,
-        "now": datetime.now
+        "now": datetime.now,
+        "n_criticos": 0
     }
 
 # =====================================================
