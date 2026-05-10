@@ -855,3 +855,58 @@ textarea:focus {
     }
 
 }
+
+/* =========================================
+MOBILE
+========================================= */
+
+@media (max-width: 768px) {
+
+    .container {
+        padding: 15px;
+    }
+
+    .grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    table {
+        font-size: 14px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    #main-nav {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
+    }
+
+    #main-nav.open {
+        display: flex;
+    }
+
+    .hamburger {
+        display: flex;
+    }
+
+    .card {
+        padding: 18px;
+    }
+
+    .metric strong {
+        font-size: 24px;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+        font-size: 16px;
+    }
+}
