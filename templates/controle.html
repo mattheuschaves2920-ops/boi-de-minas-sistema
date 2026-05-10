@@ -1,83 +1,218 @@
 {% extends "base.html" %}
+
 {% block content %}
 
 <div class="grid two">
 
+    <!-- FORMULÁRIO -->
+
     <section class="card">
-        <h2>📝 Registro de Produção / Vendas</h2>
+
+        <h2>
+            📝 Registro de Produção / Vendas
+        </h2>
 
         <form method="post">
 
-            <label>Data</label>
-            <input type="date" name="data">
+            <label>
+                Data
+            </label>
 
-            <label style="margin-top:15px;">Grupo</label>
+            <input
+                type="date"
+                name="data"
+                required
+            >
 
-            <select name="grupo">
-                {% for g in grupos %}
-                <option value="{{ g }}">{{ g }}</option>
-                {% endfor %}
-            </select>
+            <label style="margin-top:15px;">
+                Grupo
+            </label>
 
-            <label style="margin-top:15px;">Nome do Item</label>
-            <input type="text" name="item">
+            <select
+                name="grupo"
+                required
+            >
 
-            <label style="margin-top:15px;">Produzido</label>
-            <input type="number" step="0.001" name="produzido">
+                {% if grupos %}
 
-            <label style="margin-top:15px;">Sobra</label>
-            <input type="number" step="0.001" name="sobra">
+                    {% for g in grupos %}
 
-            <label style="margin-top:15px;">Vendido</label>
-            <input type="number" step="0.001" name="vendido">
+                    <option value="{{ g }}">
 
-            <label style="margin-top:15px;">Valor Unitário</label>
-            <input type="number" step="0.01" name="valor">
+                        {{ g }}
 
-            <button class="btn" style="margin-top:20px; width:100%;">
-                Salvar
-            </button>
+                    </option>
 
-        </form>
-    </section>
-
-    <section class="card">
-
-        <h2>📊 Resumo do Dia</h2>
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Grupo</th>
-                    <th>Vendido</th>
-                    <th>Faturado</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                {% for r in resumo %}
-
-                <tr>
-                    <td>{{ r.grupo }}</td>
-                    <td>{{ r.vendido }}</td>
-                    <td>R$ {{ r.total }}</td>
-                </tr>
+                    {% endfor %}
 
                 {% else %}
 
-                <tr>
-                    <td colspan="3">
-                        Nenhum dado hoje.
-                    </td>
-                </tr>
+                    <option value="">
 
-                {% endfor %}
+                        Nenhum grupo disponível
 
-            </tbody>
+                    </option>
 
-        </table>
+                {% endif %}
+
+            </select>
+
+            <label style="margin-top:15px;">
+                Nome do Item
+            </label>
+
+            <input
+                type="text"
+                name="item"
+                placeholder="Digite o nome do item"
+                required
+            >
+
+            <label style="margin-top:15px;">
+                Produzido
+            </label>
+
+            <input
+                type="number"
+                step="0.001"
+                min="0"
+                name="produzido"
+                value="0"
+            >
+
+            <label style="margin-top:15px;">
+                Sobra
+            </label>
+
+            <input
+                type="number"
+                step="0.001"
+                min="0"
+                name="sobra"
+                value="0"
+            >
+
+            <label style="margin-top:15px;">
+                Vendido
+            </label>
+
+            <input
+                type="number"
+                step="0.001"
+                min="0"
+                name="vendido"
+                value="0"
+            >
+
+            <label style="margin-top:15px;">
+                Valor Unitário
+            </label>
+
+            <input
+                type="number"
+                step="0.01"
+                min="0"
+                name="valor"
+                placeholder="0.00"
+                value="0"
+            >
+
+            <button
+                type="submit"
+                class="btn"
+                style="margin-top:20px; width:100%;"
+            >
+
+                Salvar
+
+            </button>
+
+        </form>
+
+    </section>
+
+    <!-- RESUMO -->
+
+    <section class="card">
+
+        <h2>
+            📊 Resumo do Dia
+        </h2>
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Grupo
+                        </th>
+
+                        <th>
+                            Vendido
+                        </th>
+
+                        <th>
+                            Faturado
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% if resumo %}
+
+                        {% for r in resumo %}
+
+                        <tr>
+
+                            <td>
+
+                                {{ r.grupo or '—' }}
+
+                            </td>
+
+                            <td>
+
+                                {{ r.vendido or 0 }}
+
+                            </td>
+
+                            <td>
+
+                                R$
+                                {{ r.total or 0 }}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+
+                            <td colspan="3" class="center muted">
+
+                                Nenhum dado hoje.
+
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
 
     </section>
 
