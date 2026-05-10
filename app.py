@@ -9,7 +9,10 @@ from flask import (
 )
 
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from flask_wtf.csrf import CSRFProtect
+
+from datetime import datetime, date
+
 import os
 
 # =====================================================
@@ -20,23 +23,35 @@ app = Flask(__name__)
 
 app.config["SECRET_KEY"] = "boi-minas-2026"
 
+# =====================================================
+# DATABASE
+# =====================================================
+
 database_url = os.getenv("DATABASE_URL")
 
 if database_url:
+
     database_url = database_url.replace(
         "postgres://",
         "postgresql://",
         1
     )
 
+else:
+
+    database_url = "sqlite:///boi_minas.db"
+
 app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # =====================================================
-# DATABASE
+# EXTENSIONS
 # =====================================================
 
 db = SQLAlchemy(app)
+
+csrf = CSRFProtect(app)
 
 # =====================================================
 # USER MODEL
@@ -94,6 +109,7 @@ with app.app_context():
         )
 
         db.session.add(admin)
+
         db.session.commit()
 
 # =====================================================
@@ -108,14 +124,21 @@ def inject_globals():
     if session.get("user"):
 
         current_user = {
+
             "name": session.get("user"),
+
             "role": session.get("role")
+
         }
 
     return {
+
         "current_user": current_user,
+
         "now": datetime.now,
+
         "n_criticos": 0
+
     }
 
 # =====================================================
@@ -167,7 +190,10 @@ def login():
         if user and user.password == password:
 
             session["user"] = user.name
+
             session["role"] = user.role
+
+            session["user_id"] = user.id
 
             return redirect(
                 url_for("dashboard")
@@ -207,14 +233,23 @@ def dashboard():
         return auth
 
     return render_template(
-        "dashboard.html"
+        "dashboard.html",
+
+        faturamento=0,
+        custo=0,
+        lucro=0,
+        cmv=0,
+        meta_pct=0
     )
 
 # =====================================================
 # VENDAS
 # =====================================================
 
-@app.route("/vendas")
+@app.route(
+    "/vendas",
+    methods=["GET", "POST"]
+)
 def vendas():
 
     auth = verificar_login()
@@ -222,8 +257,23 @@ def vendas():
     if auth:
         return auth
 
+    data_ref = date.today()
+
     return render_template(
-        "vendas.html"
+
+        "vendas.html",
+
+        vendas=[],
+
+        total_hoje=0,
+
+        venda_edicao=None,
+
+        data_ref=data_ref,
+
+        error=None,
+
+        success=None
     )
 
 # =====================================================
@@ -262,7 +312,10 @@ def controle():
 # PRODUÇÃO
 # =====================================================
 
-@app.route("/producao")
+@app.route(
+    "/producao",
+    methods=["GET", "POST"]
+)
 def producao():
 
     auth = verificar_login()
@@ -270,15 +323,37 @@ def producao():
     if auth:
         return auth
 
+    data_ref = date.today()
+
     return render_template(
-        "producao.html"
+
+        "producao.html",
+
+        lista=[],
+
+        total_qtd=0,
+
+        total_custo=0,
+
+        setores=[],
+
+        items=[],
+
+        data_ref=data_ref,
+
+        error=None,
+
+        success=None
     )
 
 # =====================================================
 # MOVIMENTOS
 # =====================================================
 
-@app.route("/movimentos")
+@app.route(
+    "/movimentos",
+    methods=["GET", "POST"]
+)
 def movimentos():
 
     auth = verificar_login()
@@ -286,8 +361,33 @@ def movimentos():
     if auth:
         return auth
 
+    data_ref = date.today()
+
     return render_template(
-        "movimentos.html"
+
+        "movimentos.html",
+
+        movimentos=[],
+
+        mov_edicao=None,
+
+        entradas=0,
+
+        saidas=0,
+
+        perdas=0,
+
+        areas=[],
+
+        setores=[],
+
+        items=[],
+
+        data_ref=data_ref,
+
+        error=None,
+
+        success=None
     )
 
 # =====================================================
@@ -366,8 +466,25 @@ def auditoria():
     if auth:
         return auth
 
+    class FakePagination:
+
+        items = []
+
+        page = 1
+
+        pages = 1
+
+        has_prev = False
+
+        has_next = False
+
     return render_template(
-        "auditoria.html"
+
+        "auditoria.html",
+
+        logs=FakePagination(),
+
+        get_badge_class=lambda x: ""
     )
 
 # =====================================================
@@ -383,7 +500,36 @@ def relatorio_gerencial():
         return auth
 
     return render_template(
-        "relatorio-gerencial.html"
+
+        "relatorio-gerencial.html",
+
+        faturamento=0,
+
+        custo=0,
+
+        lucro=0,
+
+        cmv=0,
+
+        refeicoes=0,
+
+        total_perdas=0,
+
+        total_diario=0,
+
+        por_periodo={},
+
+        ranking_vendas=[],
+
+        resumo_setores=[],
+
+        ticket_medio=0,
+
+        margem=0,
+
+        data_ref=date.today(),
+
+        mes_ref=date.today()
     )
 
 # =====================================================
@@ -401,19 +547,58 @@ def usuarios():
     if auth:
         return auth
 
+    roles = [
+
+        "admin",
+
+        "gerente",
+
+        "caixa",
+
+        "funcionario"
+
+    ]
+
     if request.method == "POST":
 
+        username = request.form.get(
+            "username"
+        )
+
+        existe = User.query.filter_by(
+            username=username
+        ).first()
+
+        if existe:
+
+            flash(
+                "Usuário já existe.",
+                "error"
+            )
+
+            return redirect(
+                url_for("usuarios")
+            )
+
         novo = User(
+
             name=request.form.get("name"),
-            username=request.form.get("username"),
+
+            username=username,
+
             password=request.form.get("password"),
+
             role=request.form.get("role")
         )
 
         db.session.add(novo)
+
         db.session.commit()
 
-        flash("Usuário criado.")
+        flash(
+            "Usuário criado com sucesso.",
+            "success"
+        )
 
         return redirect(
             url_for("usuarios")
@@ -422,8 +607,59 @@ def usuarios():
     lista = User.query.all()
 
     return render_template(
+
         "usuarios.html",
-        usuarios=lista
+
+        usuarios=lista,
+
+        roles=roles,
+
+        error=None,
+
+        success=None
+    )
+
+# =====================================================
+# EXCLUIR USUARIO
+# =====================================================
+
+@app.route(
+    "/excluir_usuario/<int:user_id>",
+    methods=["POST"]
+)
+def excluir_usuario(user_id):
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    if session.get("user_id") == user_id:
+
+        flash(
+            "Você não pode excluir seu próprio usuário.",
+            "error"
+        )
+
+        return redirect(
+            url_for("usuarios")
+        )
+
+    usuario = User.query.get_or_404(
+        user_id
+    )
+
+    db.session.delete(usuario)
+
+    db.session.commit()
+
+    flash(
+        "Usuário removido.",
+        "success"
+    )
+
+    return redirect(
+        url_for("usuarios")
     )
 
 # =====================================================
@@ -433,7 +669,10 @@ def usuarios():
 if __name__ == "__main__":
 
     app.run(
+
         host="0.0.0.0",
+
         port=5000,
+
         debug=True
     )
