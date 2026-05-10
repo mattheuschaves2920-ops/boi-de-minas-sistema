@@ -323,6 +323,22 @@ def compras():
     )
 
 # =====================================================
+# LISTA COMPRAS
+# =====================================================
+
+@app.route("/lista_compras")
+def lista_compras():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "lista_compras.html"
+    )
+
+# =====================================================
 # RELATÓRIO
 # =====================================================
 
