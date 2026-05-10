@@ -1,24 +1,44 @@
 {% extends "base.html" %}
+
 {% block content %}
 
-<section class="card" style="border-left: 5px solid var(--red); margin-bottom:16px;">
+<section
+    class="card"
+    style="
+        border-left:5px solid var(--red);
+        margin-bottom:16px;
+    "
+>
 
-    <form method="get"
-          class="grid"
-          style="grid-template-columns:1fr auto; align-items:end; gap:10px;">
+    <form
+        method="get"
+        class="grid"
+        style="
+            grid-template-columns:1fr auto;
+            align-items:end;
+            gap:10px;
+        "
+    >
 
         <label>
-            Visualizar desperdícios do dia:
+
+            Visualizar desperdícios do dia
 
             <input
                 type="date"
                 name="data"
-                value="{{ data_ref.strftime('%Y-%m-%d') }}"
+                value="{{ data_ref.strftime('%Y-%m-%d') if data_ref else '' }}"
             >
+
         </label>
 
-        <button class="btn" type="submit">
+        <button
+            class="btn"
+            type="submit"
+        >
+
             🔍 Filtrar
+
         </button>
 
     </form>
@@ -27,18 +47,27 @@
 
 <div class="grid two">
 
-    <!-- FORM -->
+    <!-- FORMULÁRIO -->
 
     <section class="card">
 
         <header style="margin-bottom:20px;">
 
             <h3 style="margin:0;">
-                🗑️ {{ 'Editar Desperdício' if desperdicio_edicao else 'Registrar Desperdício' }}
+
+                🗑️
+
+                {{ 'Editar Desperdício' if desperdicio_edicao else 'Registrar Desperdício' }}
+
             </h3>
 
-            <p class="muted" style="margin-top:6px;">
+            <p
+                class="muted"
+                style="margin-top:6px;"
+            >
+
                 O registro com foto ajuda na auditoria mensal.
+
             </p>
 
         </header>
@@ -46,15 +75,12 @@
         {% if error %}
 
         <div
-            class="card"
-            style="
-                background:#fff5f5;
-                border:1px solid #ffcaca;
-                color:#b91c1c;
-                margin-bottom:15px;
-            "
+            class="alert alert-error"
+            style="margin-bottom:15px;"
         >
+
             ⚠️ {{ error }}
+
         </div>
 
         {% endif %}
@@ -65,12 +91,6 @@
             id="form-desperdicio"
             action="{{ url_for('editar_desperdicio', waste_id=desperdicio_edicao.id) if desperdicio_edicao else url_for('desperdicio') }}"
         >
-
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="{{ csrf_token() }}"
-            >
 
             <!-- DATA + ITEM -->
 
@@ -83,34 +103,53 @@
             >
 
                 <label>
+
                     Data
 
                     <input
                         type="date"
                         name="waste_date"
                         required
-                        value="{{ desperdicio_edicao.waste_date.strftime('%Y-%m-%d') if desperdicio_edicao else data_ref.strftime('%Y-%m-%d') }}"
+                        value="{{ desperdicio_edicao.waste_date.strftime('%Y-%m-%d') if desperdicio_edicao else (data_ref.strftime('%Y-%m-%d') if data_ref else '') }}"
                     >
+
                 </label>
 
                 <label>
+
                     Item
 
                     {% if not desperdicio_edicao %}
 
-                    <select name="item_id" required>
+                    <select
+                        name="item_id"
+                        required
+                    >
 
-                        <option value="" disabled selected>
+                        <option
+                            value=""
+                            disabled
+                            selected
+                        >
+
                             Selecione...
+
                         </option>
 
-                        {% for i in items %}
+                        {% if items %}
 
-                        <option value="{{ i.id }}">
-                            {{ i.name }} ({{ i.area }})
-                        </option>
+                            {% for i in items %}
 
-                        {% endfor %}
+                            <option value="{{ i.id }}">
+
+                                {{ i.name }}
+                                ({{ i.area }})
+
+                            </option>
+
+                            {% endfor %}
+
+                        {% endif %}
 
                     </select>
 
@@ -139,6 +178,7 @@
             >
 
                 <label>
+
                     Quantidade
 
                     <input
@@ -150,9 +190,11 @@
                         required
                         value="{{ desperdicio_edicao.quantity if desperdicio_edicao else '' }}"
                     >
+
                 </label>
 
                 <label>
+
                     Motivo
 
                     <select name="reason">
@@ -206,7 +248,9 @@
                 >
 
                 <small class="muted">
+
                     No celular, a câmera traseira será aberta automaticamente.
+
                 </small>
 
             </label>
@@ -255,7 +299,9 @@
                         color:#fff;
                     "
                 >
+
                     {{ 'Salvar Alteração' if desperdicio_edicao else 'Registrar' }}
+
                 </button>
 
                 {% if desperdicio_edicao %}
@@ -268,7 +314,9 @@
                         text-align:center;
                     "
                 >
+
                     Cancelar
+
                 </a>
 
                 {% endif %}
@@ -284,7 +332,9 @@
     <section class="card">
 
         <h3 style="margin-top:0;">
+
             📋 Ocorrências
+
         </h3>
 
         <div class="table-wrap">
@@ -294,104 +344,124 @@
                 <thead>
 
                     <tr>
+
                         <th>Item</th>
+
                         <th>Qtd</th>
+
                         <th>R$</th>
+
                         <th></th>
+
                     </tr>
 
                 </thead>
 
                 <tbody>
 
-                    {% for d in lista %}
+                    {% if lista %}
 
-                    <tr>
+                        {% for d in lista %}
 
-                        <td>
-                            <strong>
-                                {{ d.item_name }}
-                            </strong>
+                        <tr>
 
-                            <br>
+                            <td>
 
-                            <small class="muted">
-                                {{ d.reason }}
-                            </small>
-                        </td>
+                                <strong>
 
-                        <td>
-                            {{ d.quantity }}
-                        </td>
+                                    {{ d.item_name }}
 
-                        <td
-                            style="
-                                color:var(--red);
-                                font-weight:700;
-                            "
-                        >
-                            R$ {{ '%.2f'|format(d.value) }}
-                        </td>
+                                </strong>
 
-                        <td style="white-space:nowrap;">
+                                <br>
 
-                            <a
-                                href="{{ url_for('desperdicio', editar=d.id, data=data_ref.strftime('%Y-%m-%d')) }}"
-                                class="btn-link"
-                            >
-                                ✏️
-                            </a>
+                                <small class="muted">
 
-                            <form
-                                method="post"
-                                action="{{ url_for('excluir_desperdicio', waste_id=d.id) }}"
-                                style="display:inline;"
-                                onsubmit="return confirm('Excluir este desperdício?');"
+                                    {{ d.reason }}
+
+                                </small>
+
+                            </td>
+
+                            <td>
+
+                                {{ d.quantity }}
+
+                            </td>
+
+                            <td
+                                style="
+                                    color:var(--red);
+                                    font-weight:700;
+                                "
                             >
 
-                                <input
-                                    type="hidden"
-                                    name="csrf_token"
-                                    value="{{ csrf_token() }}"
-                                >
+                                R$
+                                {{ '%.2f'|format(d.value or 0) }}
 
-                                <button
-                                    type="submit"
+                            </td>
+
+                            <td style="white-space:nowrap;">
+
+                                <a
+                                    href="{{ url_for('desperdicio', editar=d.id, data=data_ref.strftime('%Y-%m-%d') if data_ref else '') }}"
                                     class="btn-link"
-                                    style="
-                                        border:none;
-                                        background:none;
-                                        color:var(--red);
-                                        cursor:pointer;
-                                    "
                                 >
-                                    🗑️
-                                </button>
 
-                            </form>
+                                    ✏️
 
-                        </td>
+                                </a>
 
-                    </tr>
+                                <form
+                                    method="post"
+                                    action="{{ url_for('excluir_desperdicio', waste_id=d.id) }}"
+                                    style="display:inline;"
+                                    onsubmit="return confirm('Excluir este desperdício?');"
+                                >
+
+                                    <button
+                                        type="submit"
+                                        class="btn-link"
+                                        style="
+                                            border:none;
+                                            background:none;
+                                            color:var(--red);
+                                            cursor:pointer;
+                                        "
+                                    >
+
+                                        🗑️
+
+                                    </button>
+
+                                </form>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
 
                     {% else %}
 
-                    <tr>
+                        <tr>
 
-                        <td
-                            colspan="4"
-                            class="muted"
-                            style="
-                                text-align:center;
-                                padding:30px;
-                            "
-                        >
-                            Sem registros
-                        </td>
+                            <td
+                                colspan="4"
+                                class="muted"
+                                style="
+                                    text-align:center;
+                                    padding:30px;
+                                "
+                            >
 
-                    </tr>
+                                Sem registros
 
-                    {% endfor %}
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
 
                 </tbody>
 
@@ -419,13 +489,19 @@ document
 
     reader.onload = function(ev) {
 
-        document
-            .getElementById('preview')
-            .src = ev.target.result;
+        const preview =
+            document.getElementById('preview');
 
-        document
-            .getElementById('preview-box')
-            .style.display = 'block';
+        const box =
+            document.getElementById('preview-box');
+
+        if (preview && box) {
+
+            preview.src = ev.target.result;
+
+            box.style.display = 'block';
+
+        }
 
     };
 
@@ -437,14 +513,14 @@ document
 
 document
 .getElementById('form-desperdicio')
-.addEventListener('submit', function(e) {
+?.addEventListener('submit', function(e) {
 
     const qty =
         parseFloat(
             document.getElementById('qty').value
         );
 
-    if (qty <= 0) {
+    if (!qty || qty <= 0) {
 
         alert(
             'Quantidade deve ser maior que zero.'
