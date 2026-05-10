@@ -180,6 +180,14 @@ body {
 
     gap: 20px;
 
+    position: sticky;
+
+    top: 0;
+
+    z-index: 999;
+
+    box-shadow: var(--shadow);
+
 }
 
 .brand {
@@ -239,6 +247,8 @@ nav {
     align-items: center;
 
     gap: 8px;
+
+    flex-wrap: wrap;
 
 }
 
@@ -669,6 +679,60 @@ textarea:focus {
 }
 
 /* ───────────────────────────── */
+/* LOGIN */
+/* ───────────────────────────── */
+
+.login-container {
+
+    width: 100%;
+
+    min-height: 80vh;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 40px;
+
+}
+
+.login-card {
+
+    width: 100%;
+
+    max-width: 420px;
+
+    background: var(--card);
+
+    border-radius: 16px;
+
+    padding: 40px;
+
+    box-shadow: var(--shadow);
+
+    border: 1px solid var(--line);
+
+}
+
+.login-card h1 {
+
+    margin: 0 0 10px 0;
+
+    font-size: 32px;
+
+}
+
+.login-card p {
+
+    margin-bottom: 30px;
+
+    color: var(--muted);
+
+}
+
+/* ───────────────────────────── */
 /* DARK MODE COMPONENTES */
 /* ───────────────────────────── */
 
@@ -781,6 +845,12 @@ textarea:focus {
     .card {
 
         padding: 1rem;
+
+    }
+
+    .login-card {
+
+        padding: 25px;
 
     }
 
