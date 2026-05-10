@@ -19,7 +19,9 @@
             </span>
 
             <strong>
+
                 {{ total_itens or 0 }}
+
             </strong>
 
         </div>
@@ -74,7 +76,6 @@
         type="text"
         id="busca"
         placeholder="🔍 Buscar item..."
-
         style="
             flex:1;
             padding:10px;
@@ -87,7 +88,6 @@
 
     <select
         id="filtro-area"
-
         style="
             padding:10px;
             border-radius:8px;
@@ -96,20 +96,26 @@
     >
 
         <option value="">
-
             Todas áreas
-
         </option>
 
-        {% for a in itens | map(attribute='area') | unique %}
+        {% if itens %}
 
-        <option value="{{ a }}">
+            {% for a in itens | map(attribute='area') | unique %}
 
-            {{ a }}
+                {% if a %}
 
-        </option>
+                <option value="{{ a }}">
 
-        {% endfor %}
+                    {{ a }}
+
+                </option>
+
+                {% endif %}
+
+            {% endfor %}
+
+        {% endif %}
 
     </select>
 
@@ -143,8 +149,8 @@
                     Estoque ⬍
                 </th>
 
-                <th>
-                    Valor Total
+                <th onclick="sortTable(3)">
+                    Valor Total ⬍
                 </th>
 
             </tr>
@@ -161,13 +167,12 @@
 
                 {% set critico =
                     i.min_stock is defined
-                    and i.stock <= i.min_stock
+                    and i.min_stock is not none
+                    and (i.stock or 0) <= i.min_stock
                 %}
 
                 <tr
-
                     data-area="{{ i.area or '' }}"
-
                     style="
                         background:
                         {{ '#fff5f5' if critico else '' }};
@@ -178,7 +183,7 @@
 
                         <strong>
 
-                            {{ i.name }}
+                            {{ i.name or '—' }}
 
                         </strong>
 
@@ -191,10 +196,8 @@
                     </td>
 
                     <td
-
                         style="
                             font-weight:600;
-
                             color:
                             {{ 'var(--red)'
                                if critico
@@ -215,7 +218,7 @@
                     <td>
 
                         R$
-                        {{ '%.2f'|format(valor) }}
+                        {{ '%.2f'|format(valor or 0) }}
 
                     </td>
 
@@ -230,6 +233,7 @@
                 <td
                     colspan="4"
                     class="center muted"
+                    style="padding:20px;"
                 >
 
                     Nenhum item encontrado.
@@ -250,9 +254,7 @@
 
 <script>
 
-/* ───────────────────────────── */
 /* ELEMENTOS */
-/* ───────────────────────────── */
 
 const busca =
     document.getElementById('busca');
@@ -263,9 +265,7 @@ const filtroArea =
 const tabela =
     document.getElementById('tabela-estoque');
 
-/* ───────────────────────────── */
 /* EVENTOS */
-/* ───────────────────────────── */
 
 if (busca) {
 
@@ -285,9 +285,7 @@ if (filtroArea) {
 
 }
 
-/* ───────────────────────────── */
 /* FILTRO */
-/* ───────────────────────────── */
 
 function filtrar() {
 
@@ -325,9 +323,7 @@ function filtrar() {
 
 }
 
-/* ───────────────────────────── */
 /* ORDENAÇÃO */
-/* ───────────────────────────── */
 
 function sortTable(col) {
 
@@ -336,8 +332,12 @@ function sortTable(col) {
     const tbody =
         tabela.querySelector('tbody');
 
+    if (!tbody) return;
+
     const rows =
-        Array.from(tbody.querySelectorAll('tr'));
+        Array.from(
+            tbody.querySelectorAll('tr')
+        );
 
     const asc =
         tabela.dataset.sortDirection !== 'asc';
@@ -345,26 +345,27 @@ function sortTable(col) {
     rows.sort((a, b) => {
 
         const A =
-            a.cells[col].innerText
+            a.cells[col]?.innerText
             .trim()
-            .toLowerCase();
+            .toLowerCase() || '';
 
         const B =
-            b.cells[col].innerText
+            b.cells[col]?.innerText
             .trim()
-            .toLowerCase();
+            .toLowerCase() || '';
 
         return asc
+
             ? A.localeCompare(
                 B,
                 'pt-BR',
-                { numeric: true }
+                { numeric:true }
               )
 
             : B.localeCompare(
                 A,
                 'pt-BR',
-                { numeric: true }
+                { numeric:true }
               );
 
     });
