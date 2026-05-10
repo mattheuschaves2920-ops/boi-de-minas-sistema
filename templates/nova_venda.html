@@ -8,33 +8,87 @@
         class="card"
 
         style="
-            max-width:700px;
+            max-width:750px;
             margin:auto;
 
-            border-top:4px solid var(--green);
+            border-top:5px solid var(--green);
         "
     >
 
         <!-- TOPO -->
 
-        <div style="margin-bottom:20px;">
+        <div
+            style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+                flex-wrap:wrap;
 
-            <h2 style="margin:0;">
+                margin-bottom:22px;
+            "
+        >
 
-                🛒 Nova Venda
+            <div>
 
-            </h2>
+                <h2 style="margin:0;">
 
-            <p
-                class="muted"
-                style="margin-top:5px;"
+                    🛒 Nova Venda
+
+                </h2>
+
+                <p
+                    class="muted"
+                    style="margin-top:5px;"
+                >
+
+                    Registre uma nova venda no sistema.
+
+                </p>
+
+            </div>
+
+            <div
+                class="badge success"
+                style="
+                    padding:8px 12px;
+                    font-size:12px;
+                "
             >
 
-                Registre uma nova venda no sistema.
+                💰 Financeiro
 
-            </p>
+            </div>
 
         </div>
+
+        <!-- ALERTAS -->
+
+        {% if error %}
+
+        <div
+            class="alert alert-error"
+            style="margin-bottom:18px;"
+        >
+
+            ⚠️ {{ error }}
+
+        </div>
+
+        {% endif %}
+
+        {% if success %}
+
+        <div
+            class="alert alert-success"
+            style="margin-bottom:18px;"
+        >
+
+            ✅ {{ success }}
+
+        </div>
+
+        {% endif %}
 
         <!-- FORM -->
 
@@ -45,23 +99,25 @@
 
             <!-- CSRF -->
 
+            {% if csrf_token %}
+
             <input
                 type="hidden"
                 name="csrf_token"
                 value="{{ csrf_token() }}"
             >
 
+            {% endif %}
+
             <!-- CLIENTE -->
 
             <label>
 
-                Cliente
+                👤 Cliente
 
                 <input
                     type="text"
-
                     name="cliente"
-
                     required
 
                     autocomplete="off"
@@ -71,35 +127,128 @@
 
             </label>
 
-            <!-- VALOR -->
+            <!-- VALOR / PAGAMENTO -->
 
-            <label>
+            <div
+                class="grid"
+                style="
+                    grid-template-columns:1fr 1fr;
+                    gap:12px;
+                "
+            >
 
-                Valor da Venda (R$)
+                <!-- VALOR -->
 
-                <input
-                    type="number"
+                <label>
 
-                    step="0.01"
+                    💰 Valor da Venda (R$)
 
-                    min="0.01"
+                    <input
+                        type="number"
 
-                    name="valor"
+                        step="0.01"
 
-                    id="valor"
+                        min="0.01"
 
-                    required
+                        name="valor"
 
-                    placeholder="0,00"
-                >
+                        id="valor"
 
-            </label>
+                        required
+
+                        placeholder="0,00"
+                    >
+
+                </label>
+
+                <!-- PAGAMENTO -->
+
+                <label>
+
+                    💳 Forma de Pagamento
+
+                    <select name="pagamento">
+
+                        <option value="Dinheiro">
+                            Dinheiro
+                        </option>
+
+                        <option value="Pix">
+                            Pix
+                        </option>
+
+                        <option value="Cartão Crédito">
+                            Cartão Crédito
+                        </option>
+
+                        <option value="Cartão Débito">
+                            Cartão Débito
+                        </option>
+
+                        <option value="Delivery">
+                            Delivery
+                        </option>
+
+                    </select>
+
+                </label>
+
+            </div>
+
+            <!-- DATA / RESPONSÁVEL -->
+
+            <div
+                class="grid"
+                style="
+                    grid-template-columns:1fr 1fr;
+                    gap:12px;
+                "
+            >
+
+                <!-- DATA -->
+
+                <label>
+
+                    📅 Data
+
+                    <input
+                        type="date"
+
+                        name="data"
+
+                        value="
+                        {{ today.strftime('%Y-%m-%d')
+                           if today else '' }}
+                        "
+                    >
+
+                </label>
+
+                <!-- RESPONSÁVEL -->
+
+                <label>
+
+                    👨‍🍳 Responsável
+
+                    <input
+                        type="text"
+
+                        name="responsavel"
+
+                        placeholder="
+                        Caixa / Atendente...
+                        "
+                    >
+
+                </label>
+
+            </div>
 
             <!-- OBS -->
 
             <label>
 
-                Observação
+                📝 Observação
 
                 <textarea
                     name="observacao"
@@ -113,7 +262,7 @@
 
             </label>
 
-            <!-- TOTAL -->
+            <!-- PREVIEW -->
 
             <div
                 class="card metric"
@@ -121,12 +270,16 @@
                 style="
                     margin-top:20px;
 
-                    border-left:4px solid var(--green);
+                    border-left:5px solid var(--green);
+
+                    background:#f9fffb;
                 "
             >
 
                 <span>
+
                     💰 Valor informado
+
                 </span>
 
                 <strong
@@ -134,6 +287,7 @@
 
                     style="
                         color:var(--green);
+                        font-size:1.6rem;
                     "
                 >
 
@@ -149,10 +303,11 @@
                 style="
                     display:flex;
                     gap:10px;
-
-                    margin-top:20px;
+                    margin-top:22px;
                 "
             >
+
+                <!-- SALVAR -->
 
                 <button
                     type="submit"
@@ -163,8 +318,12 @@
 
                     style="
                         flex:2;
+
                         background:var(--green);
+
                         color:#fff;
+
+                        font-weight:700;
                     "
                 >
 
@@ -172,9 +331,11 @@
 
                 </button>
 
+                <!-- VOLTAR -->
+
                 <a
 
-                    href="{{ url_for('index') }}"
+                    href="{{ url_for('vendas') }}"
 
                     class="btn"
 
@@ -182,6 +343,7 @@
                         flex:1;
 
                         background:#eee;
+
                         color:var(--ink);
 
                         text-align:center;
@@ -213,8 +375,8 @@ function formatMoney(value) {
     return value.toLocaleString(
         'pt-BR',
         {
-            style: 'currency',
-            currency: 'BRL'
+            style:'currency',
+            currency:'BRL'
         }
     );
 
@@ -230,16 +392,23 @@ const valorInput =
 const previewValor =
     document.getElementById('previewValor');
 
-if (valorInput && previewValor) {
+if (
+    valorInput &&
+    previewValor
+) {
 
     valorInput.addEventListener(
         'input',
         () => {
 
             const valor =
-                parseFloat(valorInput.value) || 0;
+
+                parseFloat(
+                    valorInput.value
+                ) || 0;
 
             previewValor.textContent =
+
                 formatMoney(valor);
 
         }
@@ -248,11 +417,13 @@ if (valorInput && previewValor) {
 }
 
 /* ───────────────────────────── */
-/* LOADING BOTÃO */
+/* BOTÃO LOADING */
 /* ───────────────────────────── */
 
 const formVenda =
-    document.getElementById('formVenda');
+    document.getElementById(
+        'formVenda'
+    );
 
 if (formVenda) {
 
@@ -261,14 +432,16 @@ if (formVenda) {
         () => {
 
             const btn =
-                document.getElementById('btnSalvar');
+                document.getElementById(
+                    'btnSalvar'
+                );
 
             if (!btn) return;
 
             btn.disabled = true;
 
-            btn.textContent =
-                'Salvando...';
+            btn.innerHTML =
+                '⏳ Salvando...';
 
         }
     );
@@ -276,5 +449,29 @@ if (formVenda) {
 }
 
 </script>
+
+<!-- BADGES -->
+
+<style>
+
+.badge {
+
+    border-radius:999px;
+
+    font-weight:700;
+
+    text-transform:uppercase;
+
+}
+
+.badge.success {
+
+    background:#dcfce7;
+
+    color:#166534;
+
+}
+
+</style>
 
 {% endblock %}
