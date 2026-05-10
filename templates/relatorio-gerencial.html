@@ -1,95 +1,566 @@
 {% extends "base.html" %}
+
 {% block content %}
 
-<section class="card" style="border-top: 4px solid var(--blue);">
+<!-- TOPO -->
 
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+<section
+    class="card"
+
+    style="
+        border-top:5px solid var(--blue);
+    "
+>
+
+    <div
+
+        style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            flex-wrap:wrap;
+            gap:12px;
+            margin-bottom:22px;
+        "
+    >
+
         <div>
-            <h2 style="margin:0;">📊 Relatório Gerencial</h2>
-            <p class="muted" style="margin-top:5px;">
-                Indicadores gerais do restaurante.
+
+            <h2 style="margin:0;">
+
+                📊 Relatório Gerencial
+
+            </h2>
+
+            <p
+                class="muted"
+                style="margin-top:5px;"
+            >
+
+                Indicadores gerais da churrascaria.
+
             </p>
+
         </div>
 
-        <div>
-            <button class="btn">
-                Exportar
+        <!-- AÇÕES -->
+
+        <div
+            style="
+                display:flex;
+                gap:10px;
+                flex-wrap:wrap;
+            "
+        >
+
+            <button
+                class="btn"
+                onclick="window.print()"
+            >
+
+                🖨️ Imprimir
+
             </button>
+
+            <button
+                class="btn"
+
+                style="
+                    background:var(--blue);
+                    color:#fff;
+                "
+            >
+
+                📥 Exportar
+
+            </button>
+
         </div>
+
     </div>
 
     <!-- MÉTRICAS -->
+
     <div class="grid metrics">
 
+        <!-- FATURAMENTO -->
+
         <div class="card metric">
-            <span>💰 Faturamento</span>
+
+            <span>
+                💰 Faturamento
+            </span>
+
             <strong style="color:var(--green);">
-                R$ {{ '%.2f'|format(faturamento or 0) }}
+
+                R$
+                {{ '%.2f'|format(faturamento or 0) }}
+
             </strong>
+
         </div>
 
+        <!-- CUSTOS -->
+
         <div class="card metric">
-            <span>📉 Custos</span>
+
+            <span>
+                📉 Custos
+            </span>
+
             <strong style="color:var(--red);">
-                R$ {{ '%.2f'|format(custo or 0) }}
+
+                R$
+                {{ '%.2f'|format(custo or 0) }}
+
             </strong>
+
         </div>
 
+        <!-- LUCRO -->
+
         <div class="card metric">
-            <span>📈 Lucro</span>
+
+            <span>
+                📈 Lucro
+            </span>
+
             <strong style="color:var(--gold);">
-                R$ {{ '%.2f'|format(lucro or 0) }}
+
+                R$
+                {{ '%.2f'|format(lucro or 0) }}
+
             </strong>
+
         </div>
+
+        <!-- CMV -->
 
         <div class="card metric">
-            <span>📊 CMV</span>
+
+            <span>
+                📊 CMV
+            </span>
+
             <strong>
+
                 {{ cmv or 0 }}%
+
             </strong>
+
         </div>
-
-    </div>
-
-    <!-- TABELA -->
-    <div class="table-wrap" style="margin-top:20px;">
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Indicador</th>
-                    <th>Valor</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-                <tr>
-                    <td>Refeições Servidas</td>
-                    <td>{{ refeicoes or 0 }}</td>
-                </tr>
-
-                <tr>
-                    <td>Total de Perdas</td>
-                    <td style="color:var(--red);">
-                        R$ {{ '%.2f'|format(total_perdas or 0) }}
-                    </td>
-                </tr>
-
-                <tr>
-                    <td>Controle Diário</td>
-                    <td>
-                        R$ {{ '%.2f'|format(total_diario or 0) }}
-                    </td>
-                </tr>
-
-            </tbody>
-
-        </table>
 
     </div>
 
 </section>
+
+<!-- RESUMO FINANCEIRO -->
+
+<div
+    class="grid two"
+    style="margin-top:20px;"
+>
+
+    <!-- TABELA PRINCIPAL -->
+
+    <section class="card">
+
+        <div
+            style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+                flex-wrap:wrap;
+                margin-bottom:15px;
+            "
+        >
+
+            <div>
+
+                <h3 style="margin:0;">
+
+                    📋 Indicadores Gerais
+
+                </h3>
+
+            </div>
+
+            <input
+                type="text"
+                id="filtroIndicador"
+
+                placeholder="🔍 Buscar indicador..."
+
+                style="
+                    padding:8px;
+                    border-radius:8px;
+                    border:1px solid var(--line);
+                "
+            >
+
+        </div>
+
+        <!-- TABELA -->
+
+        <div class="table-wrap">
+
+            <table id="tabelaIndicadores">
+
+                <thead>
+
+                    <tr>
+
+                        <th onclick="sortTable(0)">
+                            Indicador ⬍
+                        </th>
+
+                        <th onclick="sortTable(1)">
+                            Valor ⬍
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <!-- REFEIÇÕES -->
+
+                    <tr>
+
+                        <td>
+
+                            🍽️ Refeições Servidas
+
+                        </td>
+
+                        <td>
+
+                            <strong>
+
+                                {{ refeicoes or 0 }}
+
+                            </strong>
+
+                        </td>
+
+                    </tr>
+
+                    <!-- PERDAS -->
+
+                    <tr>
+
+                        <td>
+
+                            ⚠️ Total de Perdas
+
+                        </td>
+
+                        <td
+                            style="
+                                color:var(--red);
+                                font-weight:700;
+                            "
+                        >
+
+                            R$
+                            {{ '%.2f'|format(total_perdas or 0) }}
+
+                        </td>
+
+                    </tr>
+
+                    <!-- CONTROLE -->
+
+                    <tr>
+
+                        <td>
+
+                            📦 Controle Diário
+
+                        </td>
+
+                        <td>
+
+                            R$
+                            {{ '%.2f'|format(total_diario or 0) }}
+
+                        </td>
+
+                    </tr>
+
+                    <!-- TICKET -->
+
+                    <tr>
+
+                        <td>
+
+                            🧾 Ticket Médio
+
+                        </td>
+
+                        <td>
+
+                            R$
+                            {{ '%.2f'|format(ticket_medio or 0) }}
+
+                        </td>
+
+                    </tr>
+
+                    <!-- MARGEM -->
+
+                    <tr>
+
+                        <td>
+
+                            📈 Margem de Lucro
+
+                        </td>
+
+                        <td
+                            style="
+                                color:var(--green);
+                                font-weight:700;
+                            "
+                        >
+
+                            {{ margem or 0 }}%
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+    <!-- RESUMO VISUAL -->
+
+    <section class="card">
+
+        <h3 style="margin-top:0;">
+
+            📌 Resumo Financeiro
+
+        </h3>
+
+        <!-- FATURAMENTO -->
+
+        <div
+            class="card metric"
+
+            style="
+                margin-bottom:14px;
+                border-left:5px solid var(--green);
+            "
+        >
+
+            <span>
+
+                Entrada Total
+
+            </span>
+
+            <strong style="color:var(--green);">
+
+                R$
+                {{ '%.2f'|format(faturamento or 0) }}
+
+            </strong>
+
+        </div>
+
+        <!-- SAÍDAS -->
+
+        <div
+            class="card metric"
+
+            style="
+                margin-bottom:14px;
+                border-left:5px solid var(--red);
+            "
+        >
+
+            <span>
+
+                Saídas Totais
+
+            </span>
+
+            <strong style="color:var(--red);">
+
+                R$
+                {{ '%.2f'|format(custo or 0) }}
+
+            </strong>
+
+        </div>
+
+        <!-- RESULTADO -->
+
+        <div
+            class="card metric"
+
+            style="
+                border-left:5px solid var(--gold);
+            "
+        >
+
+            <span>
+
+                Resultado Final
+
+            </span>
+
+            <strong style="color:var(--gold);">
+
+                R$
+                {{ '%.2f'|format(lucro or 0) }}
+
+            </strong>
+
+        </div>
+
+        <!-- STATUS -->
+
+        <div
+            style="
+                margin-top:18px;
+                padding:14px;
+                border-radius:10px;
+
+                background:
+                {% if lucro and lucro > 0 %}
+                    #ecfdf5
+                {% else %}
+                    #fef2f2
+                {% endif %};
+            "
+        >
+
+            <strong>
+
+                {% if lucro and lucro > 0 %}
+
+                    ✅ Restaurante operando no lucro.
+
+                {% else %}
+
+                    ⚠️ Atenção ao fluxo financeiro.
+
+                {% endif %}
+
+            </strong>
+
+        </div>
+
+    </section>
+
+</div>
+
+<!-- SCRIPT -->
+
+<script>
+
+/* FILTRO */
+
+document
+.getElementById('filtroIndicador')
+?.addEventListener(
+    'keyup',
+    function() {
+
+        const termo =
+            this.value.toLowerCase();
+
+        const linhas =
+            document.querySelectorAll(
+                '#tabelaIndicadores tbody tr'
+            );
+
+        linhas.forEach(linha => {
+
+            linha.style.display =
+
+                linha.innerText
+                .toLowerCase()
+                .includes(termo)
+
+                ? ''
+                : 'none';
+
+        });
+
+    }
+);
+
+/* ORDENAÇÃO */
+
+function sortTable(col) {
+
+    const tabela =
+        document.getElementById(
+            'tabelaIndicadores'
+        );
+
+    if (!tabela) return;
+
+    const tbody =
+        tabela.querySelector('tbody');
+
+    const rows =
+        Array.from(
+            tbody.querySelectorAll('tr')
+        );
+
+    const asc =
+        tabela.dataset.sort !== 'asc';
+
+    rows.sort((a, b) => {
+
+        const A =
+            a.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        const B =
+            b.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        return asc
+
+            ? A.localeCompare(
+                B,
+                'pt-BR',
+                { numeric:true }
+              )
+
+            : B.localeCompare(
+                A,
+                'pt-BR',
+                { numeric:true }
+              );
+
+    });
+
+    rows.forEach(row => {
+
+        tbody.appendChild(row);
+
+    });
+
+    tabela.dataset.sort =
+        asc ? 'asc' : 'desc';
+
+}
+
+</script>
 
 {% endblock %}
