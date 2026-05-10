@@ -354,6 +354,22 @@ def metas():
     )
 
 # =====================================================
+# AUDITORIA
+# =====================================================
+
+@app.route("/auditoria")
+def auditoria():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "auditoria.html"
+    )
+
+# =====================================================
 # RELATORIO
 # =====================================================
 
