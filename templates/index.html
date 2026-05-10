@@ -4,6 +4,8 @@
 
 <section class="card">
 
+    <!-- TOPO -->
+
     <div
         style="
             display:flex;
@@ -40,43 +42,99 @@
 
     </div>
 
-    <!-- TOTAL -->
+    <!-- MÉTRICAS -->
+
+    <div class="grid metrics">
+
+        <div
+            class="card metric"
+            style="
+                border-left:5px solid var(--green);
+            "
+        >
+
+            <span>
+                💰 Total em vendas
+            </span>
+
+            <strong style="color:var(--green);">
+
+                R$
+                {{ '%.2f'|format(total or 0) }}
+
+            </strong>
+
+        </div>
+
+        <div class="card metric">
+
+            <span>
+                📦 Quantidade
+            </span>
+
+            <strong>
+
+                {{ vendas|length if vendas else 0 }}
+
+            </strong>
+
+        </div>
+
+    </div>
+
+    <!-- FILTROS -->
 
     <div
-        class="card metric"
         style="
-            margin-bottom:20px;
-            border-left:5px solid var(--green);
+            margin-top:20px;
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
         "
     >
 
-        <span>
-            💰 Total em vendas
-        </span>
-
-        <strong style="color:var(--green);">
-
-            R$
-            {{ '%.2f'|format(total or 0) }}
-
-        </strong>
+        <input
+            type="text"
+            id="busca-venda"
+            placeholder="🔍 Buscar cliente..."
+            style="
+                flex:1;
+                padding:10px;
+                border-radius:8px;
+                border:1px solid var(--line);
+            "
+        >
 
     </div>
 
     <!-- TABELA -->
 
-    <div class="table-wrap">
+    <div
+        class="table-wrap"
+        style="margin-top:20px;"
+    >
 
-        <table>
+        <table id="tabela-vendas">
 
             <thead>
 
                 <tr>
 
-                    <th>Cliente</th>
-                    <th>Valor</th>
-                    <th>Data</th>
-                    <th>Ações</th>
+                    <th onclick="sortTable(0)">
+                        Cliente ⬍
+                    </th>
+
+                    <th onclick="sortTable(1)">
+                        Valor ⬍
+                    </th>
+
+                    <th onclick="sortTable(2)">
+                        Data ⬍
+                    </th>
+
+                    <th>
+                        Ações
+                    </th>
 
                 </tr>
 
@@ -94,7 +152,7 @@
 
                             <strong>
 
-                                {{ venda.cliente }}
+                                {{ venda.cliente or 'Não informado' }}
 
                             </strong>
 
@@ -102,7 +160,7 @@
 
                         <td>
 
-                            <span style="color:var(--green);">
+                            <span style="color:var(--green);font-weight:700;">
 
                                 R$
                                 {{ '%.2f'|format(venda.valor or 0) }}
@@ -125,17 +183,33 @@
 
                         </td>
 
-                        <td>
+                        <td style="white-space:nowrap;">
 
-                            <a
-                                href="{{ url_for('deletar', id=venda.id) }}"
-                                class="btn-link"
-                                onclick="return confirm('Deseja realmente excluir esta venda?')"
+                            <!-- EXCLUIR -->
+
+                            <form
+                                method="post"
+                                action="{{ url_for('deletar', id=venda.id) }}"
+                                style="display:inline;"
+                                onsubmit="return confirm('Deseja realmente excluir esta venda?')"
                             >
 
-                                🗑️ Excluir
+                                <button
+                                    type="submit"
+                                    class="btn-link"
+                                    style="
+                                        border:none;
+                                        background:none;
+                                        color:var(--red);
+                                        cursor:pointer;
+                                    "
+                                >
 
-                            </a>
+                                    🗑️ Excluir
+
+                                </button>
+
+                            </form>
 
                         </td>
 
@@ -150,6 +224,7 @@
                     <td
                         colspan="4"
                         class="center muted"
+                        style="padding:20px;"
                     >
 
                         Nenhuma venda registrada.
@@ -167,5 +242,106 @@
     </div>
 
 </section>
+
+<!-- SCRIPT -->
+
+<script>
+
+/* BUSCA */
+
+const buscaVenda =
+    document.getElementById('busca-venda');
+
+if (buscaVenda) {
+
+    buscaVenda.addEventListener(
+        'input',
+        function() {
+
+            const termo =
+                this.value.toLowerCase();
+
+            const linhas =
+                document.querySelectorAll(
+                    '#tabela-vendas tbody tr'
+                );
+
+            linhas.forEach(linha => {
+
+                const texto =
+                    linha.innerText.toLowerCase();
+
+                linha.style.display =
+                    texto.includes(termo)
+                    ? ''
+                    : 'none';
+
+            });
+
+        }
+    );
+
+}
+
+/* ORDENAÇÃO */
+
+function sortTable(col) {
+
+    const tabela =
+        document.getElementById('tabela-vendas');
+
+    if (!tabela) return;
+
+    const tbody =
+        tabela.querySelector('tbody');
+
+    const rows =
+        Array.from(
+            tbody.querySelectorAll('tr')
+        );
+
+    const asc =
+        tabela.dataset.sort !== 'asc';
+
+    rows.sort((a, b) => {
+
+        const A =
+            a.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        const B =
+            b.cells[col]?.innerText
+            .trim()
+            .toLowerCase() || '';
+
+        return asc
+
+            ? A.localeCompare(
+                B,
+                'pt-BR',
+                { numeric:true }
+              )
+
+            : B.localeCompare(
+                A,
+                'pt-BR',
+                { numeric:true }
+              );
+
+    });
+
+    rows.forEach(row => {
+
+        tbody.appendChild(row);
+
+    });
+
+    tabela.dataset.sort =
+        asc ? 'asc' : 'desc';
+
+}
+
+</script>
 
 {% endblock %}
