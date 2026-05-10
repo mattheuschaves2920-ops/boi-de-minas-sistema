@@ -44,7 +44,9 @@
         class="btn"
         type="submit"
     >
+
         Filtrar
+
     </button>
 
 </form>
@@ -60,12 +62,16 @@
         </span>
 
         <strong>
-            R$ {{ '%.2f'|format(faturamento or 0) }}
+
+            R$
+            {{ '%.2f'|format(faturamento or 0) }}
+
         </strong>
 
         <small class="muted">
 
-            {{ (refeicoes or 0)|int }} refeições
+            {{ (refeicoes or 0)|int }}
+            refeições
 
         </small>
 
@@ -82,13 +88,15 @@
 
         <strong style="color:var(--red);">
 
-            R$ {{ '%.2f'|format(custo or 0) }}
+            R$
+            {{ '%.2f'|format(custo or 0) }}
 
         </strong>
 
         <small class="muted">
 
-            CMV: {{ cmv or 0 }}%
+            CMV:
+            {{ cmv or 0 }}%
 
         </small>
 
@@ -113,7 +121,8 @@
             "
         >
 
-            R$ {{ '%.2f'|format(lucro or 0) }}
+            R$
+            {{ '%.2f'|format(lucro or 0) }}
 
         </strong>
 
@@ -130,14 +139,16 @@
 
         <strong style="color:var(--red);">
 
-            R$ {{ '%.2f'|format(desperdicio or 0) }}
+            R$
+            {{ '%.2f'|format(desperdicio or 0) }}
 
         </strong>
 
         <small class="muted">
 
             Mês:
-            R$ {{ '%.2f'|format(desperdicio_mes or 0) }}
+            R$
+            {{ '%.2f'|format(desperdicio_mes or 0) }}
 
         </small>
 
@@ -189,14 +200,11 @@
             style="
                 width:{{ [meta_pct or 0, 100]|min }}%;
                 height:100%;
-
                 background:
                 {{ 'var(--green)' if (meta_pct or 0) >= 100
                    else ('var(--gold)' if (meta_pct or 0) >= 70
                    else 'var(--red)') }};
-
                 border-radius:5px;
-
                 transition:0.3s ease;
             "
         ></div>
@@ -220,7 +228,11 @@
             📊 Faturamento — 7 dias
         </h3>
 
-        <canvas id="chartFaturamento"></canvas>
+        <div style="height:300px;">
+
+            <canvas id="chartFaturamento"></canvas>
+
+        </div>
 
     </div>
 
@@ -230,7 +242,11 @@
             🍽️ Período
         </h3>
 
-        <canvas id="chartPeriodo"></canvas>
+        <div style="height:300px;">
+
+            <canvas id="chartPeriodo"></canvas>
+
+        </div>
 
     </div>
 
@@ -246,27 +262,37 @@
     <a
         href="{{ url_for('vendas') }}"
         class="card"
+        style="text-decoration:none;color:inherit;"
     >
+
         🛒 Vendas
+
     </a>
 
     <a
         href="{{ url_for('controle') }}"
         class="card"
+        style="text-decoration:none;color:inherit;"
     >
+
         📝 Controle
+
     </a>
 
     <a
         href="{{ url_for('desperdicio') }}"
         class="card"
+        style="text-decoration:none;color:inherit;"
     >
+
         🗑️ Desperdício
+
     </a>
 
     <a
         href="{{ url_for('lista_compras') }}"
         class="card"
+        style="text-decoration:none;color:inherit;"
     >
 
         🛒 Compras
@@ -275,7 +301,7 @@
 
             <span style="color:var(--red);">
 
-                {{ n_criticos }}
+                ({{ n_criticos }})
 
             </span>
 
@@ -291,9 +317,7 @@
 
 <script>
 
-/* ───────────────────────────── */
 /* TEMA */
-/* ───────────────────────────── */
 
 function getThemeColors() {
 
@@ -319,9 +343,7 @@ function getThemeColors() {
 
 const theme = getThemeColors();
 
-/* ───────────────────────────── */
 /* DADOS */
-/* ───────────────────────────── */
 
 const labels =
     {{ labels_grafico | default([]) | tojson }};
@@ -335,9 +357,7 @@ const periodoLabels =
 const periodoValores =
     {{ vendas_por_periodo_values | default([]) | tojson }};
 
-/* ───────────────────────────── */
 /* FATURAMENTO */
-/* ───────────────────────────── */
 
 const chartFaturamentoEl =
     document.getElementById('chartFaturamento');
@@ -425,9 +445,7 @@ if (chartFaturamentoEl) {
 
 }
 
-/* ───────────────────────────── */
 /* PERÍODO */
-/* ───────────────────────────── */
 
 const chartPeriodoEl =
     document.getElementById('chartPeriodo');
