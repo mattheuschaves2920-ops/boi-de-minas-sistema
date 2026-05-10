@@ -1,24 +1,49 @@
 <!DOCTYPE html>
+
 <html lang="pt-br" data-theme="light">
 
 <head>
+
     <meta charset="UTF-8">
 
-    <title>Boi de Minas Sistema</title>
+    <title>
+        Boi de Minas Sistema
+    </title>
 
-    <meta name="description" content="Sistema de gestão Boi de Minas">
+    <meta
+        name="description"
+        content="Sistema de gestão Boi de Minas"
+    >
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <meta name="theme-color" content="#8b0000">
+    <meta
+        name="theme-color"
+        content="#8b0000"
+    >
 
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta
+        http-equiv="X-UA-Compatible"
+        content="IE=edge"
+    >
 
     <!-- PWA -->
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <link
+        rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}"
+    >
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
 </head>
 
 <body>
@@ -34,20 +59,36 @@
         </div>
 
         <div class="brand-text">
-            <h1>Boi de Minas</h1>
+
+            <h1>
+                Boi de Minas
+            </h1>
 
             <p>
-                {{ current_user.name if current_user else 'Sistema de Gestão' }}
+
+                {% if current_user %}
+
+                    {{ current_user.name }}
+
+                {% else %}
+
+                    Sistema de Gestão
+
+                {% endif %}
+
             </p>
+
         </div>
 
     </div>
 
     <!-- MENU MOBILE -->
 
-    <button class="hamburger"
-            onclick="toggleMenu()"
-            aria-label="Abrir menu">
+    <button
+        class="hamburger"
+        onclick="toggleMenu()"
+        aria-label="Abrir menu"
+    >
 
         <span></span>
         <span></span>
@@ -59,61 +100,66 @@
 
     <nav id="main-nav">
 
-        <a href="{{ url_for('dashboard') }}">
-            Dashboard
-        </a>
+        {% if current_user %}
 
-        <a href="{{ url_for('vendas') }}">
-            Vendas
-        </a>
+            <a href="{{ url_for('dashboard') }}">
+                Dashboard
+            </a>
 
-        <a href="{{ url_for('controle') }}">
-            Controle
-        </a>
+            <a href="{{ url_for('vendas') }}">
+                Vendas
+            </a>
 
-        <a href="{{ url_for('desperdicio') }}">
-            Desperdício
-        </a>
+            <a href="{{ url_for('controle') }}">
+                Controle
+            </a>
 
-        <a href="{{ url_for('movimentos') }}">
-            Movimentos
-        </a>
+            <a href="{{ url_for('desperdicio') }}">
+                Desperdício
+            </a>
 
-        <a href="{{ url_for('producao') }}">
-            Produção
-        </a>
+            <a href="{{ url_for('movimentos') }}">
+                Movimentos
+            </a>
 
-        <a href="{{ url_for('itens') }}">
-            Estoque
-        </a>
+            <a href="{{ url_for('producao') }}">
+                Produção
+            </a>
 
-        <a href="{{ url_for('lista_compras') }}">
-            🛒 Compras
-        </a>
+            <a href="{{ url_for('itens') }}">
+                Estoque
+            </a>
 
-        <!-- AGORA SEM BLOQUEIO -->
+            <a href="{{ url_for('lista_compras') }}">
+                🛒 Compras
+            </a>
 
-        <a href="{{ url_for('relatorio_gerencial') }}">
-            Gerencial
-        </a>
+            <a href="{{ url_for('relatorio_gerencial') }}">
+                Gerencial
+            </a>
 
-        <a href="{{ url_for('metas') }}">
-            Metas
-        </a>
+            <a href="{{ url_for('metas') }}">
+                Metas
+            </a>
 
-        <a href="{{ url_for('usuarios') }}">
-            Usuários
-        </a>
+            <a href="{{ url_for('usuarios') }}">
+                Usuários
+            </a>
 
-        <a href="{{ url_for('auditoria') }}">
-            Auditoria
-        </a>
+            <a href="{{ url_for('auditoria') }}">
+                Auditoria
+            </a>
+
+        {% endif %}
 
         <!-- DARK MODE -->
 
-        <button class="dark-toggle"
-                onclick="toggleDark()"
-                aria-label="Modo escuro">
+        <button
+            class="dark-toggle"
+            onclick="toggleDark()"
+            aria-label="Modo escuro"
+            type="button"
+        >
 
             <span id="dark-icon">
                 🌙
@@ -123,11 +169,18 @@
 
         <!-- SAIR -->
 
-        <a href="{{ url_for('logout') }}"
-           class="nav-logout">
+        {% if current_user %}
 
-            Sair
-        </a>
+            <a
+                href="{{ url_for('logout') }}"
+                class="nav-logout"
+            >
+
+                Sair
+
+            </a>
+
+        {% endif %}
 
     </nav>
 
@@ -135,16 +188,24 @@
 
 <!-- ───────────────── ALERTA ───────────────── -->
 
-{% if n_criticos > 0 %}
+{% if n_criticos and n_criticos > 0 %}
 
 <div class="stock-banner">
 
     ⚠️
-    <strong>{{ n_criticos }}</strong>
+
+    <strong>
+
+        {{ n_criticos }}
+
+    </strong>
+
     item(s) com estoque baixo.
 
     <a href="{{ url_for('lista_compras') }}">
+
         Ver lista →
+
     </a>
 
 </div>
@@ -157,28 +218,28 @@
 
 {% with messages = get_flashed_messages() %}
 
-{% if messages %}
+    {% if messages %}
 
-<script>
+        <script>
 
-document.addEventListener(
-    'DOMContentLoaded',
-    () => {
+        document.addEventListener(
+            'DOMContentLoaded',
+            () => {
 
-        {% for msg in messages %}
+                {% for msg in messages %}
 
-        showToast(
-            {{ msg | tojson }}
+                showToast(
+                    {{ msg | tojson }}
+                );
+
+                {% endfor %}
+
+            }
         );
 
-        {% endfor %}
+        </script>
 
-    }
-);
-
-</script>
-
-{% endif %}
+    {% endif %}
 
 {% endwith %}
 
@@ -267,10 +328,17 @@ function updateIcon(mode) {
 
 function toggleMenu() {
 
-    document
-        .getElementById('main-nav')
-        .classList
-        .toggle('open');
+    const nav =
+        document.getElementById(
+            'main-nav'
+        );
+
+    if (nav) {
+
+        nav.classList.toggle(
+            'open'
+        );
+    }
 }
 
 /* ───────────────── TOAST ───────────────── */
@@ -281,6 +349,8 @@ function showToast(msg, type = 'success') {
         document.getElementById(
             'toast-container'
         );
+
+    if (!container) return;
 
     const toast =
         document.createElement('div');
@@ -305,7 +375,11 @@ function showToast(msg, type = 'success') {
     container.appendChild(toast);
 
     setTimeout(
-        () => toast.remove(),
+        () => {
+
+            toast.remove();
+
+        },
         4000
     );
 }
@@ -313,4 +387,5 @@ function showToast(msg, type = 'success') {
 </script>
 
 </body>
+
 </html>
