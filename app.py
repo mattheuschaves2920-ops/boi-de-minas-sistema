@@ -25,9 +25,16 @@ app.config["SECRET_KEY"] = os.getenv(
     "boi-minas-2026"
 )
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
-    "DATABASE_URL"
-)
+database_url = os.getenv("DATABASE_URL")
+
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace(
+        "postgres://",
+        "postgresql://",
+        1
+    )
+
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -36,15 +43,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # =========================================================
 
 db = SQLAlchemy(app)
-
-# =========================================================
-# RESET TEMPORÁRIO DO BANCO
-# REMOVER DEPOIS DO PRIMEIRO DEPLOY
-# =========================================================
-
-with app.app_context():
-    db.drop_all()
-    db.create_all()
 
 # =========================================================
 # MODELS
@@ -81,10 +79,22 @@ class User(db.Model):
     )
 
 # =========================================================
-# CRIAR ADMIN
+# RECRIAR BANCO
 # =========================================================
 
 with app.app_context():
+
+    try:
+        db.session.execute(
+            db.text("DROP TABLE IF EXISTS users CASCADE")
+        )
+
+        db.session.commit()
+
+    except:
+        pass
+
+    db.create_all()
 
     admin = User.query.filter_by(
         username="admin"
