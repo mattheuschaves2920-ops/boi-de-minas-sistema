@@ -9,7 +9,6 @@ from flask import (
 )
 
 from flask_sqlalchemy import SQLAlchemy
-
 from datetime import datetime
 import os
 
@@ -87,14 +86,14 @@ with app.app_context():
 
     if not admin:
 
-        novo_admin = User(
+        admin = User(
             name="Administrador",
             username="admin",
             password="123456",
             role="admin"
         )
 
-        db.session.add(novo_admin)
+        db.session.add(admin)
         db.session.commit()
 
 # =====================================================
@@ -339,7 +338,23 @@ def lista_compras():
     )
 
 # =====================================================
-# RELATÓRIO
+# METAS
+# =====================================================
+
+@app.route("/metas")
+def metas():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "metas.html"
+    )
+
+# =====================================================
+# RELATORIO
 # =====================================================
 
 @app.route("/relatorio_gerencial")
@@ -355,7 +370,7 @@ def relatorio_gerencial():
     )
 
 # =====================================================
-# USUÁRIOS
+# USUARIOS
 # =====================================================
 
 @app.route(
