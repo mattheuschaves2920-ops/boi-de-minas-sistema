@@ -2,366 +2,188 @@
 
 {% block content %}
 
-<div class="login-container">
-
-    <div class="card login-card">
-
-        <!-- TOPO -->
-
-        <div class="login-header">
-
-            <div
-                class="brand-icon"
-
-                style="
-                    margin:0 auto 15px;
-                    width:60px;
-                    height:60px;
-                    font-size:30px;
-                "
-            >
-
-                🍽️
-
-            </div>
-
-            <h2>
-                Acesso ao Sistema
-            </h2>
-
-            <p class="muted">
-
-                Boi de Minas — Ravena
-
-            </p>
-
-        </div>
-
-        <!-- ERRO -->
-
-        {% if error %}
-
-        <div class="alert error-box">
-
-            ⚠️ {{ error }}
-
-        </div>
-
-        {% endif %}
-
-        <!-- FORM -->
-
-        <form
-            method="POST"
-            class="login-form"
-            id="loginForm"
-            autocomplete="off"
-        >
-
-            <input
-                type="hidden"
-                name="csrf_token"
-                value="{{ csrf_token() }}"
-            >
-
-            <!-- LOGIN -->
-
-            <label>
-
-                Usuário
-
-                <input
-                    type="text"
-                    name="username"
-
-                    required
-                    autofocus
-
-                    autocomplete="username"
-
-                    placeholder="Digite seu login"
-                >
-
-            </label>
-
-            <!-- SENHA -->
-
-            <label>
-
-                Senha
-
-                <input
-                    type="password"
-                    name="password"
-
-                    required
-
-                    autocomplete="current-password"
-
-                    placeholder="••••••••"
-                >
-
-            </label>
-
-            <!-- LEMBRAR -->
-
-            <label
-                style="
-                    display:flex;
-                    align-items:center;
-                    gap:6px;
-
-                    font-size:0.8rem;
-                    margin-top:10px;
-                "
-            >
-
-                <input
-                    type="checkbox"
-                    name="remember"
-                >
-
-                Manter conectado
-
-            </label>
-
-            <!-- BOTÃO -->
-
-            <button
-                class="btn btn-login"
-                id="btnLogin"
-                type="submit"
-            >
-
-                Entrar
-
-            </button>
-
-        </form>
-
-        <!-- RODAPÉ -->
-
-        <div class="login-footer">
-
-            <p class="small muted">
-
-                Sistema protegido •
-                Acesso monitorado
-
-            </p>
-
-        </div>
-
-    </div>
-
-</div>
-
-<!-- CSS -->
-
 <style>
 
-.login-container {
+.login-container{
+
+    width:100%;
+    min-height:80vh;
 
     display:flex;
-
-    justify-content:center;
     align-items:center;
+    justify-content:center;
 
-    min-height:calc(100vh - 100px);
-
-    padding:20px;
-
+    padding:40px;
 }
 
-.login-card {
+.login-card{
 
     width:100%;
-    max-width:400px;
+    max-width:420px;
 
-    padding:40px 30px;
+    background:#ffffff;
 
-    text-align:center;
+    border-radius:16px;
 
-    box-shadow:0 10px 25px rgba(0,0,0,0.1);
+    padding:40px;
 
-    border-top:5px solid var(--red);
-
-    animation:fadeIn 0.4s ease;
-
+    box-shadow:0 10px 30px rgba(0,0,0,0.08);
 }
 
-/* ───────────────────────────── */
+.login-card h1{
 
-@keyframes fadeIn {
+    margin:0 0 10px 0;
 
-    from {
+    font-size:32px;
 
-        opacity:0;
-        transform:translateY(20px);
-
-    }
-
-    to {
-
-        opacity:1;
-        transform:translateY(0);
-
-    }
-
+    color:#222;
 }
 
-/* ───────────────────────────── */
+.login-card p{
 
-.login-header h2 {
+    margin-bottom:30px;
 
-    margin:0;
-
-    font-size:1.5rem;
-
+    color:#666;
 }
 
-/* ───────────────────────────── */
+.form-group{
 
-.login-form {
-
-    margin-top:25px;
-
-    text-align:left;
-
+    margin-bottom:20px;
 }
 
-/* ───────────────────────────── */
+.form-group label{
 
-.login-form input[type="text"],
-.login-form input[type="password"] {
+    display:block;
 
-    margin-top:5px;
+    margin-bottom:8px;
 
+    font-weight:600;
+
+    color:#333;
 }
 
-/* ───────────────────────────── */
-
-.error-box {
-
-    background:#fff5f5;
-
-    border:1px solid #ffcdd2;
-
-    color:#b71c1c;
-
-    padding:12px;
-
-    border-radius:8px;
-
-    margin-top:20px;
-
-    font-size:0.9rem;
-
-}
-
-/* ───────────────────────────── */
-
-.btn-login {
+.form-group input{
 
     width:100%;
 
-    margin-top:20px;
+    padding:14px;
 
-    height:48px;
+    border:1px solid #dcdcdc;
 
-    font-size:1rem;
+    border-radius:10px;
 
-    background:var(--red);
+    font-size:16px;
+}
+
+.form-group input:focus{
+
+    outline:none;
+
+    border-color:#c62828;
+}
+
+.btn{
+
+    width:100%;
+
+    border:none;
+
+    padding:14px;
+
+    border-radius:10px;
+
+    background:#c62828;
 
     color:white;
 
-    transition:0.2s ease;
+    font-size:16px;
 
+    font-weight:bold;
+
+    cursor:pointer;
 }
 
-/* ───────────────────────────── */
+.btn:hover{
 
-.btn-login:hover {
-
-    opacity:0.95;
-
+    opacity:0.9;
 }
 
-/* ───────────────────────────── */
+.alert{
 
-.btn-login:active {
+    background:#ffebee;
 
-    transform:scale(0.98);
+    color:#c62828;
 
-}
+    padding:12px;
 
-/* ───────────────────────────── */
+    border-radius:10px;
 
-.btn-login:disabled {
-
-    opacity:0.7;
-
-    cursor:not-allowed;
-
-}
-
-/* ───────────────────────────── */
-
-.login-footer {
-
-    margin-top:25px;
-
-    border-top:1px solid var(--line);
-
-    padding-top:15px;
-
-}
-
-/* ───────────────────────────── */
-
-@media (max-width: 480px) {
-
-    .login-card {
-
-        padding:30px 20px;
-
-    }
-
+    margin-bottom:20px;
 }
 
 </style>
 
-<!-- SCRIPT -->
+<div class="login-container">
 
-<script>
+    <div class="login-card">
 
-/* ───────────────────────────── */
-/* BOTÃO LOADING */
-/* ───────────────────────────── */
+        <h1>
+            Sistema Boi de Minas
+        </h1>
 
-const loginForm =
-    document.getElementById('loginForm');
+        <p>
+            Faça login para acessar o sistema
+        </p>
 
-if (loginForm) {
+        {% if error %}
 
-    loginForm.addEventListener(
-        'submit',
-        function() {
+        <div class="alert">
+            {{ error }}
+        </div>
 
-            const btn =
-                document.getElementById('btnLogin');
+        {% endif %}
 
-            if (!btn) return;
+        <form method="POST">
 
-            btn.textContent = 'Entrando...';
+            <div class="form-group">
 
-            btn.disabled = true;
+                <label>
+                    Usuário
+                </label>
 
-        }
-    );
+                <input
+                    type="text"
+                    name="username"
+                    required
+                >
 
-}
+            </div>
 
-</script>
+            <div class="form-group">
+
+                <label>
+                    Senha
+                </label>
+
+                <input
+                    type="password"
+                    name="password"
+                    required
+                >
+
+            </div>
+
+            <button
+                type="submit"
+                class="btn"
+            >
+                Entrar
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
 
 {% endblock %}
