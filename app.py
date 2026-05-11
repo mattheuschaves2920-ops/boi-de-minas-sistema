@@ -417,6 +417,7 @@ def vendas():
         return auth
 
     error = None
+
     success = None
 
     data_param = request.args.get("data")
@@ -488,7 +489,9 @@ def vendas():
             if venda_edicao:
 
                 venda_edicao.cliente = meal_type
+
                 venda_edicao.valor = total
+
                 venda_edicao.data = sale_date
 
             else:
@@ -591,6 +594,7 @@ def itens():
         return auth
 
     error = None
+
     success = None
 
     areas = [
@@ -693,6 +697,7 @@ def movimentos():
         return auth
 
     error = None
+
     success = None
 
     data_param = request.args.get(
@@ -913,6 +918,79 @@ def movimentos():
         error=error,
 
         success=success
+    )
+
+# =====================================================
+# DESPERDÍCIO
+# =====================================================
+
+@app.route(
+    "/desperdicio",
+    methods=["GET", "POST"]
+)
+def desperdicio():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    data_ref = date.today()
+
+    return render_template(
+
+        "desperdicio.html",
+
+        lista=[],
+
+        desperdicio_edicao=None,
+
+        items=[],
+
+        data_ref=data_ref,
+
+        error=None
+    )
+
+# =====================================================
+# EXCLUIR DESPERDICIO
+# =====================================================
+
+@app.route(
+    "/excluir_desperdicio/<int:waste_id>",
+    methods=["POST"]
+)
+def excluir_desperdicio(waste_id):
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    flash(
+        "Desperdício removido.",
+        "success"
+    )
+
+    return redirect(
+        url_for("desperdicio")
+    )
+
+# =====================================================
+# EDITAR DESPERDICIO
+# =====================================================
+
+@app.route(
+    "/editar_desperdicio/<int:waste_id>",
+    methods=["POST"]
+)
+def editar_desperdicio(waste_id):
+
+    return redirect(
+        url_for(
+            "desperdicio",
+            editar=waste_id
+        )
     )
 
 # =====================================================
