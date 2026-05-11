@@ -121,6 +121,118 @@ class Venda(db.Model):
     )
 
 # =====================================================
+# ITEM MODEL
+# =====================================================
+
+class Item(db.Model):
+
+    __tablename__ = "items"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    area = db.Column(
+        db.String(100),
+        nullable=False
+    )
+
+    code = db.Column(
+        db.String(120)
+    )
+
+    name = db.Column(
+        db.String(150),
+        nullable=False
+    )
+
+    unit = db.Column(
+        db.String(20),
+        default="un"
+    )
+
+    cost = db.Column(
+        db.Float,
+        default=0
+    )
+
+    stock = db.Column(
+        db.Float,
+        default=0
+    )
+
+    min_stock = db.Column(
+        db.Float,
+        default=0
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+# =====================================================
+# MOVIMENTO MODEL
+# =====================================================
+
+class Movimento(db.Model):
+
+    __tablename__ = "movimentos"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    mov_type = db.Column(
+        db.String(30),
+        nullable=False
+    )
+
+    item_id = db.Column(
+        db.Integer,
+        db.ForeignKey("items.id")
+    )
+
+    item_name = db.Column(
+        db.String(150),
+        nullable=False
+    )
+
+    area = db.Column(
+        db.String(100)
+    )
+
+    setor = db.Column(
+        db.String(100)
+    )
+
+    quantity = db.Column(
+        db.Float,
+        nullable=False
+    )
+
+    value = db.Column(
+        db.Float,
+        default=0
+    )
+
+    detail = db.Column(
+        db.String(255)
+    )
+
+    mov_date = db.Column(
+        db.Date,
+        default=date.today
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+# =====================================================
 # CREATE TABLES
 # =====================================================
 
@@ -164,13 +276,17 @@ def inject_globals():
 
         }
 
+    n_criticos = Item.query.filter(
+        Item.stock <= Item.min_stock
+    ).count()
+
     return {
 
         "current_user": current_user,
 
         "now": datetime.now,
 
-        "n_criticos": 0
+        "n_criticos": n_criticos
 
     }
 
@@ -269,12 +385,18 @@ def dashboard():
         db.func.sum(Venda.valor)
     ).scalar() or 0
 
+    custo_estoque = db.session.query(
+        db.func.sum(
+            Item.stock * Item.cost
+        )
+    ).scalar() or 0
+
     return render_template(
         "dashboard.html",
 
         faturamento=faturamento,
-        custo=0,
-        lucro=faturamento,
+        custo=custo_estoque,
+        lucro=faturamento - custo_estoque,
         cmv=0,
         meta_pct=0
     )
@@ -297,8 +419,6 @@ def vendas():
     error = None
     success = None
 
-    # DATA FILTRO
-
     data_param = request.args.get("data")
 
     try:
@@ -319,8 +439,6 @@ def vendas():
 
         data_ref = date.today()
 
-    # EDITAR
-
     venda_edicao = None
 
     editar_id = request.args.get(
@@ -332,8 +450,6 @@ def vendas():
         venda_edicao = Venda.query.get(
             editar_id
         )
-
-    # SALVAR
 
     if request.method == "POST":
 
@@ -354,7 +470,6 @@ def vendas():
             )
 
             unit_value = float(
-
                 request.form.get(
                     "unit_value",
                     0
@@ -362,7 +477,6 @@ def vendas():
             )
 
             quantity = float(
-
                 request.form.get(
                     "quantity",
                     0
@@ -371,19 +485,11 @@ def vendas():
 
             total = unit_value * quantity
 
-            # EDITAR
-
             if venda_edicao:
 
                 venda_edicao.cliente = meal_type
-
                 venda_edicao.valor = total
-
                 venda_edicao.data = sale_date
-
-                success = "Venda atualizada."
-
-            # NOVA
 
             else:
 
@@ -398,18 +504,10 @@ def vendas():
 
                 db.session.add(nova)
 
-                success = "Venda registrada."
-
             db.session.commit()
 
             return redirect(
-
-                url_for(
-                    "vendas",
-                    data=data_ref.strftime(
-                        "%Y-%m-%d"
-                    )
-                )
+                url_for("vendas")
             )
 
         except Exception as e:
@@ -417,8 +515,6 @@ def vendas():
             db.session.rollback()
 
             error = str(e)
-
-    # LISTA
 
     vendas = Venda.query.filter_by(
         data=data_ref
@@ -483,7 +579,10 @@ def excluir_venda(sale_id):
 # ITENS
 # =====================================================
 
-@app.route("/itens")
+@app.route(
+    "/itens",
+    methods=["GET", "POST"]
+)
 def itens():
 
     auth = verificar_login()
@@ -491,8 +590,329 @@ def itens():
     if auth:
         return auth
 
+    error = None
+    success = None
+
+    areas = [
+
+        "Açougue",
+        "Cozinha",
+        "Bebidas",
+        "Limpeza",
+        "Buffet",
+        "Freezer",
+        "Depósito"
+    ]
+
+    if request.method == "POST":
+
+        try:
+
+            novo = Item(
+
+                area=request.form.get(
+                    "area"
+                ),
+
+                code=request.form.get(
+                    "code"
+                ),
+
+                name=request.form.get(
+                    "name"
+                ),
+
+                unit=request.form.get(
+                    "unit"
+                ),
+
+                cost=float(
+                    request.form.get(
+                        "cost",
+                        0
+                    )
+                ),
+
+                stock=float(
+                    request.form.get(
+                        "stock",
+                        0
+                    )
+                ),
+
+                min_stock=float(
+                    request.form.get(
+                        "min_stock",
+                        0
+                    )
+                )
+            )
+
+            db.session.add(novo)
+
+            db.session.commit()
+
+            success = "Item cadastrado."
+
+        except Exception as e:
+
+            db.session.rollback()
+
+            error = str(e)
+
+    itens = Item.query.order_by(
+        Item.name.asc()
+    ).all()
+
     return render_template(
-        "itens.html"
+
+        "itens.html",
+
+        itens=itens,
+
+        areas=areas,
+
+        error=error,
+
+        success=success
+    )
+
+# =====================================================
+# MOVIMENTOS
+# =====================================================
+
+@app.route(
+    "/movimentos",
+    methods=["GET", "POST"]
+)
+def movimentos():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    error = None
+    success = None
+
+    data_param = request.args.get(
+        "data"
+    )
+
+    try:
+
+        data_ref = (
+
+            datetime.strptime(
+                data_param,
+                "%Y-%m-%d"
+            ).date()
+
+            if data_param
+
+            else date.today()
+        )
+
+    except:
+
+        data_ref = date.today()
+
+    mov_edicao = None
+
+    editar_id = request.args.get(
+        "editar"
+    )
+
+    if editar_id:
+
+        mov_edicao = Movimento.query.get(
+            editar_id
+        )
+
+    areas = [
+
+        "Açougue",
+        "Cozinha",
+        "Bebidas",
+        "Limpeza",
+        "Buffet",
+        "Freezer",
+        "Depósito"
+    ]
+
+    setores = [
+
+        "Estoque",
+        "Produção",
+        "Buffet",
+        "Delivery",
+        "Cozinha"
+    ]
+
+    items = Item.query.order_by(
+        Item.name.asc()
+    ).all()
+
+    if request.method == "POST":
+
+        try:
+
+            item_id = request.form.get(
+                "item_id"
+            )
+
+            item = Item.query.get(
+                item_id
+            )
+
+            if not item:
+
+                raise Exception(
+                    "Item inválido."
+                )
+
+            mov_type = request.form.get(
+                "mov_type"
+            )
+
+            quantity = float(
+                request.form.get(
+                    "quantity",
+                    0
+                )
+            )
+
+            unit_cost = float(
+                request.form.get(
+                    "unit_cost",
+                    0
+                ) or 0
+            )
+
+            value = quantity * unit_cost
+
+            mov_date = datetime.strptime(
+
+                request.form.get(
+                    "mov_date"
+                ),
+
+                "%Y-%m-%d"
+
+            ).date()
+
+            if mov_type == "Entrada":
+
+                item.stock += quantity
+
+                if unit_cost > 0:
+
+                    item.cost = unit_cost
+
+            else:
+
+                if item.stock < quantity:
+
+                    raise Exception(
+                        "Estoque insuficiente."
+                    )
+
+                item.stock -= quantity
+
+                value = quantity * item.cost
+
+            novo = Movimento(
+
+                mov_type=mov_type,
+
+                item_id=item.id,
+
+                item_name=item.name,
+
+                area=request.form.get(
+                    "area"
+                ),
+
+                setor=request.form.get(
+                    "setor"
+                ),
+
+                quantity=quantity,
+
+                value=value,
+
+                detail=request.form.get(
+                    "detail"
+                ),
+
+                mov_date=mov_date
+            )
+
+            db.session.add(novo)
+
+            db.session.commit()
+
+            success = "Movimentação registrada."
+
+            return redirect(
+                url_for("movimentos")
+            )
+
+        except Exception as e:
+
+            db.session.rollback()
+
+            error = str(e)
+
+    movimentos = Movimento.query.filter_by(
+        mov_date=data_ref
+    ).order_by(
+        Movimento.id.desc()
+    ).all()
+
+    entradas = sum(
+        m.quantity
+        for m in movimentos
+        if m.mov_type == "Entrada"
+    )
+
+    saidas = sum(
+        m.quantity
+        for m in movimentos
+        if m.mov_type == "Saida"
+    )
+
+    perdas = sum(
+        m.quantity
+        for m in movimentos
+        if m.mov_type == "Perda"
+    )
+
+    return render_template(
+
+        "movimentos.html",
+
+        movimentos=movimentos,
+
+        mov_edicao=mov_edicao,
+
+        entradas=entradas,
+
+        saidas=saidas,
+
+        perdas=perdas,
+
+        areas=areas,
+
+        setores=setores,
+
+        items=items,
+
+        data_ref=data_ref,
+
+        error=error,
+
+        success=success
     )
 
 # =====================================================
@@ -526,347 +946,8 @@ def producao():
     if auth:
         return auth
 
-    data_ref = date.today()
-
     return render_template(
-
-        "producao.html",
-
-        lista=[],
-
-        total_qtd=0,
-
-        total_custo=0,
-
-        setores=[],
-
-        items=[],
-
-        data_ref=data_ref,
-
-        error=None,
-
-        success=None
-    )
-
-# =====================================================
-# MOVIMENTOS
-# =====================================================
-
-@app.route(
-    "/movimentos",
-    methods=["GET", "POST"]
-)
-def movimentos():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    data_ref = date.today()
-
-    return render_template(
-
-        "movimentos.html",
-
-        movimentos=[],
-
-        mov_edicao=None,
-
-        entradas=0,
-
-        saidas=0,
-
-        perdas=0,
-
-        areas=[],
-
-        setores=[],
-
-        items=[],
-
-        data_ref=data_ref,
-
-        error=None,
-
-        success=None
-    )
-
-# =====================================================
-# DESPERDÍCIO
-# =====================================================
-
-@app.route("/desperdicio")
-def desperdicio():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "desperdicio.html"
-    )
-
-# =====================================================
-# COMPRAS
-# =====================================================
-
-@app.route("/compras")
-def compras():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "compras.html"
-    )
-
-# =====================================================
-# LISTA COMPRAS
-# =====================================================
-
-@app.route("/lista_compras")
-def lista_compras():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "lista_compras.html"
-    )
-
-# =====================================================
-# METAS
-# =====================================================
-
-@app.route("/metas")
-def metas():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    return render_template(
-        "metas.html"
-    )
-
-# =====================================================
-# AUDITORIA
-# =====================================================
-
-@app.route("/auditoria")
-def auditoria():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    class FakePagination:
-
-        items = []
-
-        page = 1
-
-        pages = 1
-
-        has_prev = False
-
-        has_next = False
-
-    return render_template(
-
-        "auditoria.html",
-
-        logs=FakePagination(),
-
-        get_badge_class=lambda x: ""
-    )
-
-# =====================================================
-# RELATORIO
-# =====================================================
-
-@app.route("/relatorio_gerencial")
-def relatorio_gerencial():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    faturamento = db.session.query(
-        db.func.sum(Venda.valor)
-    ).scalar() or 0
-
-    return render_template(
-
-        "relatorio-gerencial.html",
-
-        faturamento=faturamento,
-
-        custo=0,
-
-        lucro=faturamento,
-
-        cmv=0,
-
-        refeicoes=0,
-
-        total_perdas=0,
-
-        total_diario=faturamento,
-
-        por_periodo={},
-
-        ranking_vendas=[],
-
-        resumo_setores=[],
-
-        ticket_medio=0,
-
-        margem=0,
-
-        data_ref=date.today(),
-
-        mes_ref=date.today()
-    )
-
-# =====================================================
-# USUARIOS
-# =====================================================
-
-@app.route(
-    "/usuarios",
-    methods=["GET", "POST"]
-)
-def usuarios():
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    roles = [
-
-        "admin",
-
-        "gerente",
-
-        "caixa",
-
-        "funcionario"
-
-    ]
-
-    if request.method == "POST":
-
-        username = request.form.get(
-            "username"
-        )
-
-        existe = User.query.filter_by(
-            username=username
-        ).first()
-
-        if existe:
-
-            flash(
-                "Usuário já existe.",
-                "error"
-            )
-
-            return redirect(
-                url_for("usuarios")
-            )
-
-        novo = User(
-
-            name=request.form.get("name"),
-
-            username=username,
-
-            password=request.form.get("password"),
-
-            role=request.form.get("role")
-        )
-
-        db.session.add(novo)
-
-        db.session.commit()
-
-        flash(
-            "Usuário criado com sucesso.",
-            "success"
-        )
-
-        return redirect(
-            url_for("usuarios")
-        )
-
-    lista = User.query.all()
-
-    return render_template(
-
-        "usuarios.html",
-
-        usuarios=lista,
-
-        roles=roles,
-
-        error=None,
-
-        success=None
-    )
-
-# =====================================================
-# EXCLUIR USUARIO
-# =====================================================
-
-@app.route(
-    "/excluir_usuario/<int:user_id>",
-    methods=["POST"]
-)
-def excluir_usuario(user_id):
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    if session.get("user_id") == user_id:
-
-        flash(
-            "Você não pode excluir seu próprio usuário.",
-            "error"
-        )
-
-        return redirect(
-            url_for("usuarios")
-        )
-
-    usuario = User.query.get_or_404(
-        user_id
-    )
-
-    db.session.delete(usuario)
-
-    db.session.commit()
-
-    flash(
-        "Usuário removido.",
-        "success"
-    )
-
-    return redirect(
-        url_for("usuarios")
+        "producao.html"
     )
 
 # =====================================================
