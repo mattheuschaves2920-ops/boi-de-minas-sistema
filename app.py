@@ -416,166 +416,21 @@ def vendas():
     if auth:
         return auth
 
-    error = None
-
-    success = None
-
-    data_param = request.args.get("data")
-
-    try:
-
-        data_ref = (
-
-            datetime.strptime(
-                data_param,
-                "%Y-%m-%d"
-            ).date()
-
-            if data_param
-
-            else date.today()
-        )
-
-    except:
-
-        data_ref = date.today()
-
-    venda_edicao = None
-
-    editar_id = request.args.get(
-        "editar"
-    )
-
-    if editar_id:
-
-        venda_edicao = Venda.query.get(
-            editar_id
-        )
-
-    if request.method == "POST":
-
-        try:
-
-            sale_date = datetime.strptime(
-
-                request.form.get(
-                    "sale_date"
-                ),
-
-                "%Y-%m-%d"
-
-            ).date()
-
-            meal_type = request.form.get(
-                "meal_type"
-            )
-
-            unit_value = float(
-                request.form.get(
-                    "unit_value",
-                    0
-                )
-            )
-
-            quantity = float(
-                request.form.get(
-                    "quantity",
-                    0
-                )
-            )
-
-            total = unit_value * quantity
-
-            if venda_edicao:
-
-                venda_edicao.cliente = meal_type
-
-                venda_edicao.valor = total
-
-                venda_edicao.data = sale_date
-
-            else:
-
-                nova = Venda(
-
-                    cliente=meal_type,
-
-                    valor=total,
-
-                    data=sale_date
-                )
-
-                db.session.add(nova)
-
-            db.session.commit()
-
-            return redirect(
-                url_for("vendas")
-            )
-
-        except Exception as e:
-
-            db.session.rollback()
-
-            error = str(e)
-
-    vendas = Venda.query.filter_by(
-        data=data_ref
-    ).order_by(
-        Venda.id.desc()
-    ).all()
-
-    total_hoje = sum(
-        v.valor for v in vendas
-    )
-
     return render_template(
 
         "vendas.html",
 
-        vendas=vendas,
+        vendas=[],
 
-        total_hoje=total_hoje,
+        total_hoje=0,
 
-        venda_edicao=venda_edicao,
+        venda_edicao=None,
 
-        data_ref=data_ref,
+        data_ref=date.today(),
 
-        error=error,
+        error=None,
 
-        success=success
-    )
-
-# =====================================================
-# EXCLUIR VENDA
-# =====================================================
-
-@app.route(
-    "/excluir_venda/<int:sale_id>",
-    methods=["POST"]
-)
-def excluir_venda(sale_id):
-
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
-    venda = Venda.query.get_or_404(
-        sale_id
-    )
-
-    db.session.delete(venda)
-
-    db.session.commit()
-
-    flash(
-        "Venda excluída.",
-        "success"
-    )
-
-    return redirect(
-        url_for("vendas")
+        success=None
     )
 
 # =====================================================
@@ -700,39 +555,7 @@ def movimentos():
 
     success = None
 
-    data_param = request.args.get(
-        "data"
-    )
-
-    try:
-
-        data_ref = (
-
-            datetime.strptime(
-                data_param,
-                "%Y-%m-%d"
-            ).date()
-
-            if data_param
-
-            else date.today()
-        )
-
-    except:
-
-        data_ref = date.today()
-
-    mov_edicao = None
-
-    editar_id = request.args.get(
-        "editar"
-    )
-
-    if editar_id:
-
-        mov_edicao = Movimento.query.get(
-            editar_id
-        )
+    data_ref = date.today()
 
     areas = [
 
@@ -770,12 +593,6 @@ def movimentos():
                 item_id
             )
 
-            if not item:
-
-                raise Exception(
-                    "Item inválido."
-                )
-
             mov_type = request.form.get(
                 "mov_type"
             )
@@ -793,8 +610,6 @@ def movimentos():
                     0
                 ) or 0
             )
-
-            value = quantity * unit_cost
 
             mov_date = datetime.strptime(
 
@@ -816,15 +631,7 @@ def movimentos():
 
             else:
 
-                if item.stock < quantity:
-
-                    raise Exception(
-                        "Estoque insuficiente."
-                    )
-
                 item.stock -= quantity
-
-                value = quantity * item.cost
 
             novo = Movimento(
 
@@ -844,7 +651,7 @@ def movimentos():
 
                 quantity=quantity,
 
-                value=value,
+                value=quantity * item.cost,
 
                 detail=request.form.get(
                     "detail"
@@ -869,9 +676,7 @@ def movimentos():
 
             error = str(e)
 
-    movimentos = Movimento.query.filter_by(
-        mov_date=data_ref
-    ).order_by(
+    movimentos = Movimento.query.order_by(
         Movimento.id.desc()
     ).all()
 
@@ -899,7 +704,7 @@ def movimentos():
 
         movimentos=movimentos,
 
-        mov_edicao=mov_edicao,
+        mov_edicao=None,
 
         entradas=entradas,
 
@@ -935,8 +740,6 @@ def desperdicio():
     if auth:
         return auth
 
-    data_ref = date.today()
-
     return render_template(
 
         "desperdicio.html",
@@ -947,7 +750,7 @@ def desperdicio():
 
         items=[],
 
-        data_ref=data_ref,
+        data_ref=date.today(),
 
         error=None
     )
@@ -1026,6 +829,274 @@ def producao():
 
     return render_template(
         "producao.html"
+    )
+
+# =====================================================
+# COMPRAS
+# =====================================================
+
+@app.route("/compras")
+def compras():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "compras.html"
+    )
+
+# =====================================================
+# LISTA COMPRAS
+# =====================================================
+
+@app.route("/lista_compras")
+def lista_compras():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "lista_compras.html"
+    )
+
+# =====================================================
+# METAS
+# =====================================================
+
+@app.route("/metas")
+def metas():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "metas.html"
+    )
+
+# =====================================================
+# AUDITORIA
+# =====================================================
+
+@app.route("/auditoria")
+def auditoria():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    class FakePagination:
+
+        items = []
+
+        page = 1
+
+        pages = 1
+
+        has_prev = False
+
+        has_next = False
+
+    return render_template(
+
+        "auditoria.html",
+
+        logs=FakePagination(),
+
+        get_badge_class=lambda x: ""
+    )
+
+# =====================================================
+# RELATORIO GERENCIAL
+# =====================================================
+
+@app.route("/relatorio_gerencial")
+def relatorio_gerencial():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    faturamento = db.session.query(
+        db.func.sum(Venda.valor)
+    ).scalar() or 0
+
+    custo = db.session.query(
+        db.func.sum(
+            Item.stock * Item.cost
+        )
+    ).scalar() or 0
+
+    lucro = faturamento - custo
+
+    return render_template(
+
+        "relatorio-gerencial.html",
+
+        faturamento=faturamento,
+
+        custo=custo,
+
+        lucro=lucro,
+
+        cmv=0,
+
+        refeicoes=0,
+
+        total_perdas=0,
+
+        total_diario=faturamento,
+
+        por_periodo={},
+
+        ranking_vendas=[],
+
+        resumo_setores=[],
+
+        ticket_medio=0,
+
+        margem=0,
+
+        data_ref=date.today(),
+
+        mes_ref=date.today()
+    )
+
+# =====================================================
+# USUARIOS
+# =====================================================
+
+@app.route(
+    "/usuarios",
+    methods=["GET", "POST"]
+)
+def usuarios():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    roles = [
+
+        "admin",
+
+        "gerente",
+
+        "caixa",
+
+        "funcionario"
+
+    ]
+
+    if request.method == "POST":
+
+        username = request.form.get(
+            "username"
+        )
+
+        existe = User.query.filter_by(
+            username=username
+        ).first()
+
+        if existe:
+
+            flash(
+                "Usuário já existe.",
+                "error"
+            )
+
+            return redirect(
+                url_for("usuarios")
+            )
+
+        novo = User(
+
+            name=request.form.get("name"),
+
+            username=username,
+
+            password=request.form.get("password"),
+
+            role=request.form.get("role")
+        )
+
+        db.session.add(novo)
+
+        db.session.commit()
+
+        flash(
+            "Usuário criado com sucesso.",
+            "success"
+        )
+
+        return redirect(
+            url_for("usuarios")
+        )
+
+    lista = User.query.all()
+
+    return render_template(
+
+        "usuarios.html",
+
+        usuarios=lista,
+
+        roles=roles,
+
+        error=None,
+
+        success=None
+    )
+
+# =====================================================
+# EXCLUIR USUARIO
+# =====================================================
+
+@app.route(
+    "/excluir_usuario/<int:user_id>",
+    methods=["POST"]
+)
+def excluir_usuario(user_id):
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    if session.get("user_id") == user_id:
+
+        flash(
+            "Você não pode excluir seu próprio usuário.",
+            "error"
+        )
+
+        return redirect(
+            url_for("usuarios")
+        )
+
+    usuario = User.query.get_or_404(
+        user_id
+    )
+
+    db.session.delete(usuario)
+
+    db.session.commit()
+
+    flash(
+        "Usuário removido.",
+        "success"
+    )
+
+    return redirect(
+        url_for("usuarios")
     )
 
 # =====================================================
