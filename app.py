@@ -514,106 +514,70 @@ def excluir_usuario(user_id):
 # VENDAS
 # =====================================================
 
-@app.route(
-    "/vendas",
-    methods=["GET", "POST"]
-)
+@app.route("/vendas", methods=["GET", "POST"])
+@login_required
 def vendas():
 
-    auth = verificar_login()
-
-    if auth:
-        return auth
-
     error = None
+    success = None
+
+    itens = ItemVenda.query.order_by(
+        ItemVenda.nome.asc()
+    ).all()
 
     if request.method == "POST":
 
         try:
 
-            meal_type = request.form.get(
-                "meal_type"
+            data = request.form.get("data")
+            tipo = request.form.get("tipo")
+            turno = request.form.get("turno")
+
+            valor_unitario = float(
+                request.form.get("valor_unitario", 0)
             )
 
-            turno = request.form.get(
-                "turno"
+            quantidade = float(
+                request.form.get("quantidade", 0)
             )
 
-            quantity = float(
-                request.form.get(
-                    "quantity"
-                )
-            )
+            total = valor_unitario * quantidade
 
-            unit_value = float(
-                request.form.get(
-                    "unit_value"
-                )
-            )
-
-            sale_date = datetime.strptime(
-                request.form.get(
-                    "sale_date"
-                ),
-                "%Y-%m-%d"
-            ).date()
-
-            total = quantity * unit_value
-
-            nova = Venda(
-
-                meal_type=meal_type,
-
+            nova_venda = Venda(
+                data=datetime.strptime(data, "%Y-%m-%d"),
+                tipo=tipo,
                 turno=turno,
-
-                quantity=quantity,
-
-                unit_value=unit_value,
-
-                total=total,
-
-                sale_date=sale_date
+                valor_unitario=valor_unitario,
+                quantidade=quantidade,
+                total=total
             )
 
-            db.session.add(nova)
-
+            db.session.add(nova_venda)
             db.session.commit()
 
-            return redirect(
-                url_for("vendas")
-            )
+            success = "Venda registrada com sucesso."
 
         except Exception as e:
 
             db.session.rollback()
-
-            error = str(e)
+            error = f"Erro ao salvar venda: {str(e)}"
 
     vendas = Venda.query.order_by(
         Venda.id.desc()
     ).all()
 
-    total_hoje = sum(
-        v.total for v in vendas
+    total_vendas = sum(
+        venda.total for venda in vendas
     )
-
-    tipos_venda = TipoVenda.query.order_by(
-        TipoVenda.nome.asc()
-    ).all()
 
     return render_template(
-
         "vendas.html",
-
         vendas=vendas,
-
-        total_hoje=total_hoje,
-
-        tipos_venda=tipos_venda,
-
-        error=error
+        total_vendas=total_vendas,
+        itens=itens,
+        error=error,
+        success=success
     )
-
 # =====================================================
 # EXCLUIR VENDA
 # =====================================================
