@@ -378,6 +378,12 @@ def usuarios():
     if auth:
         return auth
 
+    if session.get("role") != "admin":
+
+        return redirect(
+            url_for("dashboard")
+        )
+
     error = None
     success = None
 
@@ -636,7 +642,28 @@ def excluir_venda(sale_id):
     )
 
 # =====================================================
-# PAGINAS
+# ITENS
+# =====================================================
+
+@app.route("/itens")
+def itens():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    lista = Item.query.order_by(
+        Item.name.asc()
+    ).all()
+
+    return render_template(
+        "itens.html",
+        itens=lista
+    )
+
+# =====================================================
+# CONTROLE
 # =====================================================
 
 @app.route("/controle")
@@ -651,6 +678,10 @@ def controle():
         "controle.html"
     )
 
+# =====================================================
+# COMPRAS
+# =====================================================
+
 @app.route("/compras")
 def compras():
 
@@ -662,6 +693,10 @@ def compras():
     return render_template(
         "compras.html"
     )
+
+# =====================================================
+# MOVIMENTOS
+# =====================================================
 
 @app.route("/movimentos")
 def movimentos():
@@ -675,6 +710,10 @@ def movimentos():
         "movimentos.html"
     )
 
+# =====================================================
+# DESPERDICIO
+# =====================================================
+
 @app.route("/desperdicio")
 def desperdicio():
 
@@ -686,6 +725,10 @@ def desperdicio():
     return render_template(
         "desperdicio.html"
     )
+
+# =====================================================
+# PRODUCAO
+# =====================================================
 
 @app.route("/producao")
 def producao():
@@ -699,6 +742,10 @@ def producao():
         "producao.html"
     )
 
+# =====================================================
+# METAS
+# =====================================================
+
 @app.route("/metas")
 def metas():
 
@@ -710,6 +757,10 @@ def metas():
     return render_template(
         "metas.html"
     )
+
+# =====================================================
+# AUDITORIA
+# =====================================================
 
 @app.route("/auditoria")
 def auditoria():
