@@ -682,16 +682,16 @@ def controle():
 # COMPRAS
 # =====================================================
 
-@app.route("/compras")
-def compras():
+@app.route("/lista_compras")
+def lista_compras():
 
     auth = verificar_login()
 
     if auth:
         return auth
 
-    return render_template(
-        "compras.html"
+    return redirect(
+        url_for("compras")
     )
 
 # =====================================================
