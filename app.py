@@ -645,6 +645,22 @@ def excluir_venda(sale_id):
     )
 
 # =====================================================
+# ITENS
+# =====================================================
+
+@app.route("/itens")
+def itens():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "itens.html"
+    )
+
+# =====================================================
 # CONTROLE
 # =====================================================
 
@@ -684,6 +700,78 @@ def desperdicio():
         items=[],
 
         error=None
+    )
+
+# =====================================================
+# MOVIMENTOS
+# =====================================================
+
+@app.route("/movimentos")
+def movimentos():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+
+        "movimentos.html",
+
+        movimentos=[],
+
+        mov_edicao=None,
+
+        entradas=0,
+
+        saidas=0,
+
+        perdas=0,
+
+        areas=[],
+
+        setores=[],
+
+        items=[],
+
+        data_ref=date.today(),
+
+        error=None,
+
+        success=None
+    )
+
+# =====================================================
+# PRODUCAO
+# =====================================================
+
+@app.route("/producao")
+def producao():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+
+        "producao.html",
+
+        lista=[],
+
+        total_qtd=0,
+
+        total_custo=0,
+
+        setores=[],
+
+        items=[],
+
+        data_ref=date.today(),
+
+        error=None,
+
+        success=None
     )
 
 # =====================================================
@@ -748,6 +836,51 @@ def auditoria():
 
     return render_template(
         "auditoria.html"
+    )
+
+# =====================================================
+# RELATORIO GERENCIAL
+# =====================================================
+
+@app.route("/relatorio_gerencial")
+def relatorio_gerencial():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+
+        "relatorio-gerencial.html",
+
+        faturamento=0,
+
+        custo=0,
+
+        lucro=0,
+
+        cmv=0,
+
+        refeicoes=0,
+
+        total_perdas=0,
+
+        total_diario=0,
+
+        por_periodo={},
+
+        ranking_vendas=[],
+
+        resumo_setores=[],
+
+        ticket_medio=0,
+
+        margem=0,
+
+        data_ref=date.today(),
+
+        mes_ref=date.today()
     )
 
 # =====================================================
