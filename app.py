@@ -682,6 +682,22 @@ def controle():
 # COMPRAS
 # =====================================================
 
+@app.route("/compras")
+def compras():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "compras.html"
+    )
+
+# =====================================================
+# LISTA COMPRAS
+# =====================================================
+
 @app.route("/lista_compras")
 def lista_compras():
 
@@ -772,6 +788,47 @@ def auditoria():
 
     return render_template(
         "auditoria.html"
+    )
+
+# =====================================================
+# RELATORIO GERENCIAL
+# =====================================================
+
+@app.route("/relatorio_gerencial")
+def relatorio_gerencial():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    faturamento = db.session.query(
+        db.func.sum(Venda.total)
+    ).scalar() or 0
+
+    quantidade_vendas = Venda.query.count()
+
+    ticket_medio = 0
+
+    if quantidade_vendas > 0:
+
+        ticket_medio = faturamento / quantidade_vendas
+
+    vendas = Venda.query.order_by(
+        Venda.sale_date.desc()
+    ).all()
+
+    return render_template(
+
+        "relatorio_gerencial.html",
+
+        faturamento=faturamento,
+
+        quantidade_vendas=quantidade_vendas,
+
+        ticket_medio=ticket_medio,
+
+        vendas=vendas
     )
 
 # =====================================================
