@@ -545,8 +545,6 @@ def vendas():
                 venda.total = total
                 venda.sale_date = sale_date
 
-                success = "Venda atualizada."
-
             else:
 
                 nova = Venda(
@@ -565,8 +563,6 @@ def vendas():
                 )
 
                 db.session.add(nova)
-
-                success = "Venda registrada."
 
             db.session.commit()
 
@@ -662,6 +658,115 @@ def controle():
 
     return render_template(
         "controle.html"
+    )
+
+# =====================================================
+# DESPERDICIO
+# =====================================================
+
+@app.route("/desperdicio")
+def desperdicio():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "desperdicio.html",
+
+        lista=[],
+
+        data_ref=date.today(),
+
+        desperdicio_edicao=None,
+
+        items=[],
+
+        error=None
+    )
+
+# =====================================================
+# COMPRAS
+# =====================================================
+
+@app.route("/compras")
+def compras():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "compras.html"
+    )
+
+# =====================================================
+# LISTA COMPRAS
+# =====================================================
+
+@app.route("/lista_compras")
+def lista_compras():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "lista_compras.html"
+    )
+
+# =====================================================
+# METAS
+# =====================================================
+
+@app.route("/metas")
+def metas():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "metas.html"
+    )
+
+# =====================================================
+# AUDITORIA
+# =====================================================
+
+@app.route("/auditoria")
+def auditoria():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "auditoria.html"
+    )
+
+# =====================================================
+# USUARIOS
+# =====================================================
+
+@app.route("/usuarios")
+def usuarios():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    lista = User.query.all()
+
+    return render_template(
+        "usuarios.html",
+        usuarios=lista
     )
 
 # =====================================================
