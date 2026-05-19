@@ -149,6 +149,16 @@
 
             {% endif %}
 
+            {% if venda_edicao %}
+
+            <input
+                type="hidden"
+                name="venda_id"
+                value="{{ venda_edicao.id }}"
+            >
+
+            {% endif %}
+
             <!-- DATA -->
 
             <label>
@@ -186,7 +196,7 @@
                     required
 
                     placeholder="
-                    Ex: Almoço, Marmita...
+                    Digite ou escolha um item
                     "
 
                     value="
@@ -197,17 +207,68 @@
 
                 <datalist id="tipos-refeicao">
 
-                    <option value="Almoço">
-                    <option value="Janta">
-                    <option value="Lanche">
-                    <option value="Marmita">
-                    <option value="Bebida">
-                    <option value="Sobremesa">
-                    <option value="Self-Service">
-                    <option value="Prato Feito">
-                    <option value="Delivery">
+                    {% for tipo in tipos_venda %}
+
+                    <option value="{{ tipo.nome }}">
+
+                    {% endfor %}
 
                 </datalist>
+
+            </label>
+
+            <!-- TURNO -->
+
+            <label>
+
+                🌞 Turno
+
+                <select
+                    name="turno"
+                    required
+                >
+
+                    <option value="">
+                        Selecione
+                    </option>
+
+                    <option
+                        value="Manhã"
+
+                        {% if venda_edicao and venda_edicao.turno == 'Manhã' %}
+                        selected
+                        {% endif %}
+                    >
+
+                        Manhã
+
+                    </option>
+
+                    <option
+                        value="Tarde"
+
+                        {% if venda_edicao and venda_edicao.turno == 'Tarde' %}
+                        selected
+                        {% endif %}
+                    >
+
+                        Tarde
+
+                    </option>
+
+                    <option
+                        value="Noite"
+
+                        {% if venda_edicao and venda_edicao.turno == 'Noite' %}
+                        selected
+                        {% endif %}
+                    >
+
+                        Noite
+
+                    </option>
+
+                </select>
 
             </label>
 
@@ -337,7 +398,10 @@
                     "
                 >
 
-                    💾 Salvar Venda
+                    💾
+                    {{ 'Salvar Alteração'
+                       if venda_edicao
+                       else 'Salvar Venda' }}
 
                 </button>
 
@@ -445,6 +509,7 @@
                     <tr>
 
                         <th>Tipo</th>
+                        <th>Turno</th>
                         <th>Qtd</th>
                         <th>Total</th>
                         <th>Ações</th>
@@ -473,6 +538,14 @@
 
                             </td>
 
+                            <!-- TURNO -->
+
+                            <td>
+
+                                {{ v.turno }}
+
+                            </td>
+
                             <!-- QUANTIDADE -->
 
                             <td>
@@ -491,9 +564,7 @@
                             >
 
                                 R$
-                                {{ '%.2f'|format(
-                                    v.unit_value * v.quantity
-                                ) }}
+                                {{ '%.2f'|format(v.total) }}
 
                             </td>
 
@@ -585,7 +656,7 @@
                     <tr>
 
                         <td
-                            colspan="4"
+                            colspan="5"
 
                             class="muted"
 
