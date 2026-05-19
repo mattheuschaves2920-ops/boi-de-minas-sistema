@@ -903,6 +903,49 @@ def usuarios():
     )
 
 # =====================================================
+# EXCLUIR USUARIO
+# =====================================================
+
+@app.route(
+    "/excluir_usuario/<int:user_id>",
+    methods=["POST"]
+)
+def excluir_usuario(user_id):
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    usuario = User.query.get_or_404(
+        user_id
+    )
+
+    if usuario.id == session.get("user_id"):
+
+        flash(
+            "Você não pode excluir seu próprio usuário.",
+            "error"
+        )
+
+        return redirect(
+            url_for("usuarios")
+        )
+
+    db.session.delete(usuario)
+
+    db.session.commit()
+
+    flash(
+        "Usuário removido com sucesso.",
+        "success"
+    )
+
+    return redirect(
+        url_for("usuarios")
+    )
+
+# =====================================================
 # START
 # =====================================================
 
