@@ -272,13 +272,8 @@ class Movimento(db.Model):
 
 with app.app_context():
 
-    # REMOVE TABELAS ANTIGAS
-    db.drop_all()
-
-    # CRIA NOVAS TABELAS
     db.create_all()
 
-    # CRIA ADMIN PADRÃO
     admin = User.query.filter_by(
         username="admin"
     ).first()
@@ -651,6 +646,22 @@ def excluir_venda(sale_id):
 
     return redirect(
         url_for("vendas")
+    )
+
+# =====================================================
+# CONTROLE
+# =====================================================
+
+@app.route("/controle")
+def controle():
+
+    auth = verificar_login()
+
+    if auth:
+        return auth
+
+    return render_template(
+        "controle.html"
     )
 
 # =====================================================
