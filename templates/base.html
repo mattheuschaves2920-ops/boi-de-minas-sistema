@@ -82,6 +82,7 @@
 
     </div>
 
+
     <!-- MENU MOBILE -->
 
     <button
@@ -95,6 +96,7 @@
         <span></span>
 
     </button>
+
 
     <!-- MENU -->
 
@@ -127,7 +129,11 @@
             </a>
 
             <a href="{{ url_for('itens') }}">
-                Estoque
+                📦 Estoque
+            </a>
+
+            <a href="{{ url_for('estoque_inicial') }}">
+                📝 Estoque Inicial
             </a>
 
             <a href="{{ url_for('lista_compras') }}">
@@ -147,10 +153,11 @@
             </a>
 
             <a href="{{ url_for('auditoria') }}">
-                Auditoria
+                🔎 Auditoria
             </a>
 
         {% endif %}
+
 
         <!-- DARK MODE -->
 
@@ -166,6 +173,7 @@
             </span>
 
         </button>
+
 
         <!-- SAIR -->
 
@@ -185,6 +193,7 @@
     </nav>
 
 </header>
+
 
 <!-- ───────────────── ALERTA ───────────────── -->
 
@@ -212,9 +221,11 @@
 
 {% endif %}
 
+
 <!-- ───────────────── TOAST ───────────────── -->
 
 <div id="toast-container"></div>
+
 
 {% with messages = get_flashed_messages() %}
 
@@ -243,6 +254,7 @@
 
 {% endwith %}
 
+
 <!-- ───────────────── CONTEÚDO ───────────────── -->
 
 <main class="container">
@@ -252,6 +264,7 @@
 
 </main>
 
+
 <!-- ───────────────── FOOTER ───────────────── -->
 
 <footer class="footer">
@@ -259,6 +272,7 @@
     © 2026 Boi de Minas — Sistema de Gestão
 
 </footer>
+
 
 <!-- ───────────────── JAVASCRIPT ───────────────── -->
 
@@ -282,6 +296,7 @@ document.addEventListener(
         updateIcon(saved);
     }
 );
+
 
 function toggleDark() {
 
@@ -308,6 +323,7 @@ function toggleDark() {
     updateIcon(next);
 }
 
+
 function updateIcon(mode) {
 
     const icon =
@@ -323,6 +339,7 @@ function updateIcon(mode) {
             : '🌙';
     }
 }
+
 
 /* ───────────────── MENU MOBILE ───────────────── */
 
@@ -340,6 +357,7 @@ function toggleMenu() {
         );
     }
 }
+
 
 /* ───────────────── TOAST ───────────────── */
 
@@ -386,24 +404,39 @@ function showToast(msg, type = 'success') {
 
 </script>
 
-    <script>
+
+<script>
 
 if ('serviceWorker' in navigator) {
 
     window.addEventListener('load', () => {
 
-        navigator.serviceWorker.register('/static/service-worker.js')
-            .then(reg => {
-                console.log('Service Worker registrado:', reg.scope);
-            })
-            .catch(err => {
-                console.log('Erro Service Worker:', err);
-            });
+        navigator.serviceWorker.register(
+            '/static/service-worker.js'
+        )
+        .then(reg => {
+
+            console.log(
+                'Service Worker registrado:',
+                reg.scope
+            );
+
+        })
+        .catch(err => {
+
+            console.log(
+                'Erro Service Worker:',
+                err
+            );
+
+        });
+
     });
+
 }
 
 </script>
-    
+
 </body>
 
 </html>
