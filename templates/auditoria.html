@@ -12,15 +12,20 @@
 
         <p class="muted">
 
-            Página {{ logs.page or 1 }}
-            de
-            {{ logs.pages or 1 }}
+            Histórico das ações realizadas no sistema.
+
+            {% if logs %}
+                Página {{ logs.page or 1 }}
+                de
+                {{ logs.pages or 1 }}
+            {% endif %}
 
         </p>
 
     </div>
 
 </div>
+
 
 <section class="card">
 
@@ -48,6 +53,7 @@
 
             </thead>
 
+
             <tbody>
 
                 {% if logs and logs.items %}
@@ -55,6 +61,8 @@
                     {% for log in logs.items %}
 
                     <tr>
+
+                        <!-- DATA -->
 
                         <td class="nowrap">
 
@@ -82,6 +90,9 @@
 
                         </td>
 
+
+                        <!-- USUÁRIO -->
+
                         <td>
 
                             <strong>
@@ -92,15 +103,109 @@
 
                         </td>
 
+
+                        <!-- AÇÃO -->
+
                         <td>
 
-                            <span class="badge">
+                            {% if log.action == "ZERAR_ESTOQUE" %}
 
-                                {{ log.action or '—' }}
+                                <span
+                                    class="badge"
+                                    style="
+                                        background:#7f1d1d;
+                                        color:white;
+                                    "
+                                >
 
-                            </span>
+                                    🗑️ Estoque zerado
+
+                                </span>
+
+                            {% elif log.action == "ESTOQUE_INICIAL" %}
+
+                                <span
+                                    class="badge"
+                                    style="
+                                        background:#166534;
+                                        color:white;
+                                    "
+                                >
+
+                                    📦 Estoque inicial
+
+                                </span>
+
+                            {% elif log.action == "CRIAR_ITEM" %}
+
+                                <span class="badge">
+
+                                    📦 Item criado
+
+                                </span>
+
+                            {% elif log.action == "CRIAR_USUARIO" %}
+
+                                <span class="badge">
+
+                                    👤 Usuário criado
+
+                                </span>
+
+                            {% elif log.action == "EXCLUIR_USUARIO" %}
+
+                                <span class="badge">
+
+                                    🗑️ Usuário excluído
+
+                                </span>
+
+                            {% elif log.action == "LOGIN" %}
+
+                                <span class="badge">
+
+                                    🔐 Login
+
+                                </span>
+
+                            {% elif log.action == "LOGOUT" %}
+
+                                <span class="badge">
+
+                                    🚪 Logout
+
+                                </span>
+
+                            {% elif log.action == "REGISTRAR_VENDA" %}
+
+                                <span class="badge">
+
+                                    💰 Venda
+
+                                </span>
+
+                            {% elif log.action == "EXCLUIR_VENDA" %}
+
+                                <span class="badge">
+
+                                    🗑️ Venda excluída
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge">
+
+                                    {{ log.action or '—' }}
+
+                                </span>
+
+                            {% endif %}
 
                         </td>
+
+
+                        <!-- RECURSO -->
 
                         <td>
 
@@ -120,6 +225,9 @@
 
                         </td>
 
+
+                        <!-- DETALHE -->
+
                         <td class="truncate">
 
                             <small class="muted">
@@ -129,6 +237,9 @@
                             </small>
 
                         </td>
+
+
+                        <!-- IP -->
 
                         <td>
 
@@ -151,6 +262,7 @@
                         <td
                             colspan="6"
                             class="center muted"
+                            style="padding:25px;"
                         >
 
                             Nenhum registro encontrado.
@@ -169,6 +281,9 @@
 
 </section>
 
+
+<!-- PAGINAÇÃO -->
+
 {% if logs and logs.pages and logs.pages > 1 %}
 
 <div
@@ -179,6 +294,7 @@
         justify-content:center;
         align-items:center;
         gap:15px;
+        flex-wrap:wrap;
     "
 >
 
@@ -195,6 +311,7 @@
 
     {% endif %}
 
+
     <span class="muted">
 
         Página {{ logs.page }}
@@ -202,6 +319,7 @@
         {{ logs.pages }}
 
     </span>
+
 
     {% if logs.has_next %}
 
