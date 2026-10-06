@@ -29,9 +29,7 @@
                 </h3>
 
                 <p class="muted">
-
                     Controle completo de estoque.
-
                 </p>
 
             </div>
@@ -68,9 +66,10 @@
 
         <!-- FORM -->
 
-        <form method="POST">
-
-            <!-- CSRF -->
+        <form
+            method="POST"
+            action="{{ url_for('itens') }}"
+        >
 
             {% if csrf_token %}
 
@@ -106,19 +105,15 @@
                             {% for a in areas %}
 
                             <option value="{{ a }}">
-
                                 {{ a }}
-
                             </option>
 
                             {% endfor %}
 
                         {% else %}
 
-                            <option value="">
-
-                                Nenhuma área cadastrada
-
+                            <option value="Estoque Geral">
+                                Estoque Geral
                             </option>
 
                         {% endif %}
@@ -265,6 +260,7 @@
 
     </section>
 
+
     <!-- LISTA -->
 
     <section class="card">
@@ -287,9 +283,7 @@
                 </h3>
 
                 <p class="muted">
-
                     Produtos cadastrados no sistema.
-
                 </p>
 
             </div>
@@ -297,9 +291,7 @@
             <div>
 
                 <strong>
-
                     {{ itens|length if itens else 0 }}
-
                 </strong>
 
                 itens
@@ -308,23 +300,95 @@
 
         </div>
 
+
+        <!-- COMANDOS DE ESTOQUE -->
+
+        {% if current_user and current_user.role == "admin" %}
+
+        <div
+            style="
+                display:grid;
+                grid-template-columns:1fr 1fr;
+                gap:10px;
+                margin-bottom:18px;
+            "
+        >
+
+            <a
+                href="{{ url_for('estoque_inicial') }}"
+                class="btn"
+                style="
+                    text-decoration:none;
+                    text-align:center;
+                "
+            >
+
+                📝 Lançar Estoque Inicial
+
+            </a>
+
+
+            <form
+                method="POST"
+                action="{{ url_for('zerar_estoque') }}"
+                onsubmit="
+                    return confirm(
+                        'ATENÇÃO!\\n\\n' +
+                        'Isso irá colocar TODOS os produtos cadastrados em estoque ZERO.\\n\\n' +
+                        'Os produtos NÃO serão excluídos.\\n\\n' +
+                        'Depois você poderá lançar a contagem física no Estoque Inicial.\\n\\n' +
+                        'Deseja realmente continuar?'
+                    );
+                "
+                style="margin:0;"
+            >
+
+                {% if csrf_token %}
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="{{ csrf_token() }}"
+                >
+
+                {% endif %}
+
+                <button
+                    type="submit"
+                    class="btn"
+                    style="
+                        width:100%;
+                        background:#7f1d1d;
+                        border-color:#7f1d1d;
+                    "
+                >
+
+                    🗑️ Zerar Estoque
+
+                </button>
+
+            </form>
+
+        </div>
+
+        {% endif %}
+
+
         <!-- BUSCA -->
 
         <input
             type="text"
             id="busca"
-
             placeholder="🔎 Buscar item..."
-
             style="
                 width:100%;
                 padding:10px;
                 margin-bottom:15px;
-
                 border:1px solid var(--line);
                 border-radius:8px;
             "
         >
+
 
         <!-- TABELA -->
 
@@ -365,7 +429,6 @@
                         %}
 
                         <tr
-
                             style="
                                 {{ 'background:#fff5f5'
                                    if critico else '' }}
@@ -375,17 +438,13 @@
                             <td>
 
                                 <strong>
-
                                     {{ i.name or '—' }}
-
                                 </strong>
 
                                 <br>
 
                                 <small class="muted">
-
                                     {{ i.area or 'Sem área' }}
-
                                 </small>
 
                             </td>
@@ -393,9 +452,7 @@
                             <td>
 
                                 <strong>
-
                                     {{ i.stock or 0 }}
-
                                 </strong>
 
                                 {{ i.unit or '' }}
@@ -444,9 +501,7 @@
 
                         <td
                             colspan="3"
-
                             class="muted center"
-
                             style="padding:25px;"
                         >
 
@@ -468,11 +523,10 @@
 
 </div>
 
+
 <!-- SCRIPT -->
 
 <script>
-
-/* BUSCA */
 
 const busca =
     document.getElementById('busca');
@@ -508,7 +562,6 @@ if (busca) {
 
 }
 
-/* ORDENAÇÃO */
 
 function sortTable(col) {
 
